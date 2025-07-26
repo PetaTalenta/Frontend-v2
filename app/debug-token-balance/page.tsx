@@ -212,6 +212,9 @@ export default function DebugTokenBalancePage() {
     // Step 4: Test token balance function
     await testTokenBalanceFunction();
 
+    // Step 5: Advanced diagnostic
+    await testAdvancedDiagnostic();
+
     addDebugResult('Diagnostic', 'success', 'Full diagnostic completed');
     setIsDebugging(false);
   };
@@ -250,14 +253,21 @@ export default function DebugTokenBalancePage() {
         </CardHeader>
         <CardContent>
           <div className="flex gap-4">
-            <Button 
+            <Button
               onClick={runFullDiagnostic}
               disabled={isDebugging}
               className="bg-blue-600 hover:bg-blue-700"
             >
               {isDebugging ? 'Running Diagnostic...' : 'Run Full Diagnostic'}
             </Button>
-            <Button 
+            <Button
+              onClick={testAdvancedDiagnostic}
+              disabled={isDebugging}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              Advanced Test
+            </Button>
+            <Button
               onClick={clearResults}
               variant="outline"
               disabled={isDebugging}
