@@ -5,9 +5,9 @@
 ### 🔍 Kemungkinan Penyebab
 
 1. **API Endpoint Issues**
-   - Aplikasi menggunakan Mock API instead of Real API
    - Proxy API configuration error
    - Real API tidak accessible
+   - Network connectivity problems
 
 2. **Authentication Problems**
    - Token expired atau invalid
@@ -16,7 +16,7 @@
 
 3. **Database vs Cache Mismatch**
    - Real API database sudah diupdate tapi cache belum refresh
-   - Mock API menggunakan in-memory storage yang hilang saat restart
+   - Browser cache issues
 
 4. **Environment Configuration**
    - Environment variables tidak sesuai
@@ -39,15 +39,7 @@ http://localhost:3000/debug-token-balance
 console.log('Token:', localStorage.getItem('token'));
 console.log('User:', localStorage.getItem('user'));
 
-// 2. Test Mock API
-fetch('/api/auth/token-balance', {
-  headers: {
-    'Authorization': `Bearer ${localStorage.getItem('token')}`,
-    'Content-Type': 'application/json'
-  }
-}).then(r => r.json()).then(console.log);
-
-// 3. Test Proxy API
+// 2. Test Proxy API
 fetch('/api/proxy/auth/token-balance', {
   headers: {
     'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -55,7 +47,7 @@ fetch('/api/proxy/auth/token-balance', {
   }
 }).then(r => r.json()).then(console.log);
 
-// 4. Test Real API Direct
+// 3. Test Real API Direct
 fetch('https://api.chhrone.web.id/api/auth/token-balance', {
   headers: {
     'Authorization': `Bearer ${localStorage.getItem('token')}`,

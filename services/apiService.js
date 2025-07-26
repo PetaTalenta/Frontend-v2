@@ -151,18 +151,9 @@ class ApiService {
    * @param {string} assessmentName - Assessment type name
    */
   async submitAssessment(assessmentData, assessmentName = 'AI-Driven Talent Mapping') {
-    // Use enhanced assessment API for better error handling and fallback
-    try {
-      const { submitAssessment } = await import('./enhanced-assessment-api');
-      return await submitAssessment(assessmentData, assessmentName);
-    } catch (error) {
-      // Fallback to direct API call
-      const response = await this.axiosInstance.post(API_ENDPOINTS.ASSESSMENT.SUBMIT, {
-        assessmentName,
-        ...assessmentData
-      });
-      return response.data;
-    }
+    // Use enhanced assessment API (Real API only)
+    const { submitAssessment } = await import('./enhanced-assessment-api');
+    return await submitAssessment(assessmentData, assessmentName);
   }
 
   /**
@@ -170,14 +161,9 @@ class ApiService {
    * @param {string} jobId - Assessment job ID
    */
   async getAssessmentStatus(jobId) {
-    try {
-      const { getAssessmentStatus } = await import('./enhanced-assessment-api');
-      return await getAssessmentStatus(jobId);
-    } catch (error) {
-      // Fallback to direct API call
-      const response = await this.axiosInstance.get(API_ENDPOINTS.ASSESSMENT.STATUS(jobId));
-      return response.data;
-    }
+    // Use enhanced assessment API (Real API only)
+    const { getAssessmentStatus } = await import('./enhanced-assessment-api');
+    return await getAssessmentStatus(jobId);
   }
 
   /**

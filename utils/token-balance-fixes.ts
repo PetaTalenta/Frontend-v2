@@ -31,25 +31,21 @@ export async function forceRefreshTokenBalance(): Promise<FixResult> {
     // Clear any cached data
     localStorage.removeItem('tokenBalanceCache');
     
-    // Test all endpoints
+    // Test all endpoints (Mock API removed)
     const results = await Promise.allSettled([
-      fetch('/api/auth/token-balance', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      }).then(r => r.json()),
-      
       fetch('/api/proxy/auth/token-balance', {
         headers: { 'Authorization': `Bearer ${token}` }
       }).then(r => r.json()),
-      
+
       checkTokenBalance()
     ]);
 
     const successful = results.filter(r => r.status === 'fulfilled');
-    
+
     if (successful.length > 0) {
       return {
         success: true,
-        message: `Successfully refreshed from ${successful.length}/3 sources`,
+        message: `Successfully refreshed from ${successful.length}/2 sources`,
         details: results
       };
     } else {
@@ -111,7 +107,7 @@ export async function fixAuthenticationIssues(): Promise<FixResult> {
     }
 
     // Test token validity
-    const testResult = await fetch('/api/auth/token-balance', {
+    const testResult = await fetch('/api/proxy/auth/token-balance', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
 
@@ -150,62 +146,42 @@ export async function fixAuthenticationIssues(): Promise<FixResult> {
 export async function fixApiEndpointIssues(): Promise<FixResult> {
   try {
     console.log('🌐 Fixing API endpoint issues...');
-    
-    // Check which APIs are available
+
+    // Always use real API - check connectivity
     const baseUrl = await getApiBaseUrl();
-    const isUsingMockApi = baseUrl === '';
-    
-    if (isUsingMockApi) {
-      // Using mock API - check if development server is running
-      try {
-        const mockTest = await fetch('/api/auth/token-balance');
-        if (mockTest.status === 401) {
-          return {
-            success: true,
-            message: 'Mock API is working (authentication required)',
-            details: { usingMockApi: true }
-          };
-        }
-      } catch (error) {
+
+    try {
+      const realApiTest = await fetch(`${baseUrl}/api/health`);
+      if (realApiTest.ok) {
         return {
-          success: false,
-          message: 'Mock API not accessible',
-          nextSteps: [
-            'Check if development server is running',
-            'Run: npm run dev',
-            'Check port 3000 is not blocked'
-          ]
+          success: true,
+          message: 'Real API is accessible',
+          details: { baseUrl }
         };
-      }
-    } else {
-      // Using real API - check connectivity
-      try {
-        const realApiTest = await fetch(`${baseUrl}/api/health`);
-        if (realApiTest.ok) {
-          return {
-            success: true,
-            message: 'Real API is accessible',
-            details: { baseUrl, usingMockApi: false }
-          };
-        }
-      } catch (error) {
+      } else {
         return {
           success: false,
-          message: 'Real API not accessible',
-          details: { baseUrl, error: error instanceof Error ? error.message : 'Unknown error' },
+          message: 'Real API responded with error',
+          details: { baseUrl, status: realApiTest.status },
           nextSteps: [
-            'Check internet connection',
+            'Check API server status',
             'Verify API URL is correct',
             'API might be temporarily down'
           ]
         };
       }
+    } catch (error) {
+      return {
+        success: false,
+        message: 'Real API not accessible',
+        details: { baseUrl, error: error instanceof Error ? error.message : 'Unknown error' },
+        nextSteps: [
+          'Check internet connection',
+          'Verify API URL is correct',
+          'API might be temporarily down'
+        ]
+      };
     }
-
-    return {
-      success: true,
-      message: 'API endpoints appear to be working'
-    };
 
   } catch (error) {
     return {
@@ -217,56 +193,33 @@ export async function fixApiEndpointIssues(): Promise<FixResult> {
 }
 
 /**
- * Reset mock API data
+ * Clear cache and refresh data
  */
-export async function resetMockApiData(): Promise<FixResult> {
+export async function clearCacheAndRefresh(): Promise<FixResult> {
   try {
-    console.log('🔄 Resetting mock API data...');
-    
-    const token = localStorage.getItem('token');
-    if (!token) {
-      return {
-        success: false,
-        message: 'No token found for mock API reset'
-      };
+    console.log('🔄 Clearing cache and refreshing data...');
+
+    // Clear localStorage cache
+    localStorage.removeItem('tokenBalanceCache');
+
+    // Clear any other relevant cache
+    if ('caches' in window) {
+      const cacheNames = await caches.keys();
+      await Promise.all(
+        cacheNames.map(cacheName => caches.delete(cacheName))
+      );
     }
 
-    // Try to reset mock API data by calling it with a special header
-    const response = await fetch('/api/auth/token-balance', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-        'X-Reset-Mock-Data': 'true'
-      },
-      body: JSON.stringify({ action: 'reset' })
-    });
-
-    if (response.ok) {
-      return {
-        success: true,
-        message: 'Mock API data reset successfully'
-      };
-    } else {
-      return {
-        success: false,
-        message: 'Mock API reset not supported',
-        nextSteps: [
-          'Restart development server to reset mock data',
-          'Run: npm run dev'
-        ]
-      };
-    }
+    return {
+      success: true,
+      message: 'Cache cleared successfully'
+    };
 
   } catch (error) {
     return {
       success: false,
-      message: 'Mock API reset failed',
-      details: { error: error instanceof Error ? error.message : 'Unknown error' },
-      nextSteps: [
-        'Restart development server manually',
-        'Run: npm run dev'
-      ]
+      message: 'Cache clear failed',
+      details: { error: error instanceof Error ? error.message : 'Unknown error' }
     };
   }
 }
@@ -285,7 +238,7 @@ export async function runAllQuickFixes(): Promise<{
     authentication: await fixAuthenticationIssues(),
     apiEndpoints: await fixApiEndpointIssues(),
     forceRefresh: await forceRefreshTokenBalance(),
-    mockApiReset: await resetMockApiData()
+    clearCache: await clearCacheAndRefresh()
   };
 
   const successCount = Object.values(results).filter(r => r.success).length;

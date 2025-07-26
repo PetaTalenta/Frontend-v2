@@ -8,9 +8,8 @@
 const https = require('https');
 const http = require('http');
 
-// Configuration
+// Configuration (Mock API removed)
 const ENDPOINTS = [
-  { url: 'http://localhost:3000/api/auth/token-balance', name: 'Mock API' },
   { url: 'http://localhost:3000/api/proxy/auth/token-balance', name: 'Proxy API' },
   { url: 'https://api.chhrone.web.id/api/auth/token-balance', name: 'Real API' }
 ];
@@ -134,8 +133,6 @@ function validateToken(token) {
     } catch (error) {
       console.log('   ⚠️  Could not parse JWT payload');
     }
-  } else if (token.startsWith('mock-jwt-token-')) {
-    console.log('   ✅ Mock token format detected');
   } else {
     console.log('   ⚠️  Unknown token format');
   }

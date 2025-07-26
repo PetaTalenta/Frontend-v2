@@ -4,6 +4,7 @@
 import { StatCard } from '../types/dashboard';
 import { AssessmentResult } from '../types/assessment-results';
 import { getUserAssessmentResults } from './assessment-api';
+import { checkTokenBalance } from '../utils/token-balance';
 
 export interface UserStats {
   totalAnalysis: number;
@@ -50,14 +51,24 @@ export async function calculateUserStats(userId?: string): Promise<UserStats> {
       result.status === 'processing' || result.status === 'queued'
     ).length;
 
-    // Calculate token balance based on user activity
-    // Base tokens: 10, +5 for each completed assessment, -2 for each processing
-    const baseTokens = 10;
-    const completedBonus = completed * 5;
-    const processingCost = processing * 2;
-    const tokenBalance = Math.max(0, baseTokens + completedBonus - processingCost);
+    // Get real token balance from API instead of calculating
+    let tokenBalance = 0;
+    try {
+      console.log('UserStats: Fetching real token balance from API...');
+      const tokenInfo = await checkTokenBalance();
+      tokenBalance = tokenInfo.error ? 0 : tokenInfo.balance;
+      console.log(`UserStats: Real token balance from API: ${tokenBalance}`);
+    } catch (error) {
+      console.error('UserStats: Failed to get real token balance, using fallback calculation:', error);
+      // Fallback to calculated balance if API fails
+      const baseTokens = 10;
+      const completedBonus = completed * 5;
+      const processingCost = processing * 2;
+      tokenBalance = Math.max(0, baseTokens + completedBonus - processingCost);
+      console.log(`UserStats: Using fallback calculated balance: ${tokenBalance}`);
+    }
 
-    console.log(`UserStats: Calculated stats - Total: ${totalAnalysis}, Completed: ${completed}, Processing: ${processing}, Tokens: ${tokenBalance}`);
+    console.log(`UserStats: Final stats - Total: ${totalAnalysis}, Completed: ${completed}, Processing: ${processing}, Tokens: ${tokenBalance}`);
 
     return {
       totalAnalysis,

@@ -32,26 +32,50 @@ export const TokenProvider: React.FC<TokenProviderProps> = ({ children }) => {
 
   const refreshTokenBalance = async () => {
     if (!isAuthenticated) {
+      console.log('TokenContext: User not authenticated, clearing token info');
       setTokenInfo(null);
       return;
     }
 
+    console.log('TokenContext: Starting token balance refresh...');
     setIsLoading(true);
+
     try {
-      console.log('TokenContext: Refreshing token balance...');
+      // Clear any cached data before refreshing
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('tokenBalanceCache');
+      }
+
+      console.log('TokenContext: Calling checkTokenBalance...');
       const newTokenInfo = await checkTokenBalance();
+
+      console.log('TokenContext: Token balance refresh completed:', {
+        balance: newTokenInfo.balance,
+        hasEnoughTokens: newTokenInfo.hasEnoughTokens,
+        error: newTokenInfo.error,
+        lastUpdated: newTokenInfo.lastUpdated
+      });
+
       setTokenInfo(newTokenInfo);
-      console.log('TokenContext: Token balance updated:', newTokenInfo);
+
+      // Show notification if there was an error
+      if (newTokenInfo.error) {
+        console.warn('TokenContext: Token balance refresh had errors:', newTokenInfo.message);
+      } else {
+        console.log('TokenContext: Token balance successfully refreshed');
+      }
+
     } catch (error) {
-      console.error('TokenContext: Error refreshing token balance:', error);
+      console.error('TokenContext: Unexpected error during token balance refresh:', error);
       setTokenInfo({
         balance: -1,
         hasEnoughTokens: false,
-        message: 'Error loading token balance',
+        message: 'Unexpected error loading token balance. Please try again.',
         error: true,
       });
     } finally {
       setIsLoading(false);
+      console.log('TokenContext: Token balance refresh process completed');
     }
   };
 

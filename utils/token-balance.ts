@@ -18,23 +18,73 @@ export interface TokenTransaction {
 }
 
 /**
- * Check user's current token balance with enhanced error handling
+ * Check user's current token balance with enhanced error handling and debugging
  */
 export async function checkTokenBalance(): Promise<TokenBalanceInfo> {
-  try {
-    const response = await apiService.getTokenBalance();
+  console.log('Token Balance Utility: Starting token balance check...');
 
-    if (!response.success) {
-      throw new Error(response.error?.message || 'Failed to fetch token balance');
+  try {
+    // Check if user is authenticated
+    const token = localStorage.getItem('token');
+    if (!token) {
+      console.error('Token Balance Utility: No authentication token found');
+      return {
+        balance: -1,
+        hasEnoughTokens: false,
+        message: 'Authentication required. Please login again.',
+        error: true,
+      };
     }
 
-    // Handle both real API format (tokenBalance) and mock API format (balance)
-    const balance = response.data?.tokenBalance || response.data?.balance || 0;
+    console.log('Token Balance Utility: Calling API service...');
+    const response = await apiService.getTokenBalance();
+
+    console.log('Token Balance Utility: API response received:', {
+      success: response.success,
+      hasData: !!response.data,
+      apiSource: response.apiSource,
+      errorCode: response.error?.code
+    });
+
+    if (!response.success) {
+      const errorMessage = response.error?.message || 'Failed to fetch token balance';
+      console.error('Token Balance Utility: API request failed:', errorMessage);
+
+      // Provide more specific error messages based on error codes
+      let userMessage = errorMessage;
+      if (response.error?.code === 'NETWORK_ERROR') {
+        userMessage = 'Network error. Please check your connection and try again.';
+      } else if (response.error?.code === 'REQUEST_FAILED') {
+        userMessage = 'Server error. Please try again in a moment.';
+      } else if (response.error?.code === 'MISSING_AUTHORIZATION') {
+        userMessage = 'Authentication expired. Please login again.';
+      }
+
+      throw new Error(userMessage);
+    }
+
+    // Enhanced parsing with validation
+    const balance = response.data?.tokenBalance;
     const lastUpdated = response.data?.lastUpdated;
 
-    console.log('Token balance check result:', { balance, lastUpdated });
+    console.log('Token Balance Utility: Parsed data:', {
+      balance,
+      lastUpdated,
+      balanceType: typeof balance,
+      isValidBalance: typeof balance === 'number' && !isNaN(balance)
+    });
 
-    return {
+    // Validate balance
+    if (typeof balance !== 'number' || isNaN(balance)) {
+      console.error('Token Balance Utility: Invalid balance value received:', balance);
+      throw new Error('Invalid token balance data received from server');
+    }
+
+    if (balance < 0) {
+      console.warn('Token Balance Utility: Negative balance received:', balance);
+    }
+
+    const result = {
       balance,
       hasEnoughTokens: balance >= 2,
       lastUpdated,
@@ -43,14 +93,19 @@ export async function checkTokenBalance(): Promise<TokenBalanceInfo> {
         : `Insufficient tokens. You have ${balance} tokens but need at least 2 to submit an assessment.`,
       error: false,
     };
-  } catch (error) {
-    console.error('Error checking token balance:', error);
 
-    // Return error state but don't block the user completely
+    console.log('Token Balance Utility: Final result:', result);
+    return result;
+
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Error loading token balance';
+    console.error('Token Balance Utility: Check failed:', errorMessage);
+    console.error('Token Balance Utility: Error details:', error);
+
     return {
       balance: -1,
       hasEnoughTokens: false,
-      message: 'Could not check token balance. Please try again or contact support.',
+      message: errorMessage,
       error: true,
     };
   }
@@ -120,4 +175,149 @@ export function formatTokenTransaction(transaction: TokenTransaction): string {
   const { type, amount, reason, newBalance } = transaction;
   const action = type === 'deduction' ? 'deducted' : 'awarded';
   return `${amount} tokens ${action} for ${reason}. New balance: ${newBalance} tokens.`;
+}
+
+/**
+ * Force refresh token balance with cache busting and enhanced debugging
+ */
+export async function forceRefreshTokenBalance(): Promise<TokenBalanceInfo> {
+  console.log('=== FORCE REFRESH TOKEN BALANCE ===');
+
+  // Clear all possible caches
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('tokenBalanceCache');
+    console.log('Cleared localStorage cache');
+  }
+
+  // Add a small delay to ensure any pending requests complete
+  await new Promise(resolve => setTimeout(resolve, 100));
+
+  try {
+    console.log('Starting force refresh...');
+    const result = await checkTokenBalance();
+    console.log('Force refresh completed:', result);
+    return result;
+  } catch (error) {
+    console.error('Force refresh failed:', error);
+    throw error;
+  }
+}
+
+/**
+ * Clear all token-related caches and force complete refresh
+ */
+export async function clearAllCachesAndRefresh(): Promise<TokenBalanceInfo> {
+  console.log('=== CLEARING ALL CACHES AND REFRESHING ===');
+
+  if (typeof window !== 'undefined') {
+    // Clear all possible cache keys
+    const cacheKeys = [
+      'tokenBalanceCache',
+      'apiHealthCache',
+      'userStatsCache',
+      'assessmentCache'
+    ];
+
+    cacheKeys.forEach(key => {
+      localStorage.removeItem(key);
+      console.log(`Cleared ${key}`);
+    });
+  }
+
+  // Wait a bit longer to ensure all pending requests are done
+  await new Promise(resolve => setTimeout(resolve, 500));
+
+  try {
+    console.log('Starting complete refresh...');
+    const result = await checkTokenBalance();
+    console.log('Complete refresh finished:', result);
+    return result;
+  } catch (error) {
+    console.error('Complete refresh failed:', error);
+    throw error;
+  }
+}
+
+/**
+ * Test direct API call to debug token balance issues
+ */
+export async function testDirectTokenBalanceCall(): Promise<any> {
+  console.log('=== TESTING DIRECT API CALL ===');
+
+  const token = localStorage.getItem('token');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+
+  try {
+    // Test proxy endpoint with minimal headers to avoid CORS
+    console.log('Testing proxy endpoint...');
+    const proxyResponse = await fetch('/api/proxy/auth/token-balance', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    const proxyData = await proxyResponse.json();
+    console.log('Proxy response:', {
+      status: proxyResponse.status,
+      ok: proxyResponse.ok,
+      headers: Object.fromEntries(proxyResponse.headers.entries()),
+      data: proxyData
+    });
+
+    return {
+      proxy: {
+        status: proxyResponse.status,
+        ok: proxyResponse.ok,
+        data: proxyData
+      }
+    };
+
+  } catch (error) {
+    console.error('Direct API test failed:', error);
+    throw error;
+  }
+}
+
+/**
+ * Test token balance with simple fetch to bypass all abstractions
+ */
+export async function testSimpleTokenBalance(): Promise<any> {
+  console.log('=== TESTING SIMPLE TOKEN BALANCE ===');
+
+  const token = localStorage.getItem('token');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+
+  try {
+    console.log('Making simple fetch request...');
+    const response = await fetch('/api/proxy/auth/token-balance', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    console.log('Response status:', response.status);
+    console.log('Response ok:', response.ok);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Error response:', errorText);
+      throw new Error(`HTTP ${response.status}: ${errorText}`);
+    }
+
+    const data = await response.json();
+    console.log('Response data:', data);
+
+    return data;
+
+  } catch (error) {
+    console.error('Simple test failed:', error);
+    throw error;
+  }
 }

@@ -82,9 +82,8 @@ export async function testAllTokenBalanceEndpoints(token: string): Promise<Debug
 
   console.log(`[DEBUG] Starting token balance debug session: ${sessionId}`);
 
-  // Test endpoints
+  // Test endpoints (Mock API removed)
   const endpoints = [
-    { url: '/api/auth/token-balance', description: 'Mock API' },
     { url: '/api/proxy/auth/token-balance', description: 'Proxy API' },
     { url: 'https://api.chhrone.web.id/api/auth/token-balance', description: 'Real API Direct' }
   ];
@@ -112,18 +111,8 @@ export async function testAllTokenBalanceEndpoints(token: string): Promise<Debug
 function generateRecommendations(tests: TokenBalanceDebugInfo[]): string[] {
   const recommendations: string[] = [];
 
-  const mockApiTest = tests.find(t => t.endpoint.includes('/api/auth/token-balance') && !t.endpoint.includes('proxy'));
   const proxyApiTest = tests.find(t => t.endpoint.includes('/api/proxy/auth/token-balance'));
   const realApiTest = tests.find(t => t.endpoint.includes('https://api.chhrone.web.id'));
-
-  // Check mock API
-  if (mockApiTest?.status === 200) {
-    recommendations.push('✅ Mock API is working correctly');
-  } else if (mockApiTest?.status === 401) {
-    recommendations.push('❌ Mock API authentication failed - check token format');
-  } else if (mockApiTest?.error) {
-    recommendations.push('❌ Mock API connection failed - check if development server is running');
-  }
 
   // Check proxy API
   if (proxyApiTest?.status === 200) {
@@ -140,14 +129,14 @@ function generateRecommendations(tests: TokenBalanceDebugInfo[]): string[] {
   } else if (realApiTest?.status === 401) {
     recommendations.push('❌ Real API authentication failed - token may be invalid or expired');
   } else if (realApiTest?.error) {
-    recommendations.push('❌ Real API not accessible - using mock API fallback');
+    recommendations.push('❌ Real API not accessible - check network connection');
   }
 
   // Token balance specific checks
   const successfulTests = tests.filter(t => t.status === 200);
   if (successfulTests.length > 0) {
     const tokenBalances = successfulTests.map(t => {
-      const balance = t.response?.data?.tokenBalance || t.response?.data?.balance;
+      const balance = t.response?.data?.tokenBalance;
       return { endpoint: t.endpoint, balance };
     });
 
@@ -185,7 +174,7 @@ export function validateTokenFormat(token: string): {
     length: number;
     prefix: string;
     hasBearer: boolean;
-    format: 'jwt' | 'mock' | 'unknown';
+    format: 'jwt' | 'unknown';
   };
 } {
   const issues: string[] = [];
@@ -207,13 +196,11 @@ export function validateTokenFormat(token: string): {
   const hasBearer = token.startsWith('Bearer ');
   const actualToken = hasBearer ? token.substring(7) : token;
   
-  let format: 'jwt' | 'mock' | 'unknown' = 'unknown';
+  let format: 'jwt' | 'unknown' = 'unknown';
   
   // Check if it's a JWT (has 3 parts separated by dots)
   if (actualToken.split('.').length === 3) {
     format = 'jwt';
-  } else if (actualToken.startsWith('mock-jwt-token-')) {
-    format = 'mock';
   }
 
   if (actualToken.length < 10) {
@@ -221,7 +208,7 @@ export function validateTokenFormat(token: string): {
   }
 
   if (format === 'unknown') {
-    issues.push('Token format not recognized (not JWT or mock token)');
+    issues.push('Token format not recognized (not JWT)');
   }
 
   return {

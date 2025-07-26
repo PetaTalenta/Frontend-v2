@@ -73,102 +73,45 @@ export interface ApiError {
 }
 
 /**
- * Check if a token is a mock token
- */
-function isMockToken(token: string): boolean {
-  return token.startsWith('mock-jwt-token-');
-}
-
-/**
- * Make API request with automatic fallback to mock API
+ * Make API request using proxy to avoid CORS issues
  */
 async function makeApiRequest(
   endpoint: string,
-  options: RequestInit,
-  fallbackToMock: boolean = true
-): Promise<{ response: Response; apiSource: 'real' | 'mock' }> {
+  options: RequestInit
+): Promise<{ response: Response; apiSource: 'real' }> {
+  // Map auth endpoints to correct proxy paths
+  let proxyUrl = endpoint;
 
-  // Check if we're using a mock token - if so, force mock API
-  const authHeader = options.headers?.['Authorization'] as string;
-  if (authHeader) {
-    const token = authHeader.replace('Bearer ', '');
-    if (isMockToken(token)) {
-      console.log('Enhanced Auth API: Mock token detected, forcing mock API');
-      // Skip to mock API section
-    } else {
-      // Try real API first for real tokens
-      const baseUrl = await getApiBaseUrl();
-      const isUsingMock = baseUrl === '';
-
-      if (!isUsingMock) {
-        try {
-          console.log(`Enhanced Auth API: Attempting real API request to ${baseUrl}${endpoint}`);
-
-          const response = await fetch(`${baseUrl}${endpoint}`, {
-            ...options,
-            headers: {
-              'Content-Type': 'application/json',
-              ...options.headers,
-            },
-          });
-
-          console.log(`Enhanced Auth API: Real API responded with status ${response.status}`);
-          return { response, apiSource: 'real' };
-
-        } catch (error) {
-          console.error('Enhanced Auth API: Real API request failed:', error);
-
-          if (!fallbackToMock) {
-            throw error;
-          }
-
-          console.log('Enhanced Auth API: Falling back to mock API');
-        }
-      }
-    }
-  } else {
-    // No auth header, try real API first
-    const baseUrl = await getApiBaseUrl();
-    const isUsingMock = baseUrl === '';
-
-    if (!isUsingMock) {
-      try {
-        console.log(`Enhanced Auth API: Attempting real API request to ${baseUrl}${endpoint}`);
-
-        const response = await fetch(`${baseUrl}${endpoint}`, {
-          ...options,
-          headers: {
-            'Content-Type': 'application/json',
-            ...options.headers,
-          },
-        });
-
-        console.log(`Enhanced Auth API: Real API responded with status ${response.status}`);
-        return { response, apiSource: 'real' };
-
-      } catch (error) {
-        console.error('Enhanced Auth API: Real API request failed:', error);
-
-        if (!fallbackToMock) {
-          throw error;
-        }
-
-        console.log('Enhanced Auth API: Falling back to mock API');
-      }
-    }
+  if (endpoint.startsWith('/api/auth/token-balance')) {
+    proxyUrl = '/api/proxy/auth/token-balance';
+  } else if (endpoint.startsWith('/api/auth/login')) {
+    proxyUrl = '/api/proxy/auth/login';
+  } else if (endpoint.startsWith('/api/auth/register')) {
+    proxyUrl = '/api/proxy/auth/register';
+  } else if (endpoint.startsWith('/api/auth/')) {
+    // Generic fallback for other auth endpoints
+    proxyUrl = endpoint.replace('/api/auth/', '/api/proxy/auth/');
   }
-  
-  // Fall back to mock API (local endpoints)
-  console.log(`Enhanced Auth API: Using mock API for ${endpoint}`);
-  const response = await fetch(endpoint, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
-  
-  return { response, apiSource: 'mock' };
+
+  console.log(`Enhanced Auth API: Original endpoint: ${endpoint}`);
+  console.log(`Enhanced Auth API: Mapped to proxy URL: ${proxyUrl}`);
+
+  try {
+    const response = await fetch(proxyUrl, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+
+    console.log(`Enhanced Auth API: Proxy responded with status ${response.status}`);
+    return { response, apiSource: 'real' };
+
+  } catch (error) {
+    console.error('Enhanced Auth API: Proxy request failed:', error);
+    throw new Error(`Proxy request failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 }
 
 /**
@@ -376,48 +319,139 @@ export async function getUserProfile(token: string): Promise<any> {
 }
 
 /**
- * Get token balance
+ * Get token balance with enhanced debugging and response parsing
  */
 export async function getTokenBalance(token: string): Promise<TokenBalanceResponse> {
   try {
-    const { response, apiSource } = await makeApiRequest('/api/auth/token-balance', {
+    console.log('Enhanced Auth API: Starting token balance request...');
+
+    // Add cache busting parameter to prevent caching issues
+    const cacheBuster = `?_t=${Date.now()}`;
+
+    const { response, apiSource } = await makeApiRequest(`/api/auth/token-balance${cacheBuster}`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
       },
     });
 
+    console.log(`Enhanced Auth API: Response status: ${response.status}, API source: ${apiSource}`);
+
     if (response.ok) {
       const data = await response.json();
-      console.log(`Enhanced Auth API: Token balance retrieved from ${apiSource} API`);
 
-      // Handle the real API response format: { userId, tokenBalance, lastUpdated }
-      const balance = data.data?.tokenBalance || data.data?.balance || 0;
+      // Enhanced logging to see exactly what the API returns
+      console.log('Enhanced Auth API: Raw API response:', JSON.stringify(data, null, 2));
+      console.log('Enhanced Auth API: Response data structure:', {
+        hasData: !!data.data,
+        dataKeys: data.data ? Object.keys(data.data) : [],
+        success: data.success,
+        dataType: typeof data.data
+      });
+
+      // Multiple fallback strategies for different API response formats
+      let balance = 0;
+      let userId = '';
+      let lastUpdated = new Date().toISOString();
+
+      // Strategy 1: API format - data.token_balance (PRIORITAS UTAMA berdasarkan response)
+      if (data.data?.token_balance !== undefined) {
+        balance = Number(data.data.token_balance);
+        console.log('Enhanced Auth API: Using data.token_balance:', balance);
+      }
+      // Strategy 2: Standard format - data.tokenBalance
+      else if (data.data?.tokenBalance !== undefined) {
+        balance = Number(data.data.tokenBalance);
+        console.log('Enhanced Auth API: Using data.tokenBalance:', balance);
+      }
+      // Strategy 3: Alternative format - data.balance
+      else if (data.data?.balance !== undefined) {
+        balance = Number(data.data.balance);
+        console.log('Enhanced Auth API: Using data.balance:', balance);
+      }
+      // Strategy 4: User object format - data.user.token_balance
+      else if (data.data?.user?.token_balance !== undefined) {
+        balance = Number(data.data.user.token_balance);
+        console.log('Enhanced Auth API: Using data.user.token_balance:', balance);
+      }
+      // Strategy 5: Root level tokenBalance
+      else if (data.tokenBalance !== undefined) {
+        balance = Number(data.tokenBalance);
+        console.log('Enhanced Auth API: Using root tokenBalance:', balance);
+      }
+      // Strategy 6: Root level balance
+      else if (data.balance !== undefined) {
+        balance = Number(data.balance);
+        console.log('Enhanced Auth API: Using root balance:', balance);
+      }
+      else {
+        console.warn('Enhanced Auth API: No token balance found in any expected format');
+        console.warn('Enhanced Auth API: Available data fields:', Object.keys(data.data || {}));
+      }
+
+      // Extract user ID (prioritas untuk format API yang sebenarnya)
+      userId = data.data?.user_id || data.data?.userId || data.data?.user?.id || '';
+
+      // Extract last updated
+      if (data.data?.lastUpdated) {
+        lastUpdated = data.data.lastUpdated;
+      } else if (data.data?.last_updated) {
+        lastUpdated = data.data.last_updated;
+      } else if (data.data?.updated_at) {
+        lastUpdated = data.data.updated_at;
+      }
+
+      console.log(`Enhanced Auth API: Final parsed values - Balance: ${balance}, UserID: ${userId}, LastUpdated: ${lastUpdated}`);
+
+      // Validate balance is a valid number
+      if (isNaN(balance) || balance < 0) {
+        console.error('Enhanced Auth API: Invalid balance value:', balance);
+        balance = 0;
+      }
+
       showTokenBalanceRefresh(balance);
 
-      return {
-        ...data,
+      const result = {
+        success: true,
         apiSource,
         data: {
-          userId: data.data?.userId || data.data?.user?.id || '',
+          userId,
           tokenBalance: balance,
-          lastUpdated: data.data?.lastUpdated || new Date().toISOString()
+          lastUpdated
         }
       };
+
+      console.log('Enhanced Auth API: Returning result:', result);
+      return result;
     }
+
+    // Handle non-OK responses
+    const errorText = await response.text();
+    console.error(`Enhanced Auth API: Request failed with status ${response.status}:`, errorText);
 
     return {
       success: false,
-      error: { code: 'REQUEST_FAILED', message: 'Failed to get token balance' },
+      error: {
+        code: 'REQUEST_FAILED',
+        message: `Failed to get token balance (Status: ${response.status})`
+      },
       apiSource
     };
   } catch (error) {
     console.error('Enhanced Auth API: Get token balance error:', error);
+    console.error('Enhanced Auth API: Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
+    });
+
     showTokenError('Unable to check token balance. Please try again.');
     return {
       success: false,
-      error: { code: 'NETWORK_ERROR', message: error instanceof Error ? error.message : 'Network error' },
-      apiSource: 'mock'
+      error: {
+        code: 'NETWORK_ERROR',
+        message: error instanceof Error ? error.message : 'Network error'
+      },
+      apiSource: 'real'
     };
   }
 }

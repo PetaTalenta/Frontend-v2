@@ -57,9 +57,9 @@ console.log('Token:', localStorage.getItem('token'));
 console.log('User:', JSON.parse(localStorage.getItem('user') || '{}'));
 ```
 
-**Test Mock API:**
+**Test Proxy API:**
 ```javascript
-fetch('/api/auth/token-balance', {
+fetch('/api/proxy/auth/token-balance', {
   headers: {
     'Authorization': `Bearer ${localStorage.getItem('token')}`,
     'Content-Type': 'application/json'
@@ -103,18 +103,16 @@ console.log(result);
 
 ## 📊 Common Scenarios & Solutions
 
-### Scenario 1: Mock API Working, Real API Failing
-**Symptoms:** Debug shows Mock API returns balance, Real API errors
+### Scenario 1: Proxy API Working, Real API Failing
+**Symptoms:** Debug shows Proxy API returns balance, Real API direct errors
 
 **Solution:**
 ```bash
 # Check environment
-echo $NEXT_PUBLIC_USE_MOCK_API
 echo $NEXT_PUBLIC_API_BASE_URL
 
-# Force real API usage
+# Verify real API URL
 # Edit .env.local:
-NEXT_PUBLIC_USE_MOCK_API=false
 NEXT_PUBLIC_API_BASE_URL=https://api.chhrone.web.id
 ```
 

@@ -43,74 +43,43 @@ const POLLING_CONFIG = {
 } as const;
 
 /**
- * Make authenticated request to Assessment API with fallback to mock
+ * Make authenticated request to Assessment API (Real API only)
  */
 async function makeAssessmentApiRequest(
   endpoint: string,
-  options: RequestInit = {},
-  fallbackToMock: boolean = true
-): Promise<{ response: Response; apiSource: 'real' | 'mock' }> {
+  options: RequestInit = {}
+): Promise<{ response: Response; apiSource: 'real' }> {
   
   // Get authentication token
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
   if (!token) {
     throw new Error('Authentication token not found. Please login first.');
   }
-  
-  // First, try the real API via proxy to avoid CORS
-  const shouldUseMock = await shouldUseMockApi();
 
-  if (!shouldUseMock) {
-    try {
-      console.log(`Enhanced Assessment API: Attempting real API request via proxy to ${endpoint}`);
-
-      // Use proxy for assessment endpoints
-      let proxyUrl = `${PROXY_API_BASE_URL}/assessment`;
-
-      // Handle different endpoints
-      if (endpoint === ASSESSMENT_ENDPOINTS.SUBMIT) {
-        // POST to /api/proxy/assessment (handled by route.ts)
-      } else if (endpoint.includes('/status/')) {
-        // GET to /api/proxy/assessment/status/[jobId]
-        const jobId = endpoint.split('/status/')[1];
-        proxyUrl = `${PROXY_API_BASE_URL}/assessment/status/${jobId}`;
-      } else if (endpoint === ASSESSMENT_ENDPOINTS.QUEUE_STATUS) {
-        proxyUrl += `?endpoint=queue/status`;
-      } else if (endpoint === ASSESSMENT_ENDPOINTS.HEALTH) {
-        proxyUrl += `?endpoint=health`;
-      } else {
-        // Default handling
-        proxyUrl += `?endpoint=${endpoint.replace('/api/assessment/', '')}`;
-      }
-
-      const response = await fetch(proxyUrl, {
-        ...options,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-          ...options.headers,
-        },
-      });
-
-      console.log(`Enhanced Assessment API: Proxy API responded with status ${response.status}`);
-      return { response, apiSource: 'real' };
-      
-    } catch (error) {
-      console.error('Enhanced Assessment API: Real API request failed:', error);
-      
-      if (!fallbackToMock) {
-        throw error;
-      }
-      
-      console.log('Enhanced Assessment API: Falling back to mock API');
-    }
-  }
-  
-  // Fallback to mock API (local endpoints)
+  // Always use real API via proxy to avoid CORS
   try {
-    console.log(`Enhanced Assessment API: Using mock API for ${endpoint}`);
-    
-    const response = await fetch(endpoint, {
+    console.log(`Enhanced Assessment API: Making request via proxy to ${endpoint}`);
+
+    // Use proxy for assessment endpoints
+    let proxyUrl = `${PROXY_API_BASE_URL}/assessment`;
+
+    // Handle different endpoints
+    if (endpoint === ASSESSMENT_ENDPOINTS.SUBMIT) {
+      // POST to /api/proxy/assessment (handled by route.ts)
+    } else if (endpoint.includes('/status/')) {
+      // GET to /api/proxy/assessment/status/[jobId]
+      const jobId = endpoint.split('/status/')[1];
+      proxyUrl = `${PROXY_API_BASE_URL}/assessment/status/${jobId}`;
+    } else if (endpoint === ASSESSMENT_ENDPOINTS.QUEUE_STATUS) {
+      proxyUrl += `?endpoint=queue/status`;
+    } else if (endpoint === ASSESSMENT_ENDPOINTS.HEALTH) {
+      proxyUrl += `?endpoint=health`;
+    } else {
+      // Default handling
+      proxyUrl += `?endpoint=${endpoint.replace('/api/assessment/', '')}`;
+    }
+
+    const response = await fetch(proxyUrl, {
       ...options,
       headers: {
         'Content-Type': 'application/json',
@@ -118,12 +87,13 @@ async function makeAssessmentApiRequest(
         ...options.headers,
       },
     });
-    
-    return { response, apiSource: 'mock' };
-    
+
+    console.log(`Enhanced Assessment API: Proxy API responded with status ${response.status}`);
+    return { response, apiSource: 'real' };
+
   } catch (error) {
-    console.error('Enhanced Assessment API: Mock API request failed:', error);
-    throw new Error('Both real and mock APIs are unavailable');
+    console.error('Enhanced Assessment API: Real API request failed:', error);
+    throw new Error(`Real API request failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 

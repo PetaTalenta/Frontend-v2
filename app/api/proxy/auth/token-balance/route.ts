@@ -4,11 +4,12 @@ const REAL_API_BASE_URL = 'https://api.chhrone.web.id';
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('Auth Token Balance Proxy: Forwarding token balance request to real API');
-    
+    console.log('Auth Token Balance Proxy: Starting token balance request forwarding...');
+
     // Get Authorization header from the request
     const authHeader = request.headers.get('Authorization');
     if (!authHeader) {
+      console.error('Auth Token Balance Proxy: Missing Authorization header');
       return NextResponse.json({
         success: false,
         error: {
@@ -17,7 +18,10 @@ export async function GET(request: NextRequest) {
         },
       }, { status: 401 });
     }
-    
+
+    console.log('Auth Token Balance Proxy: Authorization header present, forwarding to real API...');
+    console.log('Auth Token Balance Proxy: Target URL:', `${REAL_API_BASE_URL}/api/auth/token-balance`);
+
     const response = await fetch(`${REAL_API_BASE_URL}/api/auth/token-balance`, {
       method: 'GET',
       headers: {
@@ -28,19 +32,32 @@ export async function GET(request: NextRequest) {
       signal: AbortSignal.timeout(15000), // 15 seconds
     });
 
+    console.log(`Auth Token Balance Proxy: External API responded with status ${response.status}`);
+
     const data = await response.json();
-    
-    console.log(`Auth Token Balance Proxy: External API responded with status ${response.status}`, { 
+
+    // Enhanced logging to see the actual response structure
+    console.log('Auth Token Balance Proxy: Raw response data:', JSON.stringify(data, null, 2));
+    console.log('Auth Token Balance Proxy: Response analysis:', {
       success: data.success,
-      tokenBalance: data.data?.tokenBalance 
+      hasData: !!data.data,
+      dataKeys: data.data ? Object.keys(data.data) : [],
+      tokenBalance: data.data?.tokenBalance,
+      balance: data.data?.balance,
+      userTokenBalance: data.data?.user?.token_balance,
+      directTokenBalance: data.tokenBalance,
+      directBalance: data.balance
     });
-    
+
     return NextResponse.json(data, {
       status: response.status,
       headers: {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
       },
     });
 
@@ -85,7 +102,8 @@ export async function OPTIONS(request: NextRequest) {
     headers: {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, Cache-Control, Pragma, Expires',
+      'Access-Control-Max-Age': '86400', // 24 hours
     },
   });
 }

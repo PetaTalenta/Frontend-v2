@@ -13,6 +13,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar"
 import { ExternalLink, User, LogOut, Settings } from "lucide-react"
 import { useAuth } from "../../contexts/AuthContext"
 import { TokenBalance } from "../ui/TokenBalance"
+import { TokenBalanceDebug } from "../debug/TokenBalanceDebug"
+import { SimpleTokenTest } from "../debug/SimpleTokenTest"
 
 interface HeaderProps {
   title: string
@@ -61,6 +63,12 @@ export function Header({ title, description, onExternalLinkClick }: HeaderProps)
         >
           <ExternalLink className="w-4 h-4" />
         </Button>
+
+        {/* Debug Component - only shows in development */}
+        <TokenBalanceDebug className="absolute top-20 right-4 w-80 z-50" />
+
+        {/* Simple Token Test - floating widget */}
+        <SimpleTokenTest />
 
         {/* User Menu */}
         <DropdownMenu>

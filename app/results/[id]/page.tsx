@@ -21,7 +21,7 @@ import VisualSummary from '../../../components/results/VisualSummary';
 
 // Dynamic imports for chart components to avoid SSR issues
 const AssessmentRadarChart = dynamic(
-  () => import('../../../components/results/AssessmentRadarChart'),
+  () => import('../../../components/results/AssessmentRadarChart').then(mod => ({ default: mod.default })),
   {
     ssr: false,
     loading: () => (

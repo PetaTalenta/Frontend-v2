@@ -253,7 +253,6 @@ export default function DebugTokenBalancePage() {
     const baseUrl = await testApiHealth();
 
     // Step 3: Test direct API calls
-    await testDirectApiCall('/api/auth/token-balance', 'Mock API Token Balance');
     await testDirectApiCall('/api/proxy/auth/token-balance', 'Proxy API Token Balance');
     
     if (baseUrl && baseUrl !== '') {
@@ -406,7 +405,7 @@ export default function DebugTokenBalancePage() {
                 NODE_ENV: {process.env.NODE_ENV}
               </p>
               <p className="text-sm text-gray-600">
-                USE_MOCK_API: {process.env.NEXT_PUBLIC_USE_MOCK_API}
+                API_BASE_URL: {process.env.NEXT_PUBLIC_API_BASE_URL}
               </p>
             </div>
           </div>

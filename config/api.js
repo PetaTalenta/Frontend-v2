@@ -1,11 +1,9 @@
 // API Configuration
 export const API_CONFIG = {
-  // API Gateway URL - Use mock API for development when external API is down
-  BASE_URL: process.env.NODE_ENV === 'development'
-    ? (process.env.NEXT_PUBLIC_USE_MOCK_API === 'true' ? '' : '') // Use relative URLs (will use mock or proxy)
-    : (process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.chhrone.web.id'),
+  // API Gateway URL - Always use real API
+  BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.chhrone.web.id',
 
-  // WebSocket/Notification URL - Now through API Gateway
+  // WebSocket/Notification URL
   NOTIFICATION_URL: process.env.NEXT_PUBLIC_NOTIFICATION_URL || 'https://api.chhrone.web.id',
 
   // Request timeout
@@ -15,8 +13,8 @@ export const API_CONFIG = {
   RETRY_ATTEMPTS: 3,
   RETRY_DELAY: 1000,
 
-  // Development flags
-  USE_MOCK_API: process.env.NEXT_PUBLIC_USE_MOCK_API === 'true',
+  // Development flags - Mock API removed
+  USE_MOCK_API: false,
 };
 
 // API Endpoints

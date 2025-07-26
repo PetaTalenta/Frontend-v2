@@ -146,26 +146,18 @@ async function testAuthEndpoint(): Promise<HealthCheckResult> {
 }
 
 /**
- * Get the appropriate API base URL based on availability
+ * Get the API base URL - always use proxy to avoid CORS
  */
 export async function getApiBaseUrl(): Promise<string> {
-  const health = await checkApiHealth();
-  
-  if (health.isAvailable) {
-    console.log('API Health: Using real API:', REAL_API_BASE_URL);
-    return REAL_API_BASE_URL;
-  } else {
-    console.log('API Health: Using mock API (local endpoints)');
-    return ''; // Use relative URLs for mock API
-  }
+  console.log('API Health: Using proxy API to avoid CORS:', PROXY_API_BASE_URL);
+  return PROXY_API_BASE_URL;
 }
 
 /**
- * Check if we should use mock API
+ * Check if we should use mock API (always false now)
  */
 export async function shouldUseMockApi(): Promise<boolean> {
-  const health = await checkApiHealth();
-  return !health.isAvailable;
+  return false; // Mock API has been removed
 }
 
 /**
