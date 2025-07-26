@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Navigation Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-card {
+            background: white;
+            padding: 20px;
+            margin: 10px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .button {
+            background: #6475e9;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .button:hover {
+            background: #5a6bd8;
+        }
+        .button.outline {
+            background: transparent;
+            color: #6475e9;
+            border: 1px solid #6475e9;
+        }
+        .log {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+        .warning { color: #ffc107; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Navigation Test Tool</h1>
+    <p>Use this tool to test navigation to results pages and debug issues.</p>
+
+    <div class="test-card">
+        <h2>Quick Navigation Tests</h2>
+        <button class="button" onclick="testNavigation('/results/result-001')">Test Demo Result 1</button>
+        <button class="button" onclick="testNavigation('/results/result-002')">Test Demo Result 2</button>
+        <button class="button outline" onclick="testNavigation('/dashboard')">Test Dashboard</button>
+        <button class="button outline" onclick="testNavigation('/assessment')">Test Assessment</button>
+    </div>
+
+    <div class="test-card">
+        <h2>Assessment Flow Test</h2>
+        <button class="button" onclick="createTestResult()">Create Test Result</button>
+        <button class="button" onclick="simulateAssessmentCompletion()">Simulate Assessment Completion</button>
+        <button class="button outline" onclick="checkLocalStorage()">Check LocalStorage</button>
+    </div>
+
+    <div class="test-card">
+        <h2>Debug Information</h2>
+        <button class="button" onclick="showCurrentState()">Show Current State</button>
+        <button class="button" onclick="clearAllData()">Clear All Data</button>
+        <button class="button outline" onclick="exportDebugInfo()">Export Debug Info</button>
+    </div>
+
+    <div class="test-card">
+        <h2>Test Log</h2>
+        <div id="log" class="log">Ready for testing...</div>
+        <button class="button outline" onclick="clearLog()">Clear Log</button>
+    </div>
+
+    <script>
+        function log(message, type = 'info') {
+            const logElement = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : type === 'warning' ? 'warning' : '';
+            logElement.innerHTML += `<div class="${className}">[${timestamp}] ${message}</div>`;
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = 'Log cleared...';
+        }
+
+        function testNavigation(url) {
+            log(`🧭 Testing navigation to: ${url}`);
+            
+            try {
+                // Open in new tab for testing
+                const newWindow = window.open(url, '_blank');
+                
+                if (newWindow) {
+                    log(`✅ Navigation initiated to ${url}`, 'success');
+                    
+                    // Check if window opened successfully
+                    setTimeout(() => {
+                        try {
+                            if (newWindow.closed) {
+                                log(`⚠️ Window was closed immediately - possible popup blocker`, 'warning');
+                            } else {
+                                log(`✅ Window opened successfully`, 'success');
+                            }
+                        } catch (e) {
+                            log(`⚠️ Cannot check window state (cross-origin): ${e.message}`, 'warning');
+                        }
+                    }, 1000);
+                } else {
+                    log(`❌ Failed to open window - popup blocked?`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Navigation failed: ${error.message}`, 'error');
+            }
+        }
+
+        function createTestResult() {
+            log('🎭 Creating test result...');
+            
+            const testResult = {
+                id: `test-result-${Date.now()}`,
+                userId: 'test-user',
+                createdAt: new Date().toISOString(),
+                status: 'completed',
+                assessment_data: {
+                    riasec: { realistic: 3.5, investigative: 4.2, artistic: 3.8, social: 4.0, enterprising: 3.2, conventional: 2.8 },
+                    ocean: { openness: 4.1, conscientiousness: 3.7, extraversion: 3.9, agreeableness: 4.3, neuroticism: 2.5 },
+                    viaIs: { creativity: 4.2, curiosity: 4.0, judgment: 3.8, love_of_learning: 4.1, perspective: 3.9 }
+                },
+                persona_profile: {
+                    title: 'Test Persona',
+                    description: 'This is a test persona created for debugging.',
+                    careerRecommendation: ['Test Career 1', 'Test Career 2'],
+                    strengths: ['Test Strength 1', 'Test Strength 2'],
+                    weaknesses: ['Test Weakness 1'],
+                    personalityTraits: ['Test Trait 1', 'Test Trait 2']
+                }
+            };
+
+            try {
+                localStorage.setItem(`assessment-result-${testResult.id}`, JSON.stringify(testResult));
+                log(`✅ Test result created: ${testResult.id}`, 'success');
+                log(`🎯 Test URL: /results/${testResult.id}`);
+                
+                // Add to history
+                const history = JSON.parse(localStorage.getItem('assessment-history') || '[]');
+                history.unshift({
+                    id: Date.now(),
+                    nama: testResult.persona_profile.title,
+                    tipe: "Test Assessment",
+                    tanggal: new Date().toLocaleDateString('id-ID'),
+                    status: "Selesai",
+                    resultId: testResult.id
+                });
+                localStorage.setItem('assessment-history', JSON.stringify(history));
+                
+                return testResult;
+            } catch (error) {
+                log(`❌ Failed to create test result: ${error.message}`, 'error');
+                return null;
+            }
+        }
+
+        function simulateAssessmentCompletion() {
+            log('🎯 Simulating assessment completion...');
+            
+            const testResult = createTestResult();
+            if (testResult) {
+                const resultUrl = `/results/${testResult.id}`;
+                log(`🚀 Navigating to result: ${resultUrl}`);
+                testNavigation(resultUrl);
+            }
+        }
+
+        function checkLocalStorage() {
+            log('💾 Checking localStorage data...');
+            
+            try {
+                const history = localStorage.getItem('assessment-history');
+                const progress = localStorage.getItem('assessment-progress');
+                const navigationDebug = localStorage.getItem('navigation-debug');
+                
+                log(`📊 Assessment History: ${history ? JSON.parse(history).length + ' items' : 'None'}`);
+                log(`📈 Assessment Progress: ${progress ? 'Present' : 'None'}`);
+                log(`🐛 Navigation Debug: ${navigationDebug ? JSON.parse(navigationDebug).length + ' events' : 'None'}`);
+                
+                // Check for assessment results
+                const resultKeys = Object.keys(localStorage).filter(key => key.startsWith('assessment-result-'));
+                log(`🎯 Assessment Results: ${resultKeys.length} found`);
+                
+                resultKeys.forEach(key => {
+                    const resultId = key.replace('assessment-result-', '');
+                    const result = JSON.parse(localStorage.getItem(key));
+                    log(`  - ${resultId}: ${result.persona_profile?.title || 'Unknown'}`);
+                });
+                
+            } catch (error) {
+                log(`❌ Error checking localStorage: ${error.message}`, 'error');
+            }
+        }
+
+        function showCurrentState() {
+            log('🔍 Current state information:');
+            log(`📍 Current URL: ${window.location.href}`);
+            log(`🌐 User Agent: ${navigator.userAgent}`);
+            log(`⏰ Timestamp: ${new Date().toISOString()}`);
+            
+            checkLocalStorage();
+        }
+
+        function clearAllData() {
+            if (confirm('Are you sure you want to clear all localStorage data?')) {
+                log('🗑️ Clearing all localStorage data...');
+                
+                const keys = Object.keys(localStorage);
+                keys.forEach(key => {
+                    if (key.startsWith('assessment-') || key.startsWith('navigation-')) {
+                        localStorage.removeItem(key);
+                        log(`  - Removed: ${key}`);
+                    }
+                });
+                
+                log('✅ All assessment and navigation data cleared', 'success');
+            }
+        }
+
+        function exportDebugInfo() {
+            log('📤 Exporting debug information...');
+            
+            const debugInfo = {
+                timestamp: new Date().toISOString(),
+                url: window.location.href,
+                userAgent: navigator.userAgent,
+                localStorage: {}
+            };
+            
+            // Export relevant localStorage data
+            Object.keys(localStorage).forEach(key => {
+                if (key.startsWith('assessment-') || key.startsWith('navigation-')) {
+                    try {
+                        debugInfo.localStorage[key] = JSON.parse(localStorage.getItem(key));
+                    } catch (e) {
+                        debugInfo.localStorage[key] = localStorage.getItem(key);
+                    }
+                }
+            });
+            
+            const blob = new Blob([JSON.stringify(debugInfo, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `debug-info-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            log('✅ Debug info exported', 'success');
+        }
+
+        // Initialize
+        log('🚀 Navigation Test Tool loaded');
+        log('Click buttons above to test navigation and debug issues');
+    </script>
+</body>
+</html>

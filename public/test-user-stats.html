@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test User Statistics</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .button:hover {
+            background: #0056b3;
+        }
+        .button.danger {
+            background: #dc3545;
+        }
+        .button.danger:hover {
+            background: #c82333;
+        }
+        .button.success {
+            background: #28a745;
+        }
+        .button.success:hover {
+            background: #218838;
+        }
+        .stats {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .user-info {
+            background: #e9ecef;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Test User Statistics</h1>
+        <p>Tool untuk menguji apakah statistik dashboard benar-benar user-specific setelah integrasi ATMA API.</p>
+        
+        <div class="user-info">
+            <h3>Current User Info:</h3>
+            <div id="currentUser">Loading...</div>
+        </div>
+
+        <div class="stats">
+            <h3>Current Statistics:</h3>
+            <div id="currentStats">Loading...</div>
+        </div>
+
+        <h3>Test Actions:</h3>
+        <button class="button" onclick="refreshStats()">🔄 Refresh Statistics</button>
+        <button class="button" onclick="showAllAssessmentData()">📊 Show All Assessment Data</button>
+        <button class="button danger" onclick="clearDemoData()">🧹 Clear Demo Data</button>
+        <button class="button danger" onclick="clearUserData()">🗑️ Clear Current User Data</button>
+        <button class="button success" onclick="createTestAssessment()">➕ Create Test Assessment</button>
+        
+        <h3>Multi-User Test:</h3>
+        <button class="button" onclick="simulateUser('user1@test.com')">👤 Simulate User 1</button>
+        <button class="button" onclick="simulateUser('user2@test.com')">👤 Simulate User 2</button>
+        <button class="button" onclick="simulateUser('user3@test.com')">👤 Simulate User 3</button>
+        
+        <div class="container">
+            <h3>Console Log:</h3>
+            <div id="log" class="log"></div>
+            <button class="button" onclick="clearLog()">Clear Log</button>
+        </div>
+    </div>
+
+    <script>
+        let logContent = '';
+
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            logContent += `[${timestamp}] ${message}\n`;
+            document.getElementById('log').textContent = logContent;
+            document.getElementById('log').scrollTop = document.getElementById('log').scrollHeight;
+            console.log(message);
+        }
+
+        function clearLog() {
+            logContent = '';
+            document.getElementById('log').textContent = '';
+        }
+
+        function getCurrentUser() {
+            try {
+                const userStr = localStorage.getItem('user');
+                return userStr ? JSON.parse(userStr) : null;
+            } catch (error) {
+                log('Error getting current user: ' + error.message);
+                return null;
+            }
+        }
+
+        function updateUserInfo() {
+            const user = getCurrentUser();
+            const userDiv = document.getElementById('currentUser');
+            
+            if (user) {
+                userDiv.innerHTML = `
+                    <strong>Email:</strong> ${user.email}<br>
+                    <strong>Name:</strong> ${user.name}<br>
+                    <strong>ID:</strong> ${user.id}
+                `;
+            } else {
+                userDiv.innerHTML = '<em>No user logged in</em>';
+            }
+        }
+
+        async function calculateStats(userId) {
+            const results = [];
+            
+            // Get results from localStorage
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith('assessment-result-')) {
+                    try {
+                        const result = JSON.parse(localStorage.getItem(key));
+                        if (!userId || result.userId === userId) {
+                            results.push(result);
+                        }
+                    } catch (error) {
+                        log('Error parsing result from key ' + key + ': ' + error.message);
+                    }
+                }
+            }
+
+            const totalAnalysis = results.length;
+            const completed = results.filter(r => r.status === 'completed').length;
+            const processing = results.filter(r => r.status === 'processing' || r.status === 'queued').length;
+            
+            const baseTokens = 10;
+            const completedBonus = completed * 5;
+            const processingCost = processing * 2;
+            const tokenBalance = Math.max(0, baseTokens + completedBonus - processingCost);
+
+            return {
+                totalAnalysis,
+                completed,
+                processing,
+                tokenBalance,
+                results
+            };
+        }
+
+        async function refreshStats() {
+            const user = getCurrentUser();
+            const stats = await calculateStats(user?.id);
+            
+            const statsDiv = document.getElementById('currentStats');
+            statsDiv.innerHTML = `
+                <strong>Total Analysis:</strong> ${stats.totalAnalysis}<br>
+                <strong>Completed:</strong> ${stats.completed}<br>
+                <strong>Processing:</strong> ${stats.processing}<br>
+                <strong>Token Balance:</strong> ${stats.tokenBalance}<br>
+                <strong>Results Count:</strong> ${stats.results.length}
+            `;
+            
+            log(`Stats for user ${user?.email || 'anonymous'}: Total=${stats.totalAnalysis}, Completed=${stats.completed}, Processing=${stats.processing}, Tokens=${stats.tokenBalance}`);
+        }
+
+        function showAllAssessmentData() {
+            log('=== ALL ASSESSMENT DATA ===');
+            
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith('assessment-result-')) {
+                    try {
+                        const result = JSON.parse(localStorage.getItem(key));
+                        log(`${key}: userId=${result.userId}, id=${result.id}, status=${result.status}, created=${result.createdAt}`);
+                    } catch (error) {
+                        log(`Error parsing ${key}: ${error.message}`);
+                    }
+                }
+            }
+            
+            log('=== END ASSESSMENT DATA ===');
+        }
+
+        function clearDemoData() {
+            if (!confirm('Clear all demo/mock assessment data?')) return;
+            
+            const keysToRemove = [];
+            
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith('assessment-result-')) {
+                    try {
+                        const result = JSON.parse(localStorage.getItem(key));
+                        if (result.id?.includes('demo-') || 
+                            result.id?.includes('mock-') || 
+                            result.id?.includes('result-001') || 
+                            result.id?.includes('result-002') ||
+                            result.userId === 'current-user' ||
+                            result.userId === 'demo-user') {
+                            keysToRemove.push(key);
+                        }
+                    } catch (error) {
+                        log(`Error parsing ${key}: ${error.message}`);
+                    }
+                }
+            }
+            
+            keysToRemove.forEach(key => {
+                localStorage.removeItem(key);
+                log(`Removed demo data: ${key}`);
+            });
+            
+            log(`Cleared ${keysToRemove.length} demo assessment results`);
+            refreshStats();
+        }
+
+        function clearUserData() {
+            const user = getCurrentUser();
+            if (!user) {
+                alert('No user logged in');
+                return;
+            }
+            
+            if (!confirm(`Clear all assessment data for user ${user.email}?`)) return;
+            
+            const keysToRemove = [];
+            
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith('assessment-result-')) {
+                    try {
+                        const result = JSON.parse(localStorage.getItem(key));
+                        if (result.userId === user.id) {
+                            keysToRemove.push(key);
+                        }
+                    } catch (error) {
+                        log(`Error parsing ${key}: ${error.message}`);
+                    }
+                }
+            }
+            
+            keysToRemove.forEach(key => {
+                localStorage.removeItem(key);
+                log(`Removed user data: ${key}`);
+            });
+            
+            log(`Cleared ${keysToRemove.length} assessment results for user ${user.email}`);
+            refreshStats();
+        }
+
+        function createTestAssessment() {
+            const user = getCurrentUser();
+            if (!user) {
+                alert('No user logged in');
+                return;
+            }
+            
+            const resultId = 'test-result-' + Date.now();
+            const result = {
+                id: resultId,
+                userId: user.id,
+                createdAt: new Date().toISOString(),
+                status: 'completed',
+                assessment_data: {
+                    riasec: { realistic: 45, investigative: 85, artistic: 72, social: 38, enterprising: 65, conventional: 42 },
+                    ocean: { openness: 88, conscientiousness: 67, extraversion: 45, agreeableness: 72, neuroticism: 25 },
+                    viaIs: {}
+                },
+                persona_profile: {
+                    title: 'Test Assessment Result',
+                    description: 'This is a test assessment result for user statistics testing.',
+                    strengths: ['Testing', 'Validation'],
+                    recommendations: ['Continue testing'],
+                    careerRecommendation: [],
+                    roleModel: []
+                }
+            };
+            
+            localStorage.setItem(`assessment-result-${resultId}`, JSON.stringify(result));
+            log(`Created test assessment ${resultId} for user ${user.email}`);
+            refreshStats();
+        }
+
+        function simulateUser(email) {
+            const userId = 'user-' + email.replace('@', '-').replace('.', '-');
+            const user = {
+                id: userId,
+                email: email,
+                name: email.split('@')[0]
+            };
+            
+            localStorage.setItem('user', JSON.stringify(user));
+            localStorage.setItem('token', 'test-token-' + userId);
+            
+            log(`Simulated login as ${email}`);
+            updateUserInfo();
+            refreshStats();
+        }
+
+        // Initialize
+        updateUserInfo();
+        refreshStats();
+        log('User Statistics Test Tool initialized');
+    </script>
+</body>
+</html>

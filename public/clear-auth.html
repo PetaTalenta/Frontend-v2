@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clear Authentication - ATMA Platform</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f8fafc;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #1e293b;
+            margin-bottom: 20px;
+        }
+        .button {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 10px 10px 0;
+            transition: background-color 0.2s;
+        }
+        .button:hover {
+            background: #dc2626;
+        }
+        .button.success {
+            background: #10b981;
+        }
+        .button.success:hover {
+            background: #059669;
+        }
+        .info {
+            background: #f1f5f9;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border-left: 4px solid #3b82f6;
+        }
+        .status {
+            margin: 15px 0;
+            padding: 10px;
+            border-radius: 6px;
+            font-weight: 500;
+        }
+        .status.success {
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+        }
+        .status.error {
+            background: #fef2f2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+        .auth-info {
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-family: monospace;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Clear Authentication Data</h1>
+        
+        <div class="info">
+            <strong>Purpose:</strong> This tool helps clear all authentication data (tokens, cookies, localStorage) 
+            to test the ATMA API integration from a clean state.
+        </div>
+
+        <div class="auth-info">
+            <div><strong>Current Authentication Status:</strong></div>
+            <div id="authStatus">Checking...</div>
+        </div>
+
+        <button class="button" onclick="clearAllAuth()">🗑️ Clear All Authentication Data</button>
+        <button class="button success" onclick="checkAuthStatus()">🔍 Check Current Status</button>
+        <button class="button success" onclick="goToAuth()">➡️ Go to Auth Page</button>
+
+        <div id="status"></div>
+
+        <div class="info">
+            <strong>What this does:</strong>
+            <ul>
+                <li>Removes token from localStorage</li>
+                <li>Removes user data from localStorage</li>
+                <li>Clears authentication cookies</li>
+                <li>Clears session storage</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        function showStatus(message, type = 'success') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = `<div class="status ${type}">${message}</div>`;
+            
+            // Auto-hide after 3 seconds
+            setTimeout(() => {
+                statusDiv.innerHTML = '';
+            }, 3000);
+        }
+
+        function checkAuthStatus() {
+            const token = localStorage.getItem('token');
+            const user = localStorage.getItem('user');
+            const cookies = document.cookie;
+            
+            let status = '<div><strong>localStorage:</strong></div>';
+            status += `<div>• token: ${token ? '✅ Present' : '❌ Not found'}</div>`;
+            status += `<div>• user: ${user ? '✅ Present' : '❌ Not found'}</div>`;
+            status += '<div><strong>Cookies:</strong></div>';
+            status += `<div>• ${cookies || 'No cookies found'}</div>`;
+            status += '<div><strong>sessionStorage:</strong></div>';
+            status += `<div>• ${sessionStorage.length} items</div>`;
+            
+            document.getElementById('authStatus').innerHTML = status;
+        }
+
+        function clearAllAuth() {
+            try {
+                // Clear localStorage
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                localStorage.clear(); // Clear everything just to be sure
+                
+                // Clear sessionStorage
+                sessionStorage.clear();
+                
+                // Clear cookies
+                document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT';
+                document.cookie = 'auth=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT';
+                
+                // Clear all cookies by iterating through them
+                const cookies = document.cookie.split(";");
+                for (let cookie of cookies) {
+                    const eqPos = cookie.indexOf("=");
+                    const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
+                    document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
+                }
+                
+                showStatus('✅ All authentication data cleared successfully!', 'success');
+                
+                // Update status display
+                setTimeout(() => {
+                    checkAuthStatus();
+                }, 500);
+                
+            } catch (error) {
+                showStatus('❌ Error clearing authentication data: ' + error.message, 'error');
+                console.error('Clear auth error:', error);
+            }
+        }
+
+        function goToAuth() {
+            window.location.href = '/auth';
+        }
+
+        // Check status on page load
+        window.onload = function() {
+            checkAuthStatus();
+        };
+    </script>
+</body>
+</html>

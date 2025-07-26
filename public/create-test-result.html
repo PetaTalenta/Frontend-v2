@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Test Assessment Result</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .button:hover {
+            background: #0056b3;
+        }
+        .button.success {
+            background: #28a745;
+        }
+        .button.success:hover {
+            background: #218838;
+        }
+        .result-link {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+            border: 1px solid #dee2e6;
+        }
+        .result-link a {
+            color: #007bff;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .result-link a:hover {
+            text-decoration: underline;
+        }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Create Test Assessment Result</h1>
+        <p>Tool untuk membuat test assessment result dan menguji halaman result yang asli.</p>
+        
+        <h3>Actions:</h3>
+        <button class="button success" onclick="createTestResult()">➕ Create Test Result</button>
+        <button class="button" onclick="createMultipleResults()">📊 Create Multiple Results</button>
+        <button class="button" onclick="showCurrentUser()">👤 Show Current User</button>
+        <button class="button" onclick="clearAllResults()">🗑️ Clear All Results</button>
+        
+        <div id="resultLinks"></div>
+        
+        <div class="container">
+            <h3>Console Log:</h3>
+            <div id="log" class="log"></div>
+            <button class="button" onclick="clearLog()">Clear Log</button>
+        </div>
+    </div>
+
+    <script>
+        let logContent = '';
+
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            logContent += `[${timestamp}] ${message}\n`;
+            document.getElementById('log').textContent = logContent;
+            document.getElementById('log').scrollTop = document.getElementById('log').scrollHeight;
+            console.log(message);
+        }
+
+        function clearLog() {
+            logContent = '';
+            document.getElementById('log').textContent = '';
+        }
+
+        function getCurrentUser() {
+            try {
+                const userStr = localStorage.getItem('user');
+                return userStr ? JSON.parse(userStr) : null;
+            } catch (error) {
+                log('Error getting current user: ' + error.message);
+                return null;
+            }
+        }
+
+        function showCurrentUser() {
+            const user = getCurrentUser();
+            if (user) {
+                log(`Current user: ${user.email} (ID: ${user.id})`);
+            } else {
+                log('No user logged in');
+            }
+        }
+
+        function createTestResult() {
+            const user = getCurrentUser();
+            if (!user) {
+                alert('No user logged in. Please login first.');
+                return;
+            }
+            
+            const resultId = 'test-result-' + Date.now();
+            const result = {
+                id: resultId,
+                userId: user.id,
+                createdAt: new Date().toISOString(),
+                status: 'completed',
+                assessment_data: {
+                    riasec: {
+                        realistic: 65,
+                        investigative: 85,
+                        artistic: 72,
+                        social: 58,
+                        enterprising: 75,
+                        conventional: 42
+                    },
+                    ocean: {
+                        openness: 88,
+                        conscientiousness: 67,
+                        extraversion: 55,
+                        agreeableness: 72,
+                        neuroticism: 25
+                    },
+                    viaIs: {
+                        creativity: 85,
+                        curiosity: 78,
+                        judgment: 72,
+                        love_of_learning: 88,
+                        perspective: 65,
+                        bravery: 58,
+                        perseverance: 75,
+                        honesty: 82,
+                        zest: 68,
+                        love: 70,
+                        kindness: 85,
+                        social_intelligence: 62,
+                        teamwork: 78,
+                        fairness: 80,
+                        leadership: 65,
+                        forgiveness: 55,
+                        humility: 60,
+                        prudence: 72,
+                        self_regulation: 68,
+                        appreciation_of_beauty: 75,
+                        gratitude: 82,
+                        hope: 78,
+                        humor: 65,
+                        spirituality: 45
+                    }
+                },
+                persona_profile: {
+                    title: 'The Creative Investigator',
+                    description: 'You are a highly creative and analytical individual who thrives on exploring new ideas and solving complex problems. Your combination of investigative thinking and artistic sensibility makes you uniquely suited for roles that require both analytical rigor and creative innovation.',
+                    strengths: [
+                        'Analytical thinking and problem-solving',
+                        'Creative and innovative approach',
+                        'Strong learning orientation',
+                        'High attention to detail',
+                        'Excellent research skills'
+                    ],
+                    recommendations: [
+                        'Consider careers in research and development',
+                        'Explore roles in data science or analytics',
+                        'Look into creative industries that value innovation',
+                        'Develop leadership skills to complement your analytical abilities',
+                        'Consider entrepreneurial opportunities in tech or creative fields'
+                    ],
+                    careerRecommendation: [
+                        {
+                            careerName: 'Data Scientist',
+                            careerProspect: {
+                                jobAvailability: 'high',
+                                salaryPotential: 'super high',
+                                careerProgression: 'high',
+                                industryGrowth: 'super high',
+                                skillDevelopment: 'high'
+                            },
+                            matchPercentage: 92
+                        },
+                        {
+                            careerName: 'UX Researcher',
+                            careerProspect: {
+                                jobAvailability: 'high',
+                                salaryPotential: 'high',
+                                careerProgression: 'high',
+                                industryGrowth: 'high',
+                                skillDevelopment: 'high'
+                            },
+                            matchPercentage: 88
+                        },
+                        {
+                            careerName: 'Product Manager',
+                            careerProspect: {
+                                jobAvailability: 'high',
+                                salaryPotential: 'super high',
+                                careerProgression: 'super high',
+                                industryGrowth: 'high',
+                                skillDevelopment: 'high'
+                            },
+                            matchPercentage: 85
+                        }
+                    ],
+                    roleModel: [
+                        'Marie Curie - Pioneering scientist and researcher',
+                        'Steve Jobs - Innovative technology leader',
+                        'Susan Wojcicki - Tech executive and strategist'
+                    ]
+                }
+            };
+            
+            localStorage.setItem(`assessment-result-${resultId}`, JSON.stringify(result));
+            log(`Created test assessment result: ${resultId} for user ${user.email}`);
+            
+            updateResultLinks();
+        }
+
+        function createMultipleResults() {
+            const user = getCurrentUser();
+            if (!user) {
+                alert('No user logged in. Please login first.');
+                return;
+            }
+            
+            const personas = [
+                {
+                    title: 'The Strategic Leader',
+                    description: 'A natural leader with strong strategic thinking abilities.',
+                    riasec: { realistic: 45, investigative: 65, artistic: 55, social: 85, enterprising: 90, conventional: 60 }
+                },
+                {
+                    title: 'The Creative Innovator',
+                    description: 'Highly creative with a passion for innovation and artistic expression.',
+                    riasec: { realistic: 35, investigative: 70, artistic: 95, social: 65, enterprising: 75, conventional: 25 }
+                },
+                {
+                    title: 'The Analytical Thinker',
+                    description: 'Detail-oriented with exceptional analytical and research capabilities.',
+                    riasec: { realistic: 55, investigative: 95, artistic: 45, social: 35, enterprising: 50, conventional: 85 }
+                }
+            ];
+            
+            personas.forEach((persona, index) => {
+                const resultId = `test-result-${Date.now()}-${index}`;
+                const result = {
+                    id: resultId,
+                    userId: user.id,
+                    createdAt: new Date(Date.now() - (index * 24 * 60 * 60 * 1000)).toISOString(), // Different dates
+                    status: 'completed',
+                    assessment_data: {
+                        riasec: persona.riasec,
+                        ocean: {
+                            openness: 70 + Math.random() * 20,
+                            conscientiousness: 60 + Math.random() * 30,
+                            extraversion: 50 + Math.random() * 40,
+                            agreeableness: 65 + Math.random() * 25,
+                            neuroticism: 20 + Math.random() * 30
+                        },
+                        viaIs: {}
+                    },
+                    persona_profile: {
+                        title: persona.title,
+                        description: persona.description,
+                        strengths: ['Strength 1', 'Strength 2', 'Strength 3'],
+                        recommendations: ['Recommendation 1', 'Recommendation 2'],
+                        careerRecommendation: [],
+                        roleModel: ['Role Model 1', 'Role Model 2']
+                    }
+                };
+                
+                localStorage.setItem(`assessment-result-${resultId}`, JSON.stringify(result));
+            });
+            
+            log(`Created ${personas.length} test assessment results for user ${user.email}`);
+            updateResultLinks();
+        }
+
+        function clearAllResults() {
+            if (!confirm('Clear all assessment results?')) return;
+            
+            const keysToRemove = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith('assessment-result-')) {
+                    keysToRemove.push(key);
+                }
+            }
+            
+            keysToRemove.forEach(key => localStorage.removeItem(key));
+            log(`Cleared ${keysToRemove.length} assessment results`);
+            updateResultLinks();
+        }
+
+        function updateResultLinks() {
+            const user = getCurrentUser();
+            const results = [];
+            
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith('assessment-result-')) {
+                    try {
+                        const result = JSON.parse(localStorage.getItem(key));
+                        if (!user || result.userId === user.id) {
+                            results.push(result);
+                        }
+                    } catch (error) {
+                        log('Error parsing result: ' + error.message);
+                    }
+                }
+            }
+            
+            results.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+            
+            const linksDiv = document.getElementById('resultLinks');
+            if (results.length === 0) {
+                linksDiv.innerHTML = '<p><em>No assessment results found.</em></p>';
+            } else {
+                linksDiv.innerHTML = `
+                    <h3>Available Results (${results.length}):</h3>
+                    ${results.map(result => `
+                        <div class="result-link">
+                            <strong>${result.persona_profile?.title || 'Assessment Result'}</strong><br>
+                            <small>ID: ${result.id} | Created: ${new Date(result.createdAt).toLocaleString()}</small><br>
+                            <a href="/results/${result.id}" target="_blank">View Result Page</a>
+                        </div>
+                    `).join('')}
+                `;
+            }
+        }
+
+        // Initialize
+        showCurrentUser();
+        updateResultLinks();
+        log('Test Result Creator initialized');
+    </script>
+</body>
+</html>
