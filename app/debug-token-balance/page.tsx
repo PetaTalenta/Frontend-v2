@@ -12,6 +12,12 @@ import {
   checkTokenConsistency,
   quickDiagnostic
 } from '../../utils/debug-token-balance';
+import {
+  forceRefreshTokenBalance,
+  fixAuthenticationIssues,
+  fixApiEndpointIssues,
+  runAllQuickFixes
+} from '../../utils/token-balance-fixes';
 
 interface DebugResult {
   step: string;
@@ -185,6 +191,51 @@ export default function DebugTokenBalancePage() {
     }
   };
 
+  const runQuickFix = async (fixType: string) => {
+    addDebugResult('Quick Fix', 'info', `Running ${fixType} fix...`);
+    setIsDebugging(true);
+
+    try {
+      let result;
+
+      switch (fixType) {
+        case 'force-refresh':
+          result = await forceRefreshTokenBalance();
+          break;
+        case 'auth-fix':
+          result = await fixAuthenticationIssues();
+          break;
+        case 'api-fix':
+          result = await fixApiEndpointIssues();
+          break;
+        case 'all-fixes':
+          const allResults = await runAllQuickFixes();
+          result = {
+            success: allResults.overallSuccess,
+            message: allResults.summary,
+            details: allResults.results
+          };
+          break;
+        default:
+          result = { success: false, message: 'Unknown fix type' };
+      }
+
+      addDebugResult('Quick Fix', result.success ? 'success' : 'error',
+        `${fixType} fix: ${result.message}`, result.details);
+
+      if (result.nextSteps) {
+        addDebugResult('Next Steps', 'info', 'Recommended actions:', result.nextSteps);
+      }
+
+    } catch (error) {
+      addDebugResult('Quick Fix', 'error', `${fixType} fix failed`, {
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    } finally {
+      setIsDebugging(false);
+    }
+  };
+
   const runFullDiagnostic = async () => {
     setIsDebugging(true);
     clearResults();
@@ -274,6 +325,48 @@ export default function DebugTokenBalancePage() {
             >
               Clear Results
             </Button>
+          </div>
+
+          <div className="mt-4">
+            <h3 className="text-sm font-semibold text-gray-700 mb-2">Quick Fixes:</h3>
+            <div className="flex gap-2 flex-wrap">
+              <Button
+                onClick={() => runQuickFix('force-refresh')}
+                disabled={isDebugging}
+                size="sm"
+                variant="outline"
+                className="border-blue-300 text-blue-700 hover:bg-blue-50"
+              >
+                Force Refresh
+              </Button>
+              <Button
+                onClick={() => runQuickFix('auth-fix')}
+                disabled={isDebugging}
+                size="sm"
+                variant="outline"
+                className="border-green-300 text-green-700 hover:bg-green-50"
+              >
+                Fix Auth
+              </Button>
+              <Button
+                onClick={() => runQuickFix('api-fix')}
+                disabled={isDebugging}
+                size="sm"
+                variant="outline"
+                className="border-orange-300 text-orange-700 hover:bg-orange-50"
+              >
+                Fix API
+              </Button>
+              <Button
+                onClick={() => runQuickFix('all-fixes')}
+                disabled={isDebugging}
+                size="sm"
+                variant="outline"
+                className="border-purple-300 text-purple-700 hover:bg-purple-50"
+              >
+                Run All Fixes
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
