@@ -104,13 +104,6 @@ export function AssessmentTable({ data, onRefresh }: AssessmentTableProps) {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button
-            variant="outline"
-            className="border-[#eaecf0] text-[#64707d] text-xs"
-            onClick={() => router.push("/username-test")}
-          >
-            Username Test
-          </Button>
           <Button className="bg-[#6475e9] hover:bg-[#5a6bd8] text-white text-xs" onClick={() => router.push("/select-assessment") }>
             <Plus className="w-4 h-4 mr-2" />
             New Assessment

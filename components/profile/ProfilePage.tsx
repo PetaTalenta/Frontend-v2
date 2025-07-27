@@ -123,6 +123,20 @@ export default function ProfilePage() {
             date_of_birth: userData.profile?.date_of_birth || '',
             gender: userData.profile?.gender || ''
           });
+
+          // Update AuthContext with the latest username and name from profile
+          const authUpdates: any = {};
+          if (userData.username && userData.username !== user?.username) {
+            authUpdates.username = userData.username;
+          }
+          if (userData.profile?.full_name && userData.profile.full_name !== user?.name) {
+            authUpdates.name = userData.profile.full_name;
+          }
+
+          if (Object.keys(authUpdates).length > 0) {
+            console.log('ProfilePage: Updating AuthContext with profile data:', authUpdates);
+            updateUser(authUpdates);
+          }
         } else {
           console.error('Invalid profile data structure:', profileData);
           setError('Invalid profile data structure received');
@@ -231,9 +245,18 @@ export default function ProfilePage() {
         setSuccess('Profile updated successfully');
         setIsEditing(false);
 
-        // Update AuthContext with new username if it was changed
+        // Update AuthContext with new data if it was changed
+        const authUpdates: any = {};
         if (updateData.username) {
-          updateUser({ username: updateData.username });
+          authUpdates.username = updateData.username;
+        }
+        if (updateData.full_name) {
+          authUpdates.name = updateData.full_name;
+        }
+
+        if (Object.keys(authUpdates).length > 0) {
+          console.log('ProfilePage: Updating AuthContext after profile save:', authUpdates);
+          updateUser(authUpdates);
         }
 
         await loadProfile(); // Reload profile data

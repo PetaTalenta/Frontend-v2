@@ -19,11 +19,11 @@ export default function AuthPage() {
     }
   }, [isAuthenticated, isLoading, router]);
 
-  const handleAuth = (token: string, user: any) => {
+  const handleAuth = async (token: string, user: any) => {
     if (isLogin) {
-      login(token, user);
+      await login(token, user);
     } else {
-      register(token, user);
+      await register(token, user);
     }
   };
 

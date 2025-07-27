@@ -280,7 +280,8 @@ function FullResultsPage() {
           </div>
           
           <div className="flex gap-2">
-            <Button
+            {/* Chat dengan AI button hidden as requested */}
+            {/* <Button
               variant="outline"
               size="sm"
               onClick={() => router.push(`/results/${resultId}/chat`)}
@@ -288,7 +289,7 @@ function FullResultsPage() {
             >
               <MessageCircle className="w-4 h-4 mr-2" />
               Chat dengan AI
-            </Button>
+            </Button> */}
             <Button
               variant="outline"
               size="sm"

@@ -57,7 +57,7 @@ export default function Login({ onLogin }: LoginProps) {
         };
 
         console.log('Login: Successful login, calling onLogin with:', { token, user: userObj });
-        onLogin(token, userObj);
+        await onLogin(token, userObj);
       } else {
         // Handle API errors
         const errorMessage = getErrorMessage(response);

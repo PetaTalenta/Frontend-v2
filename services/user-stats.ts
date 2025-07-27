@@ -120,17 +120,15 @@ export async function calculateUserStats(userId?: string): Promise<UserStats> {
 
 /**
  * Convert user stats to StatCard format for dashboard display
- * Uses hardcoded values based on the assessment table data we know exists
+ * Uses actual calculated values from userStats
  */
 export function formatStatsForDashboard(userStats: UserStats): StatCard[] {
-  // Based on the logs, we know there are 93 assessments from Archive API
-  // And the table shows 9 assessments with "Selesai" status
-  // So we'll use these known values for now
-  const totalAnalysis = 93; // From Archive API logs
-  const completed = 93; // Assuming all are completed based on "Selesai" status
-  const processing = 0; // No processing items seen in logs
+  // Use the actual calculated values from userStats
+  const totalAnalysis = userStats.totalAnalysis;
+  const completed = userStats.completed;
+  const processing = userStats.processing;
 
-  console.log(`formatStatsForDashboard: Using hardcoded values - Total: ${totalAnalysis}, Completed: ${completed}, Processing: ${processing}`);
+  console.log(`formatStatsForDashboard: Using actual calculated values - Total: ${totalAnalysis}, Completed: ${completed}, Processing: ${processing}`);
 
   return [
     {
@@ -172,27 +170,61 @@ export async function fetchAssessmentHistoryFromAPI() {
     console.log('Archive API: Starting to fetch assessment history...');
     const { apiService } = await import('./apiService');
 
-    // Fetch all results from the API (we'll handle pagination client-side for now)
-    console.log('Archive API: Calling apiService.getResults...');
-    const response = await apiService.getResults({
-      limit: 100, // Fetch up to 100 results
+    // First, get the first page to understand total count
+    console.log('Archive API: Calling apiService.getResults for first page...');
+    const firstResponse = await apiService.getResults({
+      limit: 100,
+      page: 1,
       sort: 'created_at',
       order: 'DESC'
     });
 
-    console.log('Archive API: Response received:', response);
+    console.log('Archive API: First response received:', firstResponse);
 
-    if (!response.success || !response.data?.results) {
+    if (!firstResponse.success || !firstResponse.data?.results) {
       console.warn('Archive API: No results found or invalid response');
-      console.warn('Archive API: Response details:', { success: response.success, hasData: !!response.data, hasResults: !!response.data?.results });
+      console.warn('Archive API: Response details:', { success: firstResponse.success, hasData: !!firstResponse.data, hasResults: !!firstResponse.data?.results });
       return [];
     }
 
+    let allResults = [...firstResponse.data.results];
+
+    // Check if we need to fetch more pages
+    if (firstResponse.data.pagination) {
+      const { total, totalPages, page: currentPage } = firstResponse.data.pagination;
+      console.log('Archive API: Pagination info:', firstResponse.data.pagination);
+      console.log(`Archive API: Fetched ${allResults.length} out of ${total} total results from page ${currentPage} of ${totalPages}`);
+
+      // Fetch remaining pages if needed
+      if (totalPages > 1) {
+        console.log(`Archive API: Fetching remaining ${totalPages - 1} pages...`);
+
+        for (let page = 2; page <= totalPages; page++) {
+          console.log(`Archive API: Fetching page ${page}...`);
+          const pageResponse = await apiService.getResults({
+            limit: 100,
+            page: page,
+            sort: 'created_at',
+            order: 'DESC'
+          });
+
+          if (pageResponse.success && pageResponse.data?.results) {
+            allResults.push(...pageResponse.data.results);
+            console.log(`Archive API: Page ${page} fetched, total results so far: ${allResults.length}`);
+          } else {
+            console.warn(`Archive API: Failed to fetch page ${page}`);
+          }
+        }
+
+        console.log(`Archive API: Successfully fetched all ${allResults.length} results from ${totalPages} pages`);
+      }
+    }
+
     // Log sample data to understand the structure
-    console.log('Archive API: Sample result data:', response.data.results.slice(0, 2));
+    console.log('Archive API: Sample result data:', allResults.slice(0, 2));
 
     // Transform API data to match AssessmentData interface
-    const assessmentHistory = response.data.results.map((result: any, index: number) => ({
+    const assessmentHistory = allResults.map((result: any, index: number) => ({
       id: index + 1,
       nama: result.persona_profile?.archetype || result.assessment_name || 'Assessment Result',
       tipe: "Personality Assessment" as const,

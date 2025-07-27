@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Stats Fix</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .stats-card {
+            display: inline-block;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px;
+            min-width: 150px;
+            text-align: center;
+        }
+        .stats-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .stats-label {
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 0.9em;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .button:hover {
+            background: #0056b3;
+        }
+        .error {
+            color: #dc3545;
+        }
+        .success {
+            color: #28a745;
+        }
+        .warning {
+            color: #ffc107;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Test Stats Fix</h1>
+        <p>This page tests the fixed statistics calculation to ensure the cards show the correct data from the API.</p>
+        
+        <div>
+            <button class="button" onclick="testStatsCalculation()">Test Stats Calculation</button>
+            <button class="button" onclick="testAPIFetch()">Test API Fetch</button>
+            <button class="button" onclick="clearLogs()">Clear Logs</button>
+        </div>
+
+        <h2>Current Statistics</h2>
+        <div id="stats-display">
+            <div class="stats-card">
+                <div class="stats-value" id="total-analysis">-</div>
+                <div class="stats-label">Total Analysis</div>
+            </div>
+            <div class="stats-card">
+                <div class="stats-value" id="completed">-</div>
+                <div class="stats-label">Completed</div>
+            </div>
+            <div class="stats-card">
+                <div class="stats-value" id="processing">-</div>
+                <div class="stats-label">Processing</div>
+            </div>
+        </div>
+
+        <h2>Test Logs</h2>
+        <div id="logs" class="log"></div>
+    </div>
+
+    <script>
+        function log(message, type = 'info') {
+            const logs = document.getElementById('logs');
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : type === 'warning' ? 'warning' : '';
+            logs.innerHTML += `<div class="${className}">[${timestamp}] ${message}</div>`;
+            logs.scrollTop = logs.scrollHeight;
+        }
+
+        function clearLogs() {
+            document.getElementById('logs').innerHTML = '';
+        }
+
+        function updateStatsDisplay(stats) {
+            document.getElementById('total-analysis').textContent = stats.totalAnalysis || 0;
+            document.getElementById('completed').textContent = stats.completed || 0;
+            document.getElementById('processing').textContent = stats.processing || 0;
+        }
+
+        async function testAPIFetch() {
+            log('🧪 Testing API fetch...', 'info');
+            
+            try {
+                // Test the API endpoint directly
+                const token = localStorage.getItem('token') || 
+                             localStorage.getItem('auth_token') || 
+                             localStorage.getItem('authToken');
+                
+                if (!token) {
+                    log('❌ No authentication token found. Please login first.', 'error');
+                    return;
+                }
+
+                const response = await fetch('/api/proxy/archive/results?limit=100&page=1&sort=created_at&order=DESC', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API request failed: ${response.status}`);
+                }
+
+                const data = await response.json();
+                log(`✅ API Response received successfully`, 'success');
+                log(`📊 Results: ${data.data?.results?.length || 0} items`, 'info');
+                log(`📄 Pagination: ${JSON.stringify(data.data?.pagination || {})}`, 'info');
+                
+                if (data.data?.pagination) {
+                    const { total, page, totalPages, limit } = data.data.pagination;
+                    log(`📈 Total items in API: ${total}`, 'info');
+                    log(`📄 Current page: ${page} of ${totalPages}`, 'info');
+                    
+                    if (total > limit) {
+                        log(`⚠️ WARNING: API has ${total} total items but only fetching ${limit} per page`, 'warning');
+                        log(`💡 Need to fetch ${totalPages} pages to get all data`, 'info');
+                    }
+                }
+
+                // Count completed vs processing
+                if (data.data?.results) {
+                    const completed = data.data.results.filter(item => item.status === 'completed').length;
+                    const processing = data.data.results.filter(item => item.status !== 'completed').length;
+                    
+                    log(`✅ Completed assessments: ${completed}`, 'success');
+                    log(`⏳ Processing assessments: ${processing}`, 'info');
+                    
+                    updateStatsDisplay({
+                        totalAnalysis: data.data.results.length,
+                        completed: completed,
+                        processing: processing
+                    });
+                }
+
+            } catch (error) {
+                log(`❌ API test failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function testStatsCalculation() {
+            log('🧪 Testing stats calculation...', 'info');
+            
+            try {
+                // This would normally import the functions, but since we're in a browser,
+                // we'll simulate the test
+                log('📝 Note: This is a simulation. In the actual app, the fixed functions should:', 'info');
+                log('1. Fetch ALL pages from the API (not just first 100 results)', 'info');
+                log('2. Use actual calculated values instead of hardcoded 93', 'info');
+                log('3. Show correct Total Analysis count matching API total', 'info');
+                log('4. Show correct Completed count based on status filtering', 'info');
+                
+                // Test what the API should return
+                await testAPIFetch();
+                
+            } catch (error) {
+                log(`❌ Stats calculation test failed: ${error.message}`, 'error');
+            }
+        }
+
+        // Initialize
+        log('🚀 Stats Fix Test Page Loaded', 'success');
+        log('💡 Click "Test API Fetch" to see current API data', 'info');
+        log('💡 The dashboard should now show the correct numbers from the API', 'info');
+    </script>
+</body>
+</html>

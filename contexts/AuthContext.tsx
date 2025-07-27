@@ -18,9 +18,9 @@ interface AuthContextType {
   token: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (token: string, user: User) => void;
+  login: (token: string, user: User) => Promise<void>;
   logout: () => void;
-  register: (token: string, user: User) => void;
+  register: (token: string, user: User) => Promise<void>;
   updateUser: (userData: Partial<User>) => void;
 }
 
@@ -82,7 +82,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     setIsLoading(false);
   }, []);
 
-  const login = (newToken: string, newUser: User) => {
+  const login = async (newToken: string, newUser: User) => {
     console.log('AuthContext: User logging in:', newUser.email);
 
     // Clear any existing demo data to ensure clean user statistics
@@ -99,13 +99,16 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     console.log('AuthContext: Login successful, fetching username from profile...');
 
     // Fetch username from profile to ensure we have the latest data
-    fetchUsernameFromProfile(newToken);
+    // Wait for it to complete to ensure username is available
+    await fetchUsernameFromProfile(newToken);
+
+    console.log('AuthContext: Profile data fetched, redirecting to dashboard...');
 
     // Redirect to dashboard after login
     router.push('/dashboard');
   };
 
-  const register = (newToken: string, newUser: User) => {
+  const register = async (newToken: string, newUser: User) => {
     console.log('AuthContext: User registering:', newUser.email);
 
     // Clear any existing demo data to ensure clean user statistics
@@ -122,19 +125,32 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     console.log('AuthContext: Registration successful, fetching username from profile...');
 
     // Fetch username from profile to ensure we have the latest data
-    fetchUsernameFromProfile(newToken);
+    // Wait for it to complete to ensure username is available
+    await fetchUsernameFromProfile(newToken);
+
+    console.log('AuthContext: Profile data fetched, redirecting to dashboard...');
 
     // Redirect to dashboard after registration
     router.push('/dashboard');
   };
 
   const updateUser = (userData: Partial<User>) => {
-    if (!user) return;
+    if (!user) {
+      console.log('AuthContext: Cannot update user - no user currently logged in');
+      return;
+    }
+
+    console.log('AuthContext: Updating user data with:', userData);
+    console.log('AuthContext: Current user before update:', user);
 
     const updatedUser = { ...user, ...userData };
     setUser(updatedUser);
     localStorage.setItem('user', JSON.stringify(updatedUser));
-    console.log('AuthContext: User data updated:', updatedUser);
+
+    console.log('AuthContext: User data successfully updated:', updatedUser);
+
+    // Force a re-render by updating the state
+    // This ensures components using the user data will re-render with the new data
   };
 
   // Fetch username from profile if not available
@@ -144,16 +160,39 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       const profileData = await getUserProfile(token);
       console.log('AuthContext: Profile data received:', profileData);
 
-      if (profileData && profileData.success && profileData.data?.user?.username) {
-        const username = profileData.data.user.username;
-        console.log('AuthContext: Username fetched from profile:', username);
-        updateUser({ username });
+      if (profileData && profileData.success && profileData.data?.user) {
+        const profileUser = profileData.data.user;
+        const updates: Partial<User> = {};
+
+        // Update username if available
+        if (profileUser.username) {
+          updates.username = profileUser.username;
+          console.log('AuthContext: Username fetched from profile:', profileUser.username);
+        }
+
+        // Also update other user data if available
+        if (profileUser.email && !user?.email) {
+          updates.email = profileUser.email;
+        }
+
+        // Update name from profile full_name if available
+        if (profileData.data.profile?.full_name && !user?.name) {
+          updates.name = profileData.data.profile.full_name;
+        }
+
+        // Apply updates if any
+        if (Object.keys(updates).length > 0) {
+          console.log('AuthContext: Updating user with profile data:', updates);
+          updateUser(updates);
+        } else {
+          console.log('AuthContext: No new data to update from profile');
+        }
       } else {
-        console.log('AuthContext: No username found in profile data or profile fetch failed');
+        console.log('AuthContext: No user data found in profile response or profile fetch failed');
         console.log('AuthContext: Profile structure:', JSON.stringify(profileData, null, 2));
       }
     } catch (error) {
-      console.log('AuthContext: Failed to fetch username from profile:', error);
+      console.error('AuthContext: Failed to fetch username from profile:', error);
       // Don't throw error, just log it - this is optional enhancement
     }
   };

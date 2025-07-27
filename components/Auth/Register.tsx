@@ -10,7 +10,7 @@ import { Eye, EyeOff, Mail, Lock, User, Loader2 } from 'lucide-react';
 import { registerUser, getErrorMessage, isErrorCode, getApiStatus } from '../../services/enhanced-auth-api';
 
 interface RegisterProps {
-  onRegister: (token: string, user: any) => void;
+  onRegister: (token: string, user: any) => Promise<void>;
 }
 
 interface RegisterFormData {
@@ -60,7 +60,7 @@ export default function Register({ onRegister }: RegisterProps) {
         };
 
         console.log('Register: Successful registration, calling onRegister with:', { token, user: userObj });
-        onRegister(token, userObj);
+        await onRegister(token, userObj);
       } else {
         // Handle API errors
         const errorMessage = getErrorMessage(response);
