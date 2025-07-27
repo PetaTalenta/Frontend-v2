@@ -253,20 +253,28 @@ export default function EnhancedAssessmentSubmission({
 
       {/* Success Message */}
       {isCompleted && result && (
-        <Card className="bg-green-50 border-green-200">
+        <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200 shadow-lg">
           <CardContent className="pt-6">
-            <div className="flex items-start gap-3">
-              <CheckCircle className="w-6 h-6 text-green-600 mt-0.5" />
-              <div>
-                <h3 className="font-semibold text-green-900">
-                  Assessment Completed Successfully!
+            <div className="text-center space-y-4">
+              <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto shadow-lg">
+                <CheckCircle className="w-8 h-8 text-white" />
+              </div>
+
+              <div className="space-y-2">
+                <h3 className="text-2xl font-bold text-green-900">
+                  Assessment Berhasil Diselesaikan!
                 </h3>
-                <p className="text-green-800 mt-1">
-                  Your personality profile: <strong>{result.persona_profile.title}</strong>
+                <p className="text-green-800 text-lg">
+                  Profil kepribadian Anda: <strong className="text-green-900">{result.persona_profile.title}</strong>
                 </p>
-                <p className="text-sm text-green-700 mt-2">
-                  You can now view your detailed results and career recommendations.
+                <p className="text-sm text-green-700 bg-green-100 rounded-lg px-4 py-2 inline-block">
+                  Anda akan segera diarahkan ke halaman hasil lengkap dengan rekomendasi karir yang personal.
                 </p>
+              </div>
+
+              <div className="flex items-center justify-center gap-2 text-green-600 mt-4">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600"></div>
+                <span className="text-sm font-medium">Mempersiapkan hasil...</span>
               </div>
             </div>
           </CardContent>

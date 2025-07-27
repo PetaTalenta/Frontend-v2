@@ -150,13 +150,13 @@ function simulateAssessmentProgress(jobId, socket) {
   
   let progress = 0;
   const steps = [
-    { progress: 10, status: 'queued', message: 'Assessment queued for processing...', type: 'assessment-queued' },
-    { progress: 25, status: 'processing', message: 'Analyzing RIASEC personality traits...', type: 'assessment-processing' },
-    { progress: 45, status: 'processing', message: 'Evaluating Big Five personality dimensions...', type: 'assessment-processing' },
-    { progress: 65, status: 'processing', message: 'Processing VIA Character Strengths...', type: 'assessment-processing' },
-    { progress: 80, status: 'processing', message: 'Generating personality insights...', type: 'assessment-processing' },
-    { progress: 95, status: 'processing', message: 'Creating career recommendations...', type: 'assessment-processing' },
-    { progress: 100, status: 'completed', message: 'Assessment completed successfully!', type: 'assessment-completed' }
+    { progress: 10, status: 'started', message: 'Your analysis has started processing...', type: 'analysis-started' },
+    { progress: 25, status: 'processing', message: 'Analyzing RIASEC personality traits...', type: 'analysis-processing' },
+    { progress: 45, status: 'processing', message: 'Evaluating Big Five personality dimensions...', type: 'analysis-processing' },
+    { progress: 65, status: 'processing', message: 'Processing VIA Character Strengths...', type: 'analysis-processing' },
+    { progress: 80, status: 'processing', message: 'Generating personality insights...', type: 'analysis-processing' },
+    { progress: 95, status: 'processing', message: 'Creating career recommendations...', type: 'analysis-processing' },
+    { progress: 100, status: 'completed', message: 'Your analysis is ready!', type: 'analysis-complete' }
   ];
 
   let stepIndex = 0;
@@ -169,26 +169,44 @@ function simulateAssessmentProgress(jobId, socket) {
     }
 
     const step = steps[stepIndex];
+
+    // Create event data matching API documentation format
     const eventData = {
-      type: step.type,
       jobId: jobId,
-      data: {
-        status: step.status,
-        progress: step.progress,
-        message: step.message,
-        queuePosition: step.progress < 25 ? Math.max(1, 5 - Math.floor(step.progress / 5)) : undefined,
-        estimatedTimeRemaining: step.progress < 100 ? Math.max(5, 60 - (step.progress * 0.6)) : undefined,
-        resultId: step.progress === 100 ? `result_${Date.now()}_${Math.random().toString(36).substr(2, 9)}` : undefined
-      }
+      status: step.status,
+      message: step.message,
+      metadata: {
+        assessmentName: "Personality Assessment",
+        estimatedProcessingTime: step.progress < 100 ? "5-10 minutes" : undefined,
+        processingTime: step.progress === 100 ? "7 minutes" : undefined
+      },
+      timestamp: new Date().toISOString()
     };
 
-    // Emit to all clients subscribed to this job
-    io.to(`job_${jobId}`).emit('assessment-update', eventData);
+    // Add resultId for completed events
+    if (step.progress === 100) {
+      eventData.resultId = `result_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+    }
 
-    console.log(`📊 Job ${jobId} - ${step.progress}%: ${step.message}`);
+    // Emit specific event type based on step
+    let eventName;
+    if (step.type === 'analysis-started') {
+      eventName = 'analysis-started';
+    } else if (step.type === 'analysis-complete') {
+      eventName = 'analysis-complete';
+    } else {
+      // Skip intermediate processing steps for now
+      stepIndex++;
+      return;
+    }
+
+    // Emit to all clients subscribed to this job
+    io.to(`job_${jobId}`).emit(eventName, eventData);
+
+    console.log(`📊 Job ${jobId} - ${eventName}: ${step.message}`);
 
     stepIndex++;
-  }, 800); // Update every 800ms for faster processing (5.6 seconds total)
+  }, 500); // Update every 500ms for faster testing
 
   activeJobs.set(jobId, interval);
 }

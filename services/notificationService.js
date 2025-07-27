@@ -8,6 +8,7 @@ class NotificationService {
     this.callbacks = {
       onAuthenticated: null,
       onAuthError: null,
+      onAnalysisStarted: null,
       onAnalysisComplete: null,
       onAnalysisFailed: null,
       onConnect: null,
@@ -20,8 +21,10 @@ class NotificationService {
       this.disconnect();
     }
 
-    // Connect through API Gateway instead of directly to notification service
-    const socketUrl = options.url || 'http://localhost:3000';
+    // Updated to match API documentation
+    const socketUrl = options.url || (process.env.NODE_ENV === 'production'
+      ? 'https://api.chhrone.web.id'
+      : 'http://localhost:3000');
 
     this.socket = io(socketUrl, {
       autoConnect: false,
@@ -90,7 +93,11 @@ class NotificationService {
       this.callbacks.onAuthError?.(error);
     });
 
-    // Notification events
+    // Notification events - Updated to match API documentation
+    this.socket.on('analysis-started', (data) => {
+      this.callbacks.onAnalysisStarted?.(data);
+    });
+
     this.socket.on('analysis-complete', (data) => {
       this.callbacks.onAnalysisComplete?.(data);
     });
@@ -108,6 +115,11 @@ class NotificationService {
 
   onAuthError(callback) {
     this.callbacks.onAuthError = callback;
+    return this;
+  }
+
+  onAnalysisStarted(callback) {
+    this.callbacks.onAnalysisStarted = callback;
     return this;
   }
 

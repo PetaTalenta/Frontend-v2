@@ -4,7 +4,8 @@
 import { Header } from "./components/dashboard/header"
 import { StatsCard } from "./components/dashboard/stats-card"
 import { AssessmentTable } from "./components/dashboard/assessment-table"
-import { WorldMapCard } from "./components/dashboard/world-map-card"
+import { VIAISCard } from "./components/dashboard/viais-card"
+import { OceanCard } from "./components/dashboard/ocean-card"
 
 import { ProgressCard } from "./components/dashboard/progress-card"
 import { chartData } from "./data/mockData"
@@ -13,7 +14,7 @@ import { calculateUserStats, formatStatsForDashboard, formatAssessmentHistory, c
 import { getLatestAssessmentResult } from "./services/assessment-api"
 import { useState, useEffect, useCallback } from "react"
 import type { StatCard, ProgressItem } from "./types/dashboard"
-import type { OceanScores } from "./types/assessment-results"
+import type { OceanScores, ViaScores } from "./types/assessment-results"
 
 // Error Boundary Component
 import React from "react"
@@ -71,9 +72,18 @@ function DashboardContent() {
   const [assessmentData, setAssessmentData] = useState<any[]>([]);
   const [progressData, setProgressData] = useState<ProgressItem[]>([]);
   const [oceanScores, setOceanScores] = useState<OceanScores | undefined>(undefined);
+  const [viaScores, setViaScores] = useState<ViaScores | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(() => {
+    // Load auto-refresh preference from localStorage
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('dashboard-auto-refresh');
+      return saved !== null ? JSON.parse(saved) : true;
+    }
+    return true;
+  });
 
   console.log('DashboardContent: Rendering with state:', {
     user: user?.email,
@@ -153,16 +163,31 @@ function DashboardContent() {
       try {
         console.log('Dashboard: Fetching latest assessment for Ocean scores...');
         const latestAssessment = await getLatestAssessmentResult(user.id);
-        if (latestAssessment && latestAssessment.assessment_data && latestAssessment.assessment_data.ocean) {
-          console.log('Dashboard: Found Ocean scores from latest assessment:', latestAssessment.assessment_data.ocean);
-          setOceanScores(latestAssessment.assessment_data.ocean);
+        if (latestAssessment && latestAssessment.assessment_data) {
+          if (latestAssessment.assessment_data.ocean) {
+            console.log('Dashboard: Found Ocean scores from latest assessment:', latestAssessment.assessment_data.ocean);
+            setOceanScores(latestAssessment.assessment_data.ocean);
+          } else {
+            console.log('Dashboard: No Ocean scores found in latest assessment, using defaults');
+            setOceanScores(undefined); // Will use defaults in WorldMapCard
+          }
+
+          if (latestAssessment.assessment_data.viaIs) {
+            console.log('Dashboard: Found VIAIS scores from latest assessment:', latestAssessment.assessment_data.viaIs);
+            setViaScores(latestAssessment.assessment_data.viaIs);
+          } else {
+            console.log('Dashboard: No VIAIS scores found in latest assessment, using defaults');
+            setViaScores(undefined); // Will use defaults in WorldMapCard
+          }
         } else {
-          console.log('Dashboard: No Ocean scores found in latest assessment, using defaults');
-          setOceanScores(undefined); // Will use defaults in WorldMapCard
+          console.log('Dashboard: No assessment data found, using defaults');
+          setOceanScores(undefined);
+          setViaScores(undefined);
         }
       } catch (oceanError) {
-        console.error('Dashboard: Error fetching Ocean scores:', oceanError);
+        console.error('Dashboard: Error fetching assessment scores:', oceanError);
         setOceanScores(undefined); // Will use defaults in WorldMapCard
+        setViaScores(undefined); // Will use defaults in WorldMapCard
       }
 
       console.log('Dashboard: Data formatted successfully');
@@ -190,10 +215,11 @@ function DashboardContent() {
         { label: "Analytical", value: 0 },
       ]);
       setOceanScores(undefined); // Will use defaults in WorldMapCard
+      setViaScores(undefined); // Will use defaults in WorldMapCard
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [user]);
 
   // Refresh assessment data function
   const refreshAssessmentData = async () => {
@@ -219,24 +245,62 @@ function DashboardContent() {
     if (!authLoading) {
       loadUserData();
     }
-  }, [user, authLoading]);
+  }, [user, authLoading, loadUserData]);
 
   // Refresh data when window gains focus (user returns from assessment)
+  // Only refresh if user was away for more than 30 seconds to prevent unnecessary refreshes
   useEffect(() => {
+    let lastFocusTime = Date.now();
+    let focusTimeout: NodeJS.Timeout;
+
     const handleFocus = () => {
-      console.log('Dashboard: Window focus detected, reloading data');
-      if (!authLoading && user) {
+      const now = Date.now();
+      const timeSinceLastFocus = now - lastFocusTime;
+
+      console.log('Dashboard: Window focus detected, time since last focus:', timeSinceLastFocus + 'ms');
+
+      // Only refresh if auto-refresh is enabled and user was away for more than 30 seconds
+      // This prevents refresh when just clicking outside briefly
+      if (autoRefreshEnabled && timeSinceLastFocus > 30000 && !authLoading && user) {
+        console.log('Dashboard: User was away for more than 30 seconds, reloading data');
         loadUserData();
+      } else if (!autoRefreshEnabled) {
+        console.log('Dashboard: Auto-refresh is disabled, skipping refresh');
+      } else {
+        console.log('Dashboard: User was away for less than 30 seconds, skipping refresh');
       }
+
+      lastFocusTime = now;
+    };
+
+    const handleBlur = () => {
+      lastFocusTime = Date.now();
+      console.log('Dashboard: Window blur detected at:', lastFocusTime);
     };
 
     window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
-  }, [user, authLoading]);
+    window.addEventListener('blur', handleBlur);
 
-  const handleExternalLink = () => {
-    window.open("https://example.com", "_blank")
-  }
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('blur', handleBlur);
+      if (focusTimeout) {
+        clearTimeout(focusTimeout);
+      }
+    };
+  }, [user, authLoading, loadUserData, autoRefreshEnabled]);
+
+  // Save auto-refresh preference to localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('dashboard-auto-refresh', JSON.stringify(autoRefreshEnabled));
+      console.log('Dashboard: Auto-refresh preference saved:', autoRefreshEnabled);
+    }
+  }, [autoRefreshEnabled]);
+
+
+
+
 
   // Get user's display name
   const getUserDisplayName = () => {
@@ -311,7 +375,6 @@ function DashboardContent() {
           <Header
             title={`Welcome, ${getUserDisplayName()}!`}
             description="Loading your personalized dashboard..."
-            onExternalLinkClick={handleExternalLink}
           />
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -369,7 +432,6 @@ function DashboardContent() {
           <Header
             title={`Welcome, ${getUserDisplayName()}!`}
             description="Track your progress here, You almost reach your goal."
-            onExternalLinkClick={handleExternalLink}
           />
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -390,10 +452,12 @@ function DashboardContent() {
             </div>
 
             {/* Right Sidebar */}
-            <div className="space-y-6">
-              <WorldMapCard
-                title={getUserDisplayName()}
-                description="Discover your potential and prepare yourself to reach higher goals."
+            <div className="space-y-4">
+              <VIAISCard
+                viaScores={viaScores}
+              />
+
+              <OceanCard
                 oceanScores={oceanScores}
               />
 

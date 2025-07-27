@@ -5,21 +5,22 @@
 
 import { io, Socket } from 'socket.io-client';
 
-// WebSocket Event Types
+// WebSocket Event Types - Updated to match API documentation
 export interface AssessmentWebSocketEvent {
-  type: 'assessment-queued' | 'assessment-processing' | 'assessment-completed' | 'assessment-failed' | 'token-balance-updated';
-  jobId?: string; // Optional for token balance events
-  data: {
-    status?: string;
-    progress?: number;
-    message?: string;
-    resultId?: string; // untuk completed event
-    error?: string; // untuk failed event
-    queuePosition?: number;
-    estimatedTime?: number;
-    estimatedTimeRemaining?: number;
-    balance?: number; // untuk token balance events
+  type: 'analysis-started' | 'analysis-complete' | 'analysis-failed' | 'token-balance-updated';
+  jobId?: string;
+  resultId?: string; // For completed events
+  status?: string;
+  message?: string;
+  error?: string; // For failed events
+  metadata?: {
+    assessmentName?: string;
+    estimatedProcessingTime?: string;
+    processingTime?: string;
+    errorType?: string;
+    balance?: number; // For token balance events
   };
+  timestamp?: string;
 }
 
 // Callback types
@@ -27,17 +28,17 @@ export type AssessmentEventCallback = (event: AssessmentWebSocketEvent) => void;
 export type ConnectionCallback = () => void;
 export type ErrorCallback = (error: Error) => void;
 
-// WebSocket Configuration - Optimized for faster connection and fallback
+// WebSocket Configuration - Following API documentation
 const WEBSOCKET_CONFIG = {
-  // Use API Gateway WebSocket endpoint
-  DEVELOPMENT_URL: 'ws://localhost:3002', // Mock WebSocket server runs on 3002
-  PRODUCTION_URL: 'wss://api.chhrone.web.id',
-  RECONNECTION_ATTEMPTS: 3, // Increased slightly for better reliability
-  RECONNECTION_DELAY: 500, // Reduced for faster reconnection
-  TIMEOUT: 5000, // Reduced to 5 seconds for faster fallback
-  CONNECTION_TIMEOUT: 15000, // Increased to 15 seconds to accommodate faster processing
-  AUTHENTICATION_TIMEOUT: 10000, // Increased to 10 seconds for reliable authentication
-  HEALTH_CHECK_TIMEOUT: 1500, // 1.5 seconds for health check
+  // Use API Gateway WebSocket endpoint as per documentation
+  DEVELOPMENT_URL: 'https://api.chhrone.web.id', // Use production URL even in development
+  PRODUCTION_URL: 'https://api.chhrone.web.id', // API documentation URL
+  RECONNECTION_ATTEMPTS: 3,
+  RECONNECTION_DELAY: 1000,
+  TIMEOUT: 10000,
+  CONNECTION_TIMEOUT: 15000,
+  AUTHENTICATION_TIMEOUT: 10000, // Must authenticate within 10 seconds as per API docs
+  HEALTH_CHECK_TIMEOUT: 1500,
   PING_TIMEOUT: 3000, // Ping timeout for connection health
   PING_INTERVAL: 10000, // Ping every 10 seconds to keep connection alive
 } as const;
@@ -397,7 +398,7 @@ export class WebSocketAssessmentService {
       });
 
       // Handle authentication failure
-      this.socket.once('auth-error', (error) => {
+      this.socket.once('auth_error', (error) => {
         clearTimeout(authTimeout);
         console.error('WebSocket Assessment: Authentication failed', error);
         reject(new Error(`Authentication failed: ${getErrorMessage(error)}`));
@@ -433,9 +434,44 @@ export class WebSocketAssessmentService {
       this.callbacks.onError?.(new Error(`Connection error: ${getErrorMessage(error)}`));
     });
 
-    // Assessment events
-    this.socket.on('assessment-update', (event: AssessmentWebSocketEvent) => {
-      console.log('WebSocket Assessment: Received update', event);
+    // Analysis events - Updated to match API documentation
+    this.socket.on('analysis-started', (data: any) => {
+      console.log('WebSocket Assessment: Analysis started', data);
+      const event: AssessmentWebSocketEvent = {
+        type: 'analysis-started',
+        jobId: data.jobId,
+        status: data.status,
+        message: data.message,
+        metadata: data.metadata,
+        timestamp: data.timestamp
+      };
+      this.callbacks.onAssessmentEvent?.(event);
+    });
+
+    this.socket.on('analysis-complete', (data: any) => {
+      console.log('WebSocket Assessment: Analysis completed', data);
+      const event: AssessmentWebSocketEvent = {
+        type: 'analysis-complete',
+        jobId: data.jobId,
+        resultId: data.resultId,
+        status: data.status,
+        message: data.message,
+        metadata: data.metadata,
+        timestamp: data.timestamp
+      };
+      this.callbacks.onAssessmentEvent?.(event);
+    });
+
+    this.socket.on('analysis-failed', (data: any) => {
+      console.log('WebSocket Assessment: Analysis failed', data);
+      const event: AssessmentWebSocketEvent = {
+        type: 'analysis-failed',
+        jobId: data.jobId,
+        error: data.error,
+        message: data.message,
+        metadata: data.metadata,
+        timestamp: data.timestamp
+      };
       this.callbacks.onAssessmentEvent?.(event);
     });
 
@@ -444,7 +480,7 @@ export class WebSocketAssessmentService {
       console.log('WebSocket Assessment: Received token balance update', data);
       const tokenEvent: AssessmentWebSocketEvent = {
         type: 'token-balance-updated',
-        data: {
+        metadata: {
           balance: data.balance
         }
       };

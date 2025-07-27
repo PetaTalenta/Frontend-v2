@@ -18,7 +18,7 @@ export interface UseAssessmentWorkflowOptions {
   onError?: (error: Error) => void;
   onTokenBalanceUpdate?: () => Promise<void>;
   autoReset?: boolean; // Reset workflow after completion
-  preferWebSocket?: boolean; // Prefer WebSocket over polling
+  preferWebSocket?: boolean; // WebSocket is mandatory - this option is kept for compatibility
 }
 
 export interface UseAssessmentWorkflowReturn {
@@ -114,25 +114,7 @@ export function useAssessmentWorkflow(
     return workflowRef.current;
   }, [createCallbacks]);
 
-  // Setup WebSocket connection when token is available and WebSocket is preferred
-  useEffect(() => {
-    if (token && options.preferWebSocket && workflowRef.current && !workflowRef.current.webSocketConnected) {
-      console.log('Assessment Workflow Hook: Setting up WebSocket connection...');
-
-      // Add a small delay to ensure component is fully mounted
-      const timeoutId = setTimeout(() => {
-        if (workflowRef.current && !workflowRef.current.webSocketConnected) {
-          workflowRef.current.connectWebSocket(token).catch(error => {
-            console.warn('Assessment Workflow Hook: WebSocket connection failed, will fallback to polling', error);
-          });
-        }
-      }, 100);
-
-      return () => {
-        clearTimeout(timeoutId);
-      };
-    }
-  }, [token, options.preferWebSocket]);
+  // Note: WebSocket connection is now handled in submit methods to ensure proper timing
 
   // Cleanup WebSocket connection on unmount
   useEffect(() => {
@@ -151,13 +133,20 @@ export function useAssessmentWorkflow(
   ): Promise<AssessmentResult | null> => {
     try {
       const workflow = initializeWorkflow();
+
+      // Ensure WebSocket connection if preferWebSocket is enabled
+      if (options.preferWebSocket && token) {
+        console.log('Assessment Workflow Hook: Ensuring WebSocket connection before submission...');
+        await workflow.ensureWebSocketConnection(token);
+      }
+
       const result = await workflow.submitFromAnswers(answers, assessmentName);
       return result;
     } catch (error) {
       console.error('Assessment submission failed:', error);
       return null;
     }
-  }, [initializeWorkflow]);
+  }, [initializeWorkflow, options.preferWebSocket, token]);
 
   // Submit assessment from scores
   const submitFromScores = useCallback(async (
@@ -166,13 +155,20 @@ export function useAssessmentWorkflow(
   ): Promise<AssessmentResult | null> => {
     try {
       const workflow = initializeWorkflow();
+
+      // Ensure WebSocket connection if preferWebSocket is enabled
+      if (options.preferWebSocket && token) {
+        console.log('Assessment Workflow Hook: Ensuring WebSocket connection before submission...');
+        await workflow.ensureWebSocketConnection(token);
+      }
+
       const result = await workflow.submitFromScores(scores, assessmentName);
       return result;
     } catch (error) {
       console.error('Assessment submission failed:', error);
       return null;
     }
-  }, [initializeWorkflow]);
+  }, [initializeWorkflow, options.preferWebSocket, token]);
 
   // Cancel current workflow
   const cancel = useCallback(() => {

@@ -4,10 +4,9 @@
  */
 
 import { checkApiHealth, getApiBaseUrl, shouldUseMockApi } from '../utils/api-health';
-import { 
-  showTokenError, 
-  showTokenSuccess, 
-  showTokenBalanceRefresh 
+import {
+  showTokenError,
+  showTokenSuccess
 } from '../utils/token-notifications';
 
 // Types based on API documentation
@@ -409,7 +408,7 @@ export async function getTokenBalance(token: string): Promise<TokenBalanceRespon
         balance = 0;
       }
 
-      showTokenBalanceRefresh(balance);
+      // Removed showTokenBalanceRefresh(balance) notification
 
       const result = {
         success: true,

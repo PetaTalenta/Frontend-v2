@@ -10,9 +10,8 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar"
-import { ExternalLink, User, LogOut, Settings } from "lucide-react"
+import { User, LogOut, Settings } from "lucide-react"
 import { useAuth } from "../../contexts/AuthContext"
-import { TokenBalance } from "../ui/TokenBalance"
 import { useRouter } from "next/navigation"
 
 
@@ -20,10 +19,9 @@ import { useRouter } from "next/navigation"
 interface HeaderProps {
   title: string
   description: string
-  onExternalLinkClick?: () => void
 }
 
-export function Header({ title, description, onExternalLinkClick }: HeaderProps) {
+export function Header({ title, description }: HeaderProps) {
   const { user, logout } = useAuth();
   const router = useRouter();
 
@@ -71,21 +69,6 @@ export function Header({ title, description, onExternalLinkClick }: HeaderProps)
       </div>
 
       <div className="flex items-center gap-4">
-        {/* Token Balance */}
-        <TokenBalance showDetails={false} className="mr-2" />
-
-        <Button
-          variant="outline"
-          size="icon"
-          className="border-[#d3d3d3] bg-transparent"
-          onClick={onExternalLinkClick}
-        >
-          <ExternalLink className="w-4 h-4" />
-        </Button>
-
-
-
-
         {/* User Menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

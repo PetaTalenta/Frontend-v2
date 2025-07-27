@@ -9,10 +9,7 @@ import {
   AssessmentResult
 } from '../types/assessment-results';
 import {
-  submitAssessmentWithPolling,
   submitAssessment,
-  getAssessmentStatus,
-  getQueueStatus,
   formatTimeRemaining,
   isAssessmentServiceAvailable
 } from '../services/enhanced-assessment-api';
@@ -224,38 +221,42 @@ export class AssessmentWorkflow {
   }
 
   /**
-   * Submit using real API with WebSocket or polling fallback
+   * Submit using real API with WebSocket only (no polling fallback)
    */
   private async submitWithRealAPI(
     scores: AssessmentScores,
     assessmentName: string
   ): Promise<AssessmentResult> {
 
-    // Try WebSocket first if preferred and supported
-    const useWebSocket = this.callbacks.preferWebSocket !== false && isWebSocketSupported();
-
-    if (useWebSocket) {
-      try {
-        console.log('Assessment Workflow: Attempting WebSocket submission...');
-        return await this.submitWithWebSocket(scores, assessmentName);
-      } catch (error) {
-        console.warn('Assessment Workflow: WebSocket submission failed, falling back to polling', error);
-
-        // Update state to show fallback
-        this.updateState({
-          useWebSocket: false,
-          webSocketConnected: false,
-          message: 'Switching to standard connection...',
-        });
-
-        // Small delay to show the fallback message
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
+    // Check if WebSocket is supported
+    if (!isWebSocketSupported()) {
+      throw new Error('WebSocket is not supported in this browser. Please use a modern browser that supports WebSocket connections.');
     }
 
-    // Use polling as fallback or primary method
-    console.log('Assessment Workflow: Using polling method');
-    return await this.submitWithPolling(scores, assessmentName);
+    // WebSocket is mandatory - no fallback to polling
+    console.log('Assessment Workflow: Using WebSocket-only submission...');
+
+    try {
+      return await this.submitWithWebSocket(scores, assessmentName);
+    } catch (error) {
+      console.error('Assessment Workflow: WebSocket submission failed', error);
+
+      // Update state to show WebSocket failure
+      this.updateState({
+        status: 'failed',
+        useWebSocket: false,
+        webSocketConnected: false,
+        message: 'WebSocket connection failed. Please check your connection and try again.',
+      });
+
+      // Call error callback
+      if (this.callbacks.onError) {
+        this.callbacks.onError(error instanceof Error ? error : new Error('WebSocket connection failed'), this.state);
+      }
+
+      // Re-throw the error instead of falling back to polling
+      throw new Error(`WebSocket connection failed: ${error instanceof Error ? error.message : 'Unknown error'}. Please refresh the page and try again.`);
+    }
   }
 
   /**
@@ -272,6 +273,11 @@ export class AssessmentWorkflow {
       throw new Error('Assessment job already in progress');
     }
 
+    // Ensure WebSocket is connected before proceeding
+    if (!this.webSocketConnected) {
+      throw new Error('WebSocket connection required but not established. Please ensure WebSocket is connected before submitting.');
+    }
+
     // First submit the assessment to get jobId
     const submitResponse = await submitAssessment(scores, assessmentName, this.callbacks.onTokenBalanceUpdate);
     const jobId = submitResponse.data.jobId;
@@ -280,7 +286,7 @@ export class AssessmentWorkflow {
     this.updateState({
       status: 'queued',
       progress: 10,
-      message: 'Assessment submitted, connecting to real-time updates...',
+      message: 'Assessment submitted, waiting for real-time updates...',
       jobId,
       useWebSocket: true,
     });
@@ -294,26 +300,41 @@ export class AssessmentWorkflow {
         onAssessmentEvent: (event: AssessmentWebSocketEvent) => {
           if (event.jobId !== jobId || isResolved) return;
 
-          // Update state based on WebSocket event
-          this.updateState({
-            status: event.data.status as WorkflowStatus,
-            progress: event.data.progress,
-            message: this.getStatusMessage(event.data.status, event.data.progress),
-            estimatedTimeRemaining: event.data.estimatedTimeRemaining ?
-              formatTimeRemaining(event.data.estimatedTimeRemaining) : undefined,
-            queuePosition: event.data.queuePosition,
-            webSocketConnected: true,
-          });
+          console.log('Assessment Workflow: Received WebSocket event', event);
 
-          // Handle completion
-          if (event.type === 'assessment-completed' && event.data.resultId) {
+          // Handle different event types based on API documentation
+          if (event.type === 'analysis-started') {
+            this.updateState({
+              status: 'processing',
+              progress: 25,
+              message: event.message || 'Analysis started...',
+              webSocketConnected: true,
+            });
+          } else if (event.type === 'analysis-complete' && event.resultId) {
             isResolved = true;
-            this.handleAssessmentCompletion(event.data.resultId, scores)
+            this.updateState({
+              status: 'completed',
+              progress: 100,
+              message: event.message || 'Analysis completed successfully!',
+              webSocketConnected: true,
+            });
+            this.handleAssessmentCompletion(event.resultId, scores)
               .then(resolve)
               .catch(reject);
-          } else if (event.type === 'assessment-failed') {
+          } else if (event.type === 'analysis-failed') {
             isResolved = true;
-            reject(new Error(event.data.error || 'Assessment processing failed'));
+            const errorMessage = event.error || event.message || 'Assessment processing failed';
+            this.updateState({
+              status: 'failed',
+              message: errorMessage
+            });
+
+            // Call error callback
+            if (this.callbacks.onError) {
+              this.callbacks.onError(new Error(errorMessage), this.state);
+            }
+
+            reject(new Error(errorMessage));
           }
         },
         onConnected: () => {
@@ -330,6 +351,16 @@ export class AssessmentWorkflow {
           console.error('Assessment Workflow: WebSocket error', error);
           if (!isResolved) {
             isResolved = true;
+            this.updateState({
+              status: 'failed',
+              message: `WebSocket error: ${error instanceof Error ? error.message : 'Unknown error'}`
+            });
+
+            // Call error callback
+            if (this.callbacks.onError) {
+              this.callbacks.onError(error instanceof Error ? error : new Error('WebSocket error'), this.state);
+            }
+
             reject(error);
           }
         },
@@ -339,76 +370,31 @@ export class AssessmentWorkflow {
       // This should be handled by the component using this workflow
       console.log('Assessment Workflow: WebSocket setup complete, waiting for connection...');
 
-      // Set timeout for WebSocket connection - increased to accommodate faster processing
+      // Set timeout for WebSocket events - wait for analysis to start or complete
       setTimeout(() => {
-        if (!isResolved && !this.webSocketConnected) {
+        if (!isResolved) {
           isResolved = true;
-          reject(new Error('WebSocket connection timeout'));
+          const timeoutMessage = this.webSocketConnected
+            ? 'Analysis timeout - no response received from server. Please try again.'
+            : 'WebSocket connection timeout. Please check your connection and try again.';
+
+          this.updateState({
+            status: 'failed',
+            message: timeoutMessage
+          });
+
+          // Call error callback
+          if (this.callbacks.onError) {
+            this.callbacks.onError(new Error(timeoutMessage), this.state);
+          }
+
+          reject(new Error(timeoutMessage));
         }
-      }, 15000); // 15 seconds timeout to match faster processing time
+      }, 30000); // 30 seconds timeout for analysis to complete
     });
   }
 
-  /**
-   * Submit using polling (fallback method)
-   */
-  private async submitWithPolling(
-    scores: AssessmentScores,
-    assessmentName: string
-  ): Promise<AssessmentResult> {
 
-    this.updateState({
-      useWebSocket: false,
-      webSocketConnected: false,
-    });
-
-    console.log(`Assessment Workflow: Starting polling submission for assessment: ${assessmentName}`);
-
-    const statusResponse = await submitAssessmentWithPolling(
-      scores,
-      assessmentName,
-      (status: AssessmentStatusResponse) => {
-        // Update state based on API response
-        console.log(`Assessment Workflow: Polling update - jobId: ${status.data.jobId}, status: ${status.data.status}, resultId: ${status.data.resultId}`);
-        this.updateState({
-          status: status.data.status as WorkflowStatus,
-          progress: status.data.progress,
-          message: this.getStatusMessage(status.data.status, status.data.progress),
-          jobId: status.data.jobId,
-          estimatedTimeRemaining: formatTimeRemaining(status.data.estimatedTimeRemaining),
-          queuePosition: status.data.queuePosition,
-        });
-      },
-      this.callbacks.onTokenBalanceUpdate
-    );
-
-    console.log(`Assessment Workflow: Polling completed - final jobId: ${statusResponse.data.jobId}, final resultId: ${statusResponse.data.resultId}`);
-
-    // Convert API response to AssessmentResult
-    const result = await this.convertApiResponseToResult(statusResponse, scores);
-
-    // Save to localStorage - CRITICAL FIX
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(`assessment-result-${result.id}`, JSON.stringify(result));
-      console.log(`Assessment Workflow: Saved result to localStorage with ID: ${result.id}`);
-    }
-
-    this.updateState({
-      status: 'completed',
-      progress: 100,
-      message: 'Assessment completed successfully',
-      result,
-    });
-
-    console.log(`Assessment Workflow: Assessment completed successfully with result ID: ${result.id}`);
-
-    if (this.callbacks.onComplete) {
-      console.log(`Assessment Workflow: Calling onComplete callback with result ID: ${result.id}`);
-      this.callbacks.onComplete(result);
-    }
-
-    return result;
-  }
 
   /**
    * Handle assessment completion from WebSocket
@@ -467,11 +453,26 @@ export class AssessmentWorkflow {
       await this.webSocketService.connect(token);
       this.webSocketConnected = true;
       this.updateState({ webSocketConnected: true });
+      console.log('Assessment Workflow: WebSocket connected successfully');
     } catch (error) {
       this.webSocketConnected = false;
       this.updateState({ webSocketConnected: false });
+      console.error('Assessment Workflow: WebSocket connection failed', error);
       throw error;
     }
+  }
+
+  /**
+   * Ensure WebSocket is connected with token
+   */
+  async ensureWebSocketConnection(token: string): Promise<void> {
+    if (this.webSocketConnected) {
+      console.log('Assessment Workflow: WebSocket already connected');
+      return;
+    }
+
+    console.log('Assessment Workflow: Establishing WebSocket connection...');
+    await this.connectWebSocket(token);
   }
 
   /**

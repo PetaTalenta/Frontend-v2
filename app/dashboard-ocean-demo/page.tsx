@@ -3,7 +3,8 @@
 import React from 'react';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
-import { WorldMapCard } from '../../components/dashboard/world-map-card';
+import { VIAISCard } from '../../components/dashboard/viais-card';
+import { OceanCard } from '../../components/dashboard/ocean-card';
 import { ArrowLeft, BarChart3 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { OceanScores } from '../../types/assessment-results';
@@ -73,11 +74,10 @@ export default function DashboardOceanDemo() {
               </CardHeader>
             </Card>
             
-            <WorldMapCard
-              title="User Default"
-              description="Using default Ocean scores when no assessment data is available."
-              // oceanScores prop not provided - will use defaults
-            />
+            <div className="space-y-4">
+              <VIAISCard />
+              <OceanCard />
+            </div>
           </div>
 
           {/* High Scores */}
@@ -93,11 +93,10 @@ export default function DashboardOceanDemo() {
               </CardHeader>
             </Card>
             
-            <WorldMapCard
-              title="High Achiever"
-              description="Assessment results showing high personality scores."
-              oceanScores={sampleOceanScores}
-            />
+            <div className="space-y-4">
+              <VIAISCard />
+              <OceanCard oceanScores={sampleOceanScores} />
+            </div>
           </div>
 
           {/* Low Scores */}
@@ -113,11 +112,10 @@ export default function DashboardOceanDemo() {
               </CardHeader>
             </Card>
             
-            <WorldMapCard
-              title="Introvert Profile"
-              description="Assessment results showing lower personality scores."
-              oceanScores={lowOceanScores}
-            />
+            <div className="space-y-4">
+              <VIAISCard />
+              <OceanCard oceanScores={lowOceanScores} />
+            </div>
           </div>
         </div>
 

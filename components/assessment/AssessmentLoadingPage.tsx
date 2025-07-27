@@ -24,6 +24,9 @@ import {
   Zap
 } from 'lucide-react';
 import { WorkflowState } from '../../utils/assessment-workflow';
+import AssessmentCompletionScreen from './AssessmentCompletionScreen';
+import AssessmentQueueStatus from './AssessmentQueueStatus';
+import AssessmentErrorScreen from './AssessmentErrorScreen';
 
 interface AssessmentLoadingPageProps {
   workflowState: WorkflowState;
@@ -141,100 +144,136 @@ export default function AssessmentLoadingPage({
   const isCompleted = workflowState.status === 'completed';
   const isFailed = workflowState.status === 'failed';
 
+  // Show completion screen when assessment is completed
+  if (isCompleted) {
+    return (
+      <AssessmentCompletionScreen
+        personaTitle={workflowState.result?.persona_profile?.title || "Profil Kepribadian Anda"}
+        processingTime={elapsedTime}
+        isRedirecting={true}
+        className={className}
+      />
+    );
+  }
+
+  // Show error screen when failed
+  if (isFailed) {
+    return (
+      <AssessmentErrorScreen
+        errorMessage={workflowState.message || "Terjadi kesalahan saat memproses assessment Anda."}
+        onRetry={onRetry}
+        onCancel={onCancel}
+        isConnected={workflowState.webSocketConnected}
+        processingTime={elapsedTime}
+        className={className}
+      />
+    );
+  }
+
+  // Show queue status when in queue
+  if (workflowState.status === 'queued' && workflowState.queuePosition) {
+    return (
+      <div className={`min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-6 ${className}`}>
+        <div className="w-full max-w-2xl">
+          <AssessmentQueueStatus
+            queuePosition={workflowState.queuePosition}
+            estimatedTime={workflowState.estimatedTimeRemaining}
+            isConnected={workflowState.webSocketConnected}
+            currentStep="Dalam Antrian"
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={`min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-6 ${className}`}>
       <div className="w-full max-w-2xl space-y-8">
         
         {/* Header */}
-        <div className="text-center space-y-4">
-          <div className="w-32 h-32 mx-auto mb-6 flex items-center justify-center">
-            {/* Enhanced CSS Animation */}
-            <div className="relative">
-              {/* Outer rotating ring */}
-              <div className="absolute inset-0 animate-spin" style={{ animationDuration: '3s' }}>
-                <div className="w-24 h-24 border-4 border-blue-200 border-t-blue-500 rounded-full"></div>
-              </div>
-
-              {/* Middle pulsing circle */}
-              <div className="absolute inset-2 animate-pulse">
-                <div className="w-20 h-20 bg-gradient-to-br from-purple-100 to-blue-100 rounded-full flex items-center justify-center">
-                  <Brain className="w-10 h-10 text-purple-600" />
+        <div className="text-center space-y-6">
+          {/* Success Animation for Completed State */}
+          {isCompleted ? (
+            <div className="w-32 h-32 mx-auto mb-6 flex items-center justify-center">
+              <div className="relative">
+                {/* Success checkmark with celebration animation */}
+                <div className="w-24 h-24 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center shadow-lg animate-pulse">
+                  <CheckCircle className="w-12 h-12 text-white" />
                 </div>
-              </div>
 
-              {/* Inner bouncing sparkles */}
-              <div className="absolute inset-6 animate-bounce" style={{ animationDuration: '2s' }}>
-                <div className="w-12 h-12 flex items-center justify-center">
+                {/* Celebration sparkles */}
+                <div className="absolute -top-2 -right-2 animate-bounce" style={{ animationDelay: '0.2s' }}>
                   <Sparkles className="w-6 h-6 text-yellow-500" />
                 </div>
-              </div>
-
-              {/* Floating books */}
-              <div className="absolute -top-2 -right-2 animate-bounce" style={{ animationDelay: '0.5s', animationDuration: '2.5s' }}>
-                <BookOpen className="w-6 h-6 text-blue-600" />
-              </div>
-              <div className="absolute -bottom-2 -left-2 animate-bounce" style={{ animationDelay: '1s', animationDuration: '2.5s' }}>
-                <BookOpen className="w-6 h-6 text-green-600" />
+                <div className="absolute -bottom-2 -left-2 animate-bounce" style={{ animationDelay: '0.4s' }}>
+                  <Sparkles className="w-6 h-6 text-yellow-500" />
+                </div>
+                <div className="absolute -top-2 -left-2 animate-bounce" style={{ animationDelay: '0.6s' }}>
+                  <Sparkles className="w-5 h-5 text-orange-500" />
+                </div>
+                <div className="absolute -bottom-2 -right-2 animate-bounce" style={{ animationDelay: '0.8s' }}>
+                  <Sparkles className="w-5 h-5 text-orange-500" />
+                </div>
               </div>
             </div>
+          ) : isFailed ? (
+            <div className="w-32 h-32 mx-auto mb-6 flex items-center justify-center">
+              <div className="w-24 h-24 bg-gradient-to-br from-red-400 to-red-600 rounded-full flex items-center justify-center shadow-lg">
+                <XCircle className="w-12 h-12 text-white" />
+              </div>
+            </div>
+          ) : (
+            <div className="w-32 h-32 mx-auto mb-6 flex items-center justify-center">
+              {/* Enhanced CSS Animation for Processing */}
+              <div className="relative">
+                {/* Outer rotating ring */}
+                <div className="absolute inset-0 animate-spin" style={{ animationDuration: '3s' }}>
+                  <div className="w-24 h-24 border-4 border-blue-200 border-t-blue-500 rounded-full"></div>
+                </div>
+
+                {/* Middle pulsing circle */}
+                <div className="absolute inset-2 animate-pulse">
+                  <div className="w-20 h-20 bg-gradient-to-br from-purple-100 to-blue-100 rounded-full flex items-center justify-center">
+                    <Brain className="w-10 h-10 text-purple-600" />
+                  </div>
+                </div>
+
+                {/* Inner bouncing sparkles */}
+                <div className="absolute inset-6 animate-bounce" style={{ animationDuration: '2s' }}>
+                  <div className="w-12 h-12 flex items-center justify-center">
+                    <Sparkles className="w-6 h-6 text-yellow-500" />
+                  </div>
+                </div>
+
+                {/* Floating books */}
+                <div className="absolute -top-2 -right-2 animate-bounce" style={{ animationDelay: '0.5s', animationDuration: '2.5s' }}>
+                  <BookOpen className="w-6 h-6 text-blue-600" />
+                </div>
+                <div className="absolute -bottom-2 -left-2 animate-bounce" style={{ animationDelay: '1s', animationDuration: '2.5s' }}>
+                  <BookOpen className="w-6 h-6 text-green-600" />
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-3">
+            <h1 className="text-4xl font-bold text-gray-900">
+              {isCompleted ? 'Assessment Selesai!' :
+               isFailed ? 'Terjadi Kesalahan' :
+               'Sedang Memproses Assessment Anda'}
+            </h1>
+
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto leading-relaxed">
+              {isCompleted ? 'Hasil assessment Anda telah siap. Kami akan mengarahkan Anda ke halaman hasil.' :
+               isFailed ? 'Terjadi kesalahan saat memproses assessment Anda. Silakan coba lagi.' :
+               'AI kami sedang menganalisis jawaban Anda untuk memberikan insight yang mendalam tentang kepribadian dan bakat Anda.'}
+            </p>
           </div>
-          
-          <h1 className="text-3xl font-bold text-gray-900">
-            {isCompleted ? 'Assessment Selesai!' : 
-             isFailed ? 'Terjadi Kesalahan' : 
-             'Sedang Memproses Assessment Anda'}
-          </h1>
-          
-          <p className="text-lg text-gray-600 max-w-md mx-auto">
-            {isCompleted ? 'Hasil assessment Anda telah siap. Kami akan mengarahkan Anda ke halaman hasil.' :
-             isFailed ? 'Terjadi kesalahan saat memproses assessment Anda. Silakan coba lagi.' :
-             'AI kami sedang menganalisis jawaban Anda untuk memberikan insight yang mendalam tentang kepribadian dan bakat Anda.'}
-          </p>
         </div>
 
-        {/* Connection Status */}
-        {(workflowState.useWebSocket !== undefined) && (
-          <Card className="bg-white/60 backdrop-blur-sm border-0 shadow-lg mb-4">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-center gap-3">
-                {workflowState.useWebSocket ? (
-                  <>
-                    {workflowState.webSocketConnected ? (
-                      <>
-                        <Zap className="w-5 h-5 text-green-500" />
-                        <span className="text-sm font-medium text-green-700">
-                          Real-time Connection Active
-                        </span>
-                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                          WebSocket
-                        </Badge>
-                      </>
-                    ) : (
-                      <>
-                        <WifiOff className="w-5 h-5 text-orange-500" />
-                        <span className="text-sm font-medium text-orange-700">
-                          Connecting to Real-time Updates...
-                        </span>
-                      </>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    <Wifi className="w-5 h-5 text-blue-500" />
-                    <span className="text-sm font-medium text-blue-700">
-                      Standard Connection
-                    </span>
-                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                      Polling
-                    </Badge>
-                  </>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
-        {/* Main Status Card */}
+
+        {/* Main Status Card - Only for processing states */}
         <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl">
           <CardContent className="p-8 space-y-6">
 
@@ -257,139 +296,128 @@ export default function AssessmentLoadingPage({
                   </>
                 )}
               </div>
-              
+
               <Badge variant="secondary" className="text-sm">
                 {formatTime(elapsedTime)}
               </Badge>
             </div>
 
-            {/* Progress Bar */}
-            {!isCompleted && !isFailed && (
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Progress</span>
-                  <span className="font-medium">{Math.round(getProgressValue())}%</span>
-                </div>
-                <Progress value={getProgressValue()} className="h-2" />
+            {/* Progress Bar - Enhanced for processing state */}
+            <div className="space-y-3">
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-gray-600 font-medium">Progress</span>
+                <span className="font-semibold text-blue-600">{Math.round(getProgressValue())}%</span>
               </div>
-            )}
-
-            {/* Queue Information */}
-            {workflowState.queuePosition && (
-              <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-                <div className="flex items-center gap-3">
-                  <Users className="w-5 h-5 text-blue-600" />
-                  <div>
-                    <p className="text-sm font-medium text-blue-900">
-                      Posisi dalam antrian: #{workflowState.queuePosition}
-                    </p>
-                    {workflowState.estimatedTimeRemaining && (
-                      <p className="text-xs text-blue-700">
-                        Estimasi waktu: {workflowState.estimatedTimeRemaining}
-                      </p>
-                    )}
-                  </div>
-                </div>
+              <div className="relative">
+                <Progress value={getProgressValue()} className="h-3 bg-gray-200" />
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full opacity-20 animate-pulse"></div>
               </div>
-            )}
-
-            {/* Error State */}
-            {isFailed && (
-              <div className="bg-red-50 rounded-lg p-4 border border-red-200">
-                <div className="flex items-center gap-3">
-                  <XCircle className="w-5 h-5 text-red-600" />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-red-900">
-                      Assessment gagal diproses
-                    </p>
-                    <p className="text-xs text-red-700">
-                      {workflowState.message || 'Terjadi kesalahan yang tidak diketahui'}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Action Buttons */}
-            <div className="flex gap-3 pt-4">
-              {isFailed && onRetry && (
-                <Button onClick={onRetry} className="flex-1">
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  Coba Lagi
-                </Button>
-              )}
-              
-              {onCancel && !isCompleted && (
-                <Button 
-                  variant="outline" 
-                  onClick={onCancel}
-                  className={isFailed ? "flex-1" : "w-full"}
-                >
-                  {isFailed ? 'Kembali' : 'Batalkan'}
-                </Button>
-              )}
+              <p className="text-xs text-gray-500 text-center">
+                Estimasi waktu tersisa: {currentStep ? `${currentStep.estimatedTime - (elapsedTime % currentStep.estimatedTime)} detik` : 'Menghitung...'}
+              </p>
             </div>
+
+            {/* Action Buttons - Only cancel for processing */}
+            {onCancel && (
+              <div className="flex gap-3 pt-6">
+                <Button
+                  variant="outline"
+                  onClick={onCancel}
+                  className="w-full border-gray-300 hover:bg-gray-50 shadow-sm"
+                >
+                  Batalkan
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
 
-        {/* Processing Steps */}
+        {/* Processing Steps - Enhanced Design */}
         {!isCompleted && !isFailed && (
-          <Card className="bg-white/60 backdrop-blur-sm border-0 shadow-lg">
+          <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg">
             <CardContent className="p-6">
-              <h4 className="text-sm font-semibold text-gray-900 mb-4">
-                Tahapan Proses
-              </h4>
-              
-              <div className="space-y-3">
+              <div className="flex items-center gap-2 mb-6">
+                <Activity className="w-5 h-5 text-gray-700" />
+                <h4 className="text-lg font-semibold text-gray-900">
+                  Tahapan Proses Assessment
+                </h4>
+              </div>
+
+              <div className="space-y-4">
                 {LOADING_STEPS.map((step, index) => {
                   const isActive = index === currentStepIndex;
-                  const isCompleted = index < currentStepIndex;
+                  const isStepCompleted = index < currentStepIndex;
                   const isPending = index > currentStepIndex;
-                  
+
                   return (
-                    <div 
+                    <div
                       key={step.id}
-                      className={`flex items-center gap-3 p-3 rounded-lg transition-all ${
-                        isActive ? 'bg-blue-50 border border-blue-200' :
-                        isCompleted ? 'bg-green-50 border border-green-200' :
-                        'bg-gray-50 border border-gray-200'
+                      className={`relative flex items-center gap-4 p-4 rounded-xl transition-all duration-300 ${
+                        isActive ? 'bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 shadow-md' :
+                        isStepCompleted ? 'bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200' :
+                        'bg-gray-50 border border-gray-200 opacity-60'
                       }`}
                     >
-                      <div className={`p-2 rounded-lg ${
-                        isActive ? 'bg-blue-100 text-blue-600' :
-                        isCompleted ? 'bg-green-100 text-green-600' :
-                        'bg-gray-100 text-gray-400'
+                      {/* Step Number & Icon */}
+                      <div className={`relative flex items-center justify-center w-12 h-12 rounded-xl ${
+                        isActive ? 'bg-blue-500 text-white shadow-lg' :
+                        isStepCompleted ? 'bg-green-500 text-white' :
+                        'bg-gray-200 text-gray-400'
                       }`}>
-                        {isCompleted ? (
-                          <CheckCircle className="w-4 h-4" />
+                        {isStepCompleted ? (
+                          <CheckCircle className="w-6 h-6" />
                         ) : isActive ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <Loader2 className="w-6 h-6 animate-spin" />
                         ) : (
-                          <step.icon className="w-4 h-4" />
+                          <step.icon className="w-6 h-6" />
                         )}
-                      </div>
-                      
-                      <div className="flex-1">
-                        <p className={`text-sm font-medium ${
-                          isActive ? 'text-blue-900' :
-                          isCompleted ? 'text-green-900' :
-                          'text-gray-600'
+
+                        {/* Step number badge */}
+                        <div className={`absolute -top-2 -right-2 w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center ${
+                          isActive ? 'bg-blue-600 text-white' :
+                          isStepCompleted ? 'bg-green-600 text-white' :
+                          'bg-gray-300 text-gray-600'
                         }`}>
-                          {step.title}
-                        </p>
-                        <p className={`text-xs ${
+                          {index + 1}
+                        </div>
+                      </div>
+
+                      {/* Step Content */}
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between mb-1">
+                          <h5 className={`font-semibold ${
+                            isActive ? 'text-blue-900' :
+                            isStepCompleted ? 'text-green-900' :
+                            'text-gray-600'
+                          }`}>
+                            {step.title}
+                          </h5>
+
+                          {isActive && (
+                            <Badge className="bg-blue-100 text-blue-700 border-blue-200">
+                              ~{step.estimatedTime}s
+                            </Badge>
+                          )}
+
+                          {isStepCompleted && (
+                            <Badge className="bg-green-100 text-green-700 border-green-200">
+                              ✓ Selesai
+                            </Badge>
+                          )}
+                        </div>
+
+                        <p className={`text-sm ${
                           isActive ? 'text-blue-700' :
-                          isCompleted ? 'text-green-700' :
+                          isStepCompleted ? 'text-green-700' :
                           'text-gray-500'
                         }`}>
                           {step.description}
                         </p>
                       </div>
-                      
+
+                      {/* Active step pulse effect */}
                       {isActive && (
-                        <Badge variant="secondary" className="text-xs">
-                          ~{step.estimatedTime}s
-                        </Badge>
+                        <div className="absolute inset-0 rounded-xl bg-blue-200 opacity-20 animate-pulse"></div>
                       )}
                     </div>
                   );
@@ -399,28 +427,78 @@ export default function AssessmentLoadingPage({
           </Card>
         )}
 
-        {/* Tips */}
+        {/* Connection Status */}
         {!isCompleted && !isFailed && (
-          <Card className="bg-gradient-to-r from-purple-50 to-blue-50 border-0 shadow-lg">
+          <div className="flex items-center justify-center gap-4 text-sm">
+            <div className="flex items-center gap-2">
+              {workflowState.webSocketConnected ? (
+                <>
+                  <Zap className="w-4 h-4 text-green-500" />
+                  <span className="text-green-600 font-medium">WebSocket Terhubung</span>
+                </>
+              ) : workflowState.webSocketConnected === false ? (
+                <>
+                  <WifiOff className="w-4 h-4 text-red-500" />
+                  <span className="text-red-600 font-medium">WebSocket Terputus</span>
+                </>
+              ) : (
+                <>
+                  <Wifi className="w-4 h-4 text-blue-500" />
+                  <span className="text-blue-600 font-medium">Menghubungkan...</span>
+                </>
+              )}
+            </div>
+            <div className="w-1 h-1 bg-gray-300 rounded-full"></div>
+            <div className="flex items-center gap-2">
+              {workflowState.webSocketConnected && (
+                <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                  <Zap className="w-3 h-3 mr-1" />
+                  WebSocket
+                </Badge>
+              )}
+              <span className="text-gray-600 text-xs">Real-time Processing</span>
+            </div>
+          </div>
+        )}
+
+        {/* Tips & Information */}
+        {!isCompleted && !isFailed && (
+          <Card className="bg-gradient-to-r from-purple-50 via-blue-50 to-indigo-50 border-0 shadow-lg">
             <CardContent className="p-6">
               <div className="flex items-start gap-4">
-                <div className="p-2 bg-purple-100 rounded-lg">
-                  <Sparkles className="w-5 h-5 text-purple-600" />
+                <div className="p-3 bg-gradient-to-br from-purple-100 to-blue-100 rounded-xl">
+                  <Sparkles className="w-6 h-6 text-purple-600" />
                 </div>
-                <div>
-                  <h4 className="text-sm font-semibold text-gray-900 mb-2">
-                    Tahukah Anda?
+                <div className="flex-1">
+                  <h4 className="text-lg font-semibold text-gray-900 mb-3">
+                    Sedang Menganalisis Profil Anda
                   </h4>
-                  <p className="text-sm text-gray-700">
-                    AI kami menganalisis lebih dari 200 parameter kepribadian untuk memberikan 
-                    insight yang akurat tentang bakat dan potensi karir Anda. Proses ini membutuhkan 
-                    waktu beberapa menit untuk hasil yang optimal.
-                  </p>
+                  <div className="space-y-2 text-sm text-gray-700">
+                    <p className="flex items-center gap-2">
+                      <Target className="w-4 h-4 text-blue-500" />
+                      AI menganalisis lebih dari 200 parameter kepribadian
+                    </p>
+                    <p className="flex items-center gap-2">
+                      <TrendingUp className="w-4 h-4 text-green-500" />
+                      Mengidentifikasi kekuatan dan potensi karir Anda
+                    </p>
+                    <p className="flex items-center gap-2">
+                      <BookOpen className="w-4 h-4 text-purple-500" />
+                      Menyusun rekomendasi pengembangan yang personal
+                    </p>
+                  </div>
+                  <div className="mt-4 p-3 bg-white/60 rounded-lg border border-white/40">
+                    <p className="text-xs text-gray-600 italic">
+                      "Proses analisis mendalam ini memastikan hasil yang akurat dan insight yang berharga untuk pengembangan karir Anda."
+                    </p>
+                  </div>
                 </div>
               </div>
             </CardContent>
           </Card>
         )}
+
+
       </div>
     </div>
   );

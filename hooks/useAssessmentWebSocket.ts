@@ -17,7 +17,6 @@ export interface UseAssessmentWebSocketOptions {
   onConnected?: () => void;
   onDisconnected?: () => void;
   onError?: (error: Error) => void;
-  fallbackToPolling?: boolean;
 }
 
 export interface UseAssessmentWebSocketReturn {
@@ -47,7 +46,6 @@ export function useAssessmentWebSocket(
     onConnected,
     onDisconnected,
     onError,
-    fallbackToPolling = true,
   } = options;
 
   // State
@@ -130,15 +128,13 @@ export function useAssessmentWebSocket(
       console.error('WebSocket Hook: Connection failed', wsError);
       setConnectionError(wsError);
       onError?.(wsError);
-      
-      // If fallback is enabled, let the caller know WebSocket failed
-      if (fallbackToPolling) {
-        console.log('WebSocket Hook: Falling back to polling mechanism');
-      }
+
+      // No fallback to polling - WebSocket is mandatory
+      console.error('WebSocket Hook: Connection failed - no fallback available');
     } finally {
       isConnectingRef.current = false;
     }
-  }, [token, authIsAuthenticated, isSupported, isConnected, onAssessmentUpdate, onConnected, onDisconnected, onError, fallbackToPolling]);
+  }, [token, authIsAuthenticated, isSupported, isConnected, onAssessmentUpdate, onConnected, onDisconnected, onError]);
 
   /**
    * Disconnect from WebSocket
@@ -244,7 +240,6 @@ export function useAssessmentJobMonitor(
     onCompleted?: (event: AssessmentWebSocketEvent) => void;
     onFailed?: (event: AssessmentWebSocketEvent) => void;
     autoConnect?: boolean;
-    fallbackToPolling?: boolean;
   } = {}
 ) {
   const {
@@ -253,12 +248,10 @@ export function useAssessmentJobMonitor(
     onCompleted,
     onFailed,
     autoConnect = true,
-    fallbackToPolling = true,
   } = options;
 
   const webSocket = useAssessmentWebSocket({
     autoConnect,
-    fallbackToPolling,
     onAssessmentUpdate: (event) => {
       // Only handle events for our job
       if (event.jobId !== jobId) return;

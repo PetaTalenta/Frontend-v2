@@ -13,7 +13,7 @@ export function ProgressCard({ title, description, data }: ProgressCardProps) {
     <Card className="bg-white border-[#eaecf0]">
       <CardContent className="p-6">
         <h3 className="font-semibold text-[#1e1e1e]">{title}</h3>
-        <p className="text-sm text-[#64707d] mb-4">{description}</p>
+        <p className="text-xs text-[#64707d] mb-2">{description}</p>
 
         <div className="space-y-4">
           {data.map((item, index) => (

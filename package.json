@@ -8,7 +8,9 @@
     "lint": "next lint",
     "start": "next start",
     "start:websocket": "node mock-websocket-server.js",
-    "dev:full": "concurrently \"npm run dev\" \"npm run start:websocket\""
+    "dev:full": "concurrently \"npm run dev\" \"npm run start:websocket\"",
+    "test:websocket": "node scripts/test-websocket.js",
+    "test:websocket:api": "node scripts/test-websocket-api.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",

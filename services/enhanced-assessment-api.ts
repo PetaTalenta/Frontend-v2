@@ -14,10 +14,9 @@ import {
   IdempotencyHealthResponse
 } from '../types/assessment-results';
 import { checkApiHealth, getApiBaseUrl } from '../utils/api-health';
-import { 
-  showTokenError, 
-  showTokenSuccess, 
-  showTokenBalanceRefresh 
+import {
+  showTokenError,
+  showTokenSuccess
 } from '../utils/token-notifications';
 
 // API Configuration
@@ -172,7 +171,7 @@ export async function submitAssessment(
     if (onTokenBalanceUpdate) {
       try {
         await onTokenBalanceUpdate();
-        showTokenBalanceRefresh();
+        // Removed showTokenBalanceRefresh() notification
       } catch (error) {
         console.error('Enhanced Assessment API: Error refreshing token balance:', error);
       }

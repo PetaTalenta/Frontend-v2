@@ -46,6 +46,11 @@ export default function AssessmentLoadingPageRoute() {
       isSubmitting.current = false;
       // Reset submission guard on error to allow retry
       submissionAttempted.current = false;
+
+      // Show specific error message for WebSocket failures
+      if (error.message.includes('WebSocket')) {
+        console.error('WebSocket connection error - assessment requires real-time connection');
+      }
     },
     onTokenBalanceUpdate: async () => {
       console.log('Token balance updated');
@@ -171,8 +176,8 @@ export default function AssessmentLoadingPageRoute() {
           {state.webSocketConnected && (
             <p className="text-sm text-green-600">✓ WebSocket terhubung</p>
           )}
-          {state.useWebSocket === false && (
-            <p className="text-sm text-yellow-600">⚠ Menggunakan mode fallback</p>
+          {state.webSocketConnected === false && state.useWebSocket !== undefined && (
+            <p className="text-sm text-red-600">✗ WebSocket tidak terhubung</p>
           )}
         </div>
       </div>

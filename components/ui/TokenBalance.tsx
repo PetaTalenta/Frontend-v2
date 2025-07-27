@@ -62,64 +62,7 @@ export const TokenBalance: React.FC<TokenBalanceProps> = ({
           )}
         </div>
       )}
-      
-      <button
-        onClick={refreshTokenBalance}
-        className="p-1 rounded-full hover:bg-gray-100 transition-colors"
-        title="Refresh token balance"
-      >
-        <svg
-          className="w-4 h-4 text-gray-400 hover:text-gray-600"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-          />
-        </svg>
-      </button>
 
-      {/* Debug button - only show in development */}
-      {process.env.NODE_ENV === 'development' && (
-        <>
-          <button
-            onClick={() => {
-              console.log('=== TOKEN BALANCE DEBUG INFO ===');
-              console.log('Current tokenInfo:', tokenInfo);
-              console.log('localStorage token:', localStorage.getItem('token')?.substring(0, 20) + '...');
-              console.log('API Base URL:', process.env.NEXT_PUBLIC_API_BASE_URL);
-              console.log('================================');
-
-              // Force refresh with debug
-              refreshTokenBalance();
-            }}
-            className="p-1 rounded-full hover:bg-red-100 transition-colors ml-1"
-            title="Debug token balance (Dev only)"
-          >
-            <span className="text-xs text-red-500">🐛</span>
-          </button>
-
-          <button
-            onClick={async () => {
-              console.log('=== FORCE REFRESH TOKEN BALANCE ===');
-              // Clear any cached data
-              localStorage.removeItem('tokenBalanceCache');
-
-              // Force refresh
-              await refreshTokenBalance();
-              console.log('Force refresh completed');
-            }}
-            className="p-1 rounded-full hover:bg-green-100 transition-colors ml-1"
-            title="Force refresh (Dev only)"
-          >
-            <span className="text-xs text-green-600">🔄</span>
-          </button>
-        </>
-      )}
     </div>
   );
 };
