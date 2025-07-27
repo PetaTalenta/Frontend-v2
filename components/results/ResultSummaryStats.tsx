@@ -40,22 +40,22 @@ export default function ResultSummaryStats({ scores, createdAt }: ResultSummaryS
     color?: string;
   }) => (
     <Card className="bg-white border-[#eaecf0] hover:shadow-md transition-shadow">
-      <CardContent className="p-4">
-        <div className="flex items-center gap-3">
-          <div 
-            className="p-2 rounded-lg flex-shrink-0"
+      <CardContent className="p-6">
+        <div className="flex items-center gap-4">
+          <div
+            className="p-3 rounded-lg flex-shrink-0"
             style={{ backgroundColor: color + '20' }}
           >
-            <Icon className="w-5 h-5" style={{ color }} />
+            <Icon className="w-6 h-6" style={{ color }} />
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-2xl font-bold text-[#1e1e1e] truncate">
+            <div className="text-3xl font-bold text-[#1e1e1e] truncate">
               {value}
             </div>
-            <div className="text-sm font-medium text-[#1e1e1e] truncate">
+            <div className="text-base font-medium text-[#1e1e1e] truncate">
               {title}
             </div>
-            <div className="text-xs text-[#64707d] truncate">
+            <div className="text-sm text-[#64707d] truncate">
               {subtitle}
             </div>
           </div>
@@ -65,7 +65,7 @@ export default function ResultSummaryStats({ scores, createdAt }: ResultSummaryS
   );
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 grid-rows-2 gap-4">
       <StatCard
         icon={BarChart3}
         title="Holland Code"

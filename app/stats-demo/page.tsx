@@ -137,7 +137,7 @@ export default function StatsDemoPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <User className="w-5 h-5 text-[#6475e9]" />
-              Current User: {user?.name || user?.email}
+              Current User: {user?.username || user?.name || user?.email}
             </CardTitle>
           </CardHeader>
           <CardContent>

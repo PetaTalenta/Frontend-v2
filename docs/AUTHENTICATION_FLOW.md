@@ -37,12 +37,15 @@ The authentication system now properly redirects to the existing dashboard after
 ### **User Name Display Logic:**
 ```typescript
 const getUserDisplayName = () => {
+  if (user?.username) {
+    return user.username; // Username from profile (highest priority)
+  }
   if (user?.name) {
     return user.name; // "Demo User" or "Test User"
   }
   if (user?.email) {
     // Extract and capitalize username from email
-    return user.email.split('@')[0].charAt(0).toUpperCase() + 
+    return user.email.split('@')[0].charAt(0).toUpperCase() +
            user.email.split('@')[0].slice(1);
   }
   return 'User';

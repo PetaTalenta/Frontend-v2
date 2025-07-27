@@ -4,19 +4,21 @@
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { 
-  AssessmentWorkflow, 
-  WorkflowState, 
+import {
+  AssessmentWorkflow,
+  WorkflowState,
   WorkflowCallbacks,
-  runAssessmentWorkflow 
+  runAssessmentWorkflow
 } from '../utils/assessment-workflow';
 import { AssessmentResult, AssessmentScores } from '../types/assessment-results';
+import { useAuth } from '../contexts/AuthContext';
 
 export interface UseAssessmentWorkflowOptions {
   onComplete?: (result: AssessmentResult) => void;
   onError?: (error: Error) => void;
   onTokenBalanceUpdate?: () => Promise<void>;
   autoReset?: boolean; // Reset workflow after completion
+  preferWebSocket?: boolean; // Prefer WebSocket over polling
 }
 
 export interface UseAssessmentWorkflowReturn {
@@ -52,16 +54,17 @@ export interface UseAssessmentWorkflowReturn {
 export function useAssessmentWorkflow(
   options: UseAssessmentWorkflowOptions = {}
 ): UseAssessmentWorkflowReturn {
-  
+
+  const { token } = useAuth();
   const [state, setState] = useState<WorkflowState>({
     status: 'idle',
     progress: 0,
     message: 'Ready to submit assessment',
   });
-  
+
   const workflowRef = useRef<AssessmentWorkflow | null>(null);
   const optionsRef = useRef(options);
-  
+
   // Update options ref when options change
   useEffect(() => {
     optionsRef.current = options;
@@ -70,16 +73,22 @@ export function useAssessmentWorkflow(
   // Create workflow callbacks
   const createCallbacks = useCallback((): WorkflowCallbacks => ({
     onStatusChange: (newState: WorkflowState) => {
-      setState(newState);
+      // Ensure state is never undefined
+      if (newState && newState.status) {
+        setState(newState);
+      }
     },
     onProgress: (newState: WorkflowState) => {
-      setState(newState);
+      // Ensure state is never undefined
+      if (newState && newState.status) {
+        setState(newState);
+      }
     },
     onComplete: (result: AssessmentResult) => {
       if (optionsRef.current.onComplete) {
         optionsRef.current.onComplete(result);
       }
-      
+
       // Auto reset if enabled
       if (optionsRef.current.autoReset) {
         setTimeout(() => {
@@ -88,11 +97,13 @@ export function useAssessmentWorkflow(
       }
     },
     onError: (error: Error, errorState: WorkflowState) => {
+      console.error('Assessment Workflow Hook: Error occurred', error);
       if (optionsRef.current.onError) {
         optionsRef.current.onError(error);
       }
     },
     onTokenBalanceUpdate: optionsRef.current.onTokenBalanceUpdate,
+    preferWebSocket: optionsRef.current.preferWebSocket,
   }), []);
 
   // Initialize workflow
@@ -102,6 +113,36 @@ export function useAssessmentWorkflow(
     }
     return workflowRef.current;
   }, [createCallbacks]);
+
+  // Setup WebSocket connection when token is available and WebSocket is preferred
+  useEffect(() => {
+    if (token && options.preferWebSocket && workflowRef.current && !workflowRef.current.webSocketConnected) {
+      console.log('Assessment Workflow Hook: Setting up WebSocket connection...');
+
+      // Add a small delay to ensure component is fully mounted
+      const timeoutId = setTimeout(() => {
+        if (workflowRef.current && !workflowRef.current.webSocketConnected) {
+          workflowRef.current.connectWebSocket(token).catch(error => {
+            console.warn('Assessment Workflow Hook: WebSocket connection failed, will fallback to polling', error);
+          });
+        }
+      }, 100);
+
+      return () => {
+        clearTimeout(timeoutId);
+      };
+    }
+  }, [token, options.preferWebSocket]);
+
+  // Cleanup WebSocket connection on unmount
+  useEffect(() => {
+    return () => {
+      if (workflowRef.current) {
+        console.log('Assessment Workflow Hook: Cleaning up WebSocket connection...');
+        workflowRef.current.disconnectWebSocket();
+      }
+    };
+  }, []);
 
   // Submit assessment from answers
   const submitFromAnswers = useCallback(async (

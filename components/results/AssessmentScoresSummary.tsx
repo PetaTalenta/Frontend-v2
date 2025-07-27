@@ -8,7 +8,7 @@ import { Badge } from '../ui/badge';
 import { Progress } from '../ui/progress';
 import { AssessmentScores, getScoreInterpretation } from '../../types/assessment-results';
 import { getDominantRiasecType, getTopViaStrengths } from '../../utils/assessment-calculations';
-import { BarChart3, Brain, Palette, ArrowRight } from 'lucide-react';
+import { BarChart3, Brain, Palette, ArrowRight, Grid3X3 } from 'lucide-react';
 
 interface AssessmentScoresSummaryProps {
   scores: AssessmentScores;
@@ -193,8 +193,18 @@ export default function AssessmentScoresSummary({ scores, resultId }: Assessment
           </div>
         </div>
 
-        {/* View Details Button */}
+        {/* Combined Grid View Button */}
         <div className="pt-4 border-t border-gray-200">
+          <Link href={`/results/${resultId}/combined`}>
+            <Button className="w-full mb-3 bg-[#6475e9] hover:bg-[#5a67d8] text-white">
+              <Grid3X3 className="w-4 h-4 mr-2" />
+              Tampilan Grid 2x2 - Semua Assessment
+            </Button>
+          </Link>
+        </div>
+
+        {/* View Details Button */}
+        <div className="border-t border-gray-200 pt-4">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <Link href={`/results/${resultId}/riasec`}>
               <Button variant="outline" className="w-full justify-between">

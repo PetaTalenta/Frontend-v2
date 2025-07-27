@@ -22,7 +22,8 @@ const protectedRoutes = [
   '/auth-demo',
   '/auth-test',
   '/username-test',
-  '/stats-demo'
+  '/stats-demo',
+  '/profile'
 ];
 
 export default function AuthGuard({ children }: AuthGuardProps) {

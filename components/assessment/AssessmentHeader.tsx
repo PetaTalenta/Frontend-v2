@@ -16,6 +16,7 @@ import {
   showAssessmentSubmissionResult,
   showTokenError
 } from '../../utils/token-notifications';
+import { useAssessmentSubmission } from '../../hooks/useAssessmentSubmission';
 
 interface AssessmentHeaderProps {
   currentQuestion?: number;
@@ -35,6 +36,18 @@ export default function AssessmentHeader({
   const { refreshTokenBalance } = useToken();
   const { debugFillAllAssessments, debugFillCurrentAssessment, getCurrentAssessment, answers } = useAssessment();
   const [isSaving, setIsSaving] = useState(false);
+
+  // Assessment submission hook for loading page
+  const { submitAssessment: submitToLoadingPage } = useAssessmentSubmission({
+    assessmentName: 'AI-Driven Talent Mapping',
+    onSubmissionStart: () => {
+      console.log('Redirecting to loading page from header...');
+    },
+    onSubmissionError: (error) => {
+      console.error('Failed to redirect to loading page:', error);
+      setIsSaving(false);
+    }
+  });
 
   const handleBackToDashboard = () => {
     router.push('/dashboard');
@@ -98,6 +111,30 @@ export default function AssessmentHeader({
       const validation = validateAnswers(answers);
       console.log('AssessmentHeader: Validation result:', validation);
 
+      if (validation.isValid) {
+        // All questions answered - redirect to loading page for processing
+        console.log('AssessmentHeader: All questions answered, redirecting to loading page...');
+        await submitToLoadingPage(answers, 'AI-Driven Talent Mapping');
+        return;
+      } else if (validation.answeredQuestions >= validation.totalQuestions * 0.8) {
+        // 80%+ completion - offer loading page option
+        const completionRate = Math.round((validation.answeredQuestions / validation.totalQuestions) * 100);
+        const useLoadingPage = confirm(
+          `Assessment ${completionRate}% selesai.\n\n` +
+          `Pilih metode submit:\n` +
+          `• OK - Gunakan halaman loading (recommended)\n` +
+          `• Cancel - Submit langsung di halaman ini`
+        );
+
+        if (useLoadingPage) {
+          console.log('AssessmentHeader: User chose loading page for partial assessment...');
+          await submitToLoadingPage(answers, 'AI-Driven Talent Mapping');
+          return;
+        }
+        // If user chose not to use loading page, continue with original flow
+      }
+
+      // Original flow for less than 80% completion or user preference
       if (validation.isValid) {
         // Check token balance before submission
         console.log('AssessmentHeader: Validating token balance...');

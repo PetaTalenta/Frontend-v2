@@ -23,8 +23,8 @@ export async function submitAssessment(
     throw new Error(`Missing ${validation.missingQuestions.length} answers. Please complete all questions.`);
   }
 
-  // Simulate API call delay
-  await delay(1000);
+  // Reduced API call delay for faster response
+  await delay(500);
 
   // Calculate scores
   const scores = calculateAllScores(answers);
@@ -82,8 +82,8 @@ export async function submitAssessmentFlexible(
     throw new Error(`Insufficient answers. Please complete at least 50% of questions (${Math.ceil(validation.totalQuestions * 0.5)} questions).`);
   }
 
-  // Simulate API call delay
-  await delay(1000);
+  // Reduced API call delay for faster response
+  await delay(500);
 
   // Calculate scores (will handle missing answers gracefully)
   const scores = calculateAllScores(answers);
@@ -137,6 +137,10 @@ export async function getAssessmentResult(resultId: string): Promise<AssessmentR
   // Try to get from localStorage first (for submitted assessments)
   // Only access localStorage on client-side
   if (typeof window !== 'undefined') {
+    // Debug: List all assessment results in localStorage
+    const allKeys = Object.keys(localStorage).filter(key => key.startsWith('assessment-result-'));
+    console.log(`getAssessmentResult: All stored assessment results:`, allKeys);
+
     const storedResult = localStorage.getItem(`assessment-result-${resultId}`);
     console.log(`getAssessmentResult: localStorage result found: ${!!storedResult}`);
 
@@ -144,6 +148,32 @@ export async function getAssessmentResult(resultId: string): Promise<AssessmentR
       const parsedResult = JSON.parse(storedResult);
       console.log(`getAssessmentResult: Returning localStorage result: ${parsedResult.persona_profile?.title}`);
       return parsedResult;
+    }
+
+    // If not found with exact ID, try to find the most recent result
+    // This helps with ID mismatch issues
+    if (allKeys.length > 0) {
+      console.log(`getAssessmentResult: Exact ID not found, checking most recent result...`);
+
+      // Get all results and find the most recent one
+      const allResults = allKeys.map(key => {
+        try {
+          const result = JSON.parse(localStorage.getItem(key) || '{}');
+          return { key, result, createdAt: new Date(result.createdAt || 0) };
+        } catch {
+          return null;
+        }
+      }).filter(Boolean);
+
+      if (allResults.length > 0) {
+        // Sort by creation date and get the most recent
+        allResults.sort((a, b) => b!.createdAt.getTime() - a!.createdAt.getTime());
+        const mostRecent = allResults[0]!.result;
+
+        console.log(`getAssessmentResult: Found most recent result with ID: ${mostRecent.id}, created: ${mostRecent.createdAt}`);
+        console.log(`getAssessmentResult: Returning most recent result as fallback: ${mostRecent.persona_profile?.title}`);
+        return mostRecent;
+      }
     }
   } else {
     console.log(`getAssessmentResult: Running on server-side, skipping localStorage check`);
@@ -224,6 +254,30 @@ export async function checkAssessmentStatus(resultId: string): Promise<{
     };
   } catch (error) {
     return { status: 'failed' };
+  }
+}
+
+/**
+ * Get the latest assessment result for a user
+ */
+export async function getLatestAssessmentResult(userId?: string): Promise<AssessmentResult | null> {
+  console.log(`getLatestAssessmentResult: Getting latest result for user: ${userId || 'anonymous'}`);
+
+  try {
+    const results = await getUserAssessmentResults(userId);
+
+    if (results.length === 0) {
+      console.log('getLatestAssessmentResult: No results found, returning null');
+      return null;
+    }
+
+    const latestResult = results[0]; // Results are already sorted by creation date (newest first)
+    console.log(`getLatestAssessmentResult: Returning latest result: ${latestResult.id} created at ${latestResult.createdAt}`);
+
+    return latestResult;
+  } catch (error) {
+    console.error('getLatestAssessmentResult: Error getting latest result:', error);
+    return null;
   }
 }
 

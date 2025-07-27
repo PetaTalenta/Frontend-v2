@@ -16,10 +16,13 @@ import {
 
 export default function UsernameTestPage() {
   const router = useRouter();
-  const { isAuthenticated, user, logout } = useAuth();
+  const { isAuthenticated, user, logout, updateUser } = useAuth();
 
   // Same function as in dashboard
   const getUserDisplayName = () => {
+    if (user?.username) {
+      return user.username;
+    }
     if (user?.name) {
       return user.name;
     }
@@ -28,6 +31,37 @@ export default function UsernameTestPage() {
       return user.email.split('@')[0].charAt(0).toUpperCase() + user.email.split('@')[0].slice(1);
     }
     return 'User';
+  };
+
+  // Function to manually fetch and update username
+  const fetchUsernameFromProfile = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      console.log('Manual fetch: Getting profile...');
+      const response = await fetch('/api/proxy/auth/profile', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const profileData = await response.json();
+      console.log('Manual fetch: Profile data received:', profileData);
+
+      if (profileData && profileData.success && profileData.data?.user?.username) {
+        const username = profileData.data.user.username;
+        console.log('Manual fetch: Username found:', username);
+        updateUser({ username });
+        console.log('Manual fetch: User updated with username');
+      } else {
+        console.log('Manual fetch: No username found in profile');
+      }
+    } catch (error) {
+      console.error('Manual fetch: Error:', error);
+    }
   };
 
   const testCases = [
@@ -104,6 +138,7 @@ export default function UsernameTestPage() {
                       <div>
                         <p><strong>Email:</strong> {user.email}</p>
                         <p><strong>Stored Name:</strong> {user.name || 'Not provided'}</p>
+                        <p><strong>Username:</strong> {user.username || 'Not provided'}</p>
                       </div>
                       <div>
                         <p><strong>Display Name:</strong> 
@@ -126,6 +161,16 @@ export default function UsernameTestPage() {
                       <strong>WorldMap Card:</strong> "{getUserDisplayName()}"
                     </p>
                   </div>
+                </div>
+
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                  <h4 className="font-medium text-yellow-800 mb-2">Debug Actions</h4>
+                  <button
+                    onClick={fetchUsernameFromProfile}
+                    className="bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700"
+                  >
+                    Manually Fetch Username from Profile
+                  </button>
                 </div>
 
                 <div className="flex gap-2">
@@ -203,17 +248,27 @@ export default function UsernameTestPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+                <h4 className="font-medium text-green-800 mb-2">✅ Updated Logic (Now Synced with Profile):</h4>
+                <p className="text-sm text-green-700">
+                  Username from profile page now syncs with dashboard display. When you update your username in the profile,
+                  it will immediately appear in the dashboard header and welcome message.
+                </p>
+              </div>
               <div className="bg-gray-50 rounded-lg p-4">
                 <h4 className="font-medium text-[#1e1e1e] mb-2">Function Logic:</h4>
                 <pre className="text-sm text-[#64707d] overflow-x-auto">
 {`const getUserDisplayName = () => {
+  if (user?.username) {
+    return user.username;  // Use username from profile (highest priority)
+  }
   if (user?.name) {
     return user.name;  // Use stored name if available
   }
   if (user?.email) {
     // Extract username from email and capitalize
     return user.email.split('@')[0]
-      .charAt(0).toUpperCase() + 
+      .charAt(0).toUpperCase() +
       user.email.split('@')[0].slice(1);
   }
   return 'User';  // Fallback

@@ -13,6 +13,7 @@ import { AssessmentResult, getScoreInterpretation, OCEAN_DESCRIPTIONS } from '..
 import { getAssessmentResult } from '../../../../services/assessment-api';
 import { ArrowLeft, Brain, Eye, Target, Heart, Zap } from 'lucide-react';
 import OceanRadarChart from '../../../../components/results/OceanRadarChart';
+import OceanBarChart from '../../../../components/results/OceanBarChart';
 
 export default function OceanDetailPage() {
   const params = useParams();
@@ -20,6 +21,7 @@ export default function OceanDetailPage() {
   const [result, setResult] = useState<AssessmentResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [chartType, setChartType] = useState<'radar' | 'bar'>('radar');
 
   const resultId = params.id as string;
 
@@ -50,7 +52,7 @@ export default function OceanDetailPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 py-8">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <Skeleton className="h-8 w-64 mb-6" />
           <div className="space-y-6">
             {[1, 2, 3, 4, 5].map((i) => (
@@ -65,7 +67,7 @@ export default function OceanDetailPage() {
   if (error || !result) {
     return (
       <div className="min-h-screen bg-gray-50 py-8">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <h1 className="text-2xl font-bold text-gray-900 mb-4">Error</h1>
             <p className="text-gray-600 mb-6">{error || 'Assessment result not found'}</p>
@@ -207,7 +209,7 @@ export default function OceanDetailPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-4 mb-4">
@@ -253,9 +255,41 @@ export default function OceanDetailPage() {
           </Card>
         </div>
 
-        {/* Radar Chart */}
+        {/* Chart Visualization */}
         <div className="mb-8">
-          <OceanRadarChart scores={result.assessment_data} />
+          {/* Chart Type Selector */}
+          <div className="mb-6">
+            <div className="flex items-center gap-2 mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Visualisasi Data</h3>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant={chartType === 'radar' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setChartType('radar')}
+                className="flex items-center gap-2"
+              >
+                <Brain className="w-4 h-4" />
+                Radar Chart
+              </Button>
+              <Button
+                variant={chartType === 'bar' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setChartType('bar')}
+                className="flex items-center gap-2"
+              >
+                <Target className="w-4 h-4" />
+                Bar Chart (OPNS, CONS, EXTN, AGRS, NESM)
+              </Button>
+            </div>
+          </div>
+
+          {/* Chart Display */}
+          {chartType === 'radar' ? (
+            <OceanRadarChart scores={result.assessment_data} />
+          ) : (
+            <OceanBarChart scores={result.assessment_data} />
+          )}
         </div>
 
         {/* Detailed Big Five Traits */}

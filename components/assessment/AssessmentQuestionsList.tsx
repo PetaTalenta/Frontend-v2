@@ -7,6 +7,7 @@ import AssessmentQuestionCard from './AssessmentQuestionCard';
 import { useAssessment } from '../../contexts/AssessmentContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { submitAssessmentFlexible } from '../../services/assessment-api';
+import { useAssessmentSubmission } from '../../hooks/useAssessmentSubmission';
 
 export default function AssessmentQuestionsList() {
   const router = useRouter();
@@ -74,6 +75,18 @@ export default function AssessmentQuestionsList() {
 
   const { user } = useAuth();
 
+  // Assessment submission hook for loading page
+  const { submitAssessment: submitToLoadingPage } = useAssessmentSubmission({
+    assessmentName: 'AI-Driven Talent Mapping',
+    onSubmissionStart: () => {
+      console.log('Redirecting to loading page from Akhiri Test button...');
+    },
+    onSubmissionError: (error) => {
+      console.error('Failed to redirect to loading page:', error);
+      setIsSubmitting(false);
+    }
+  });
+
   const handleFinishAssessment = async () => {
     if (isSubmitting) return;
 
@@ -83,7 +96,12 @@ export default function AssessmentQuestionsList() {
     try {
       console.log('AssessmentQuestionsList: Submitting assessment with answers:', Object.keys(answers).length, 'questions answered');
 
-      // Submit assessment answers and get result ID (flexible validation)
+      // Use loading page for better user experience
+      console.log('AssessmentQuestionsList: Redirecting to loading page...');
+      await submitToLoadingPage(answers, 'AI-Driven Talent Mapping');
+      return;
+
+      // Original submission code (kept as fallback, but not reached)
       const { resultId, personaTitle } = await submitAssessmentFlexible(answers, user?.id);
 
       console.log('AssessmentQuestionsList: Assessment submitted successfully!');
@@ -125,7 +143,7 @@ export default function AssessmentQuestionsList() {
       }
     } catch (error) {
       console.error('AssessmentQuestionsList: Error submitting assessment:', error);
-      alert(`Terjadi kesalahan saat menyimpan hasil assessment: ${error.message}. Silakan coba lagi.`);
+      alert(`Terjadi kesalahan saat memproses assessment: ${error.message}. Silakan coba lagi.`);
       setIsSubmitting(false);
     }
   };

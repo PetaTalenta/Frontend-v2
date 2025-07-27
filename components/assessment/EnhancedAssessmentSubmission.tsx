@@ -5,11 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Alert, AlertDescription } from '../ui/alert';
 import { Badge } from '../ui/badge';
-import { 
-  Send, 
-  X, 
-  RotateCcw, 
-  CheckCircle, 
+import {
+  Send,
+  X,
+  RotateCcw,
+  CheckCircle,
   AlertTriangle,
   Clock,
   Zap
@@ -31,9 +31,11 @@ export default function EnhancedAssessmentSubmission({
   onCancel,
   className = ''
 }: EnhancedAssessmentSubmissionProps) {
-  
+
   const [assessmentName, setAssessmentName] = useState<string>('AI-Driven Talent Mapping');
   const [showAdvanced, setShowAdvanced] = useState(false);
+
+
 
   const {
     state,
@@ -166,38 +168,36 @@ export default function EnhancedAssessmentSubmission({
           </div>
 
           {/* Action Buttons */}
-          <div className="flex items-center gap-3">
+          <div className="space-y-3">
             {isIdle && (
               <Button
                 onClick={handleSubmit}
                 disabled={completionRate < 50}
-                className="flex-1"
+                className="w-full"
                 size="lg"
               >
                 <Send className="w-4 h-4 mr-2" />
-                Submit for Analysis
+                Submit Assessment
               </Button>
             )}
 
             {isProcessing && (
-              <>
-                <Button
-                  onClick={handleCancel}
-                  variant="outline"
-                  className="flex-1"
-                  size="lg"
-                >
-                  <X className="w-4 h-4 mr-2" />
-                  Cancel
-                </Button>
-              </>
+              <Button
+                onClick={handleCancel}
+                variant="outline"
+                className="w-full"
+                size="lg"
+              >
+                <X className="w-4 h-4 mr-2" />
+                Cancel
+              </Button>
             )}
 
             {(isCompleted || isFailed) && (
               <Button
                 onClick={handleReset}
                 variant="outline"
-                className="flex-1"
+                className="w-full"
                 size="lg"
               >
                 <RotateCcw className="w-4 h-4 mr-2" />

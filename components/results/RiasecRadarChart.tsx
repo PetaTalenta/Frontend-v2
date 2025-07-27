@@ -174,22 +174,20 @@ export default function RiasecRadarChart({ scores }: RiasecRadarChartProps) {
             </div>
           </div>
 
-          {/* Type Details */}
-          <div className="grid grid-cols-1 gap-2 text-xs">
+          {/* Type Details - 3x2 Grid Layout */}
+          <div className="grid grid-cols-3 gap-2 text-xs">
             {radarData.map((item, index) => (
-              <div key={index} className="flex items-center justify-between p-3 bg-gray-50/50 rounded-lg border border-gray-100">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-[#10b981]/10 flex items-center justify-center">
-                    <span className="font-bold text-[#10b981] text-sm">{item.category}</span>
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="font-semibold text-[#374151] text-sm">{item.fullName}</span>
-                    <span className="text-[#6b7280] text-xs">{item.description}</span>
-                  </div>
+              <div key={index} className="flex items-start gap-2 p-2 bg-gray-50/50 rounded-lg border border-gray-100 min-h-[80px]">
+                <div className="w-6 h-6 rounded-full bg-[#10b981]/10 flex items-center justify-center flex-shrink-0">
+                  <span className="font-bold text-[#10b981] text-xs">{item.category}</span>
                 </div>
-                <div className="text-right">
-                  <span className="text-[#10b981] font-bold text-lg">{item.score}</span>
-                  <span className="text-[#9ca3af] text-xs ml-1">%</span>
+                <div className="flex items-center flex-col  flex-1 gap-2">
+                  <div className="text-center mt-1">
+                    <span className="text-[#10b981] font-bold text-2xl">{item.score}</span>
+                    <span className="text-[#9ca3af] text-xs ml-0.5">%</span>
+                  </div>
+                  <span className="font-semibold text-[#374151] text-xs leading-tight">{item.fullName}</span>
+                  <span className="text-[#6b7280] text-xs leading-tight">{item.description}</span>
                 </div>
               </div>
             ))}

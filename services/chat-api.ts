@@ -4,6 +4,43 @@
 import { AssessmentResult } from '../types/assessment-results';
 import apiService from './apiService';
 
+// UUID utilities
+function generateUUID(): string {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c == 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
+function isValidUUID(str: string): boolean {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(str);
+}
+
+// Map non-UUID result IDs to UUIDs for API compatibility
+function getOrCreateUUIDForResultId(resultId: string): string {
+  const storageKey = `uuid-mapping-${resultId}`;
+
+  // Check if we already have a UUID mapping for this result ID
+  const existingUUID = localStorage.getItem(storageKey);
+  if (existingUUID && isValidUUID(existingUUID)) {
+    return existingUUID;
+  }
+
+  // If the result ID is already a UUID, use it directly
+  if (isValidUUID(resultId)) {
+    return resultId;
+  }
+
+  // Generate a new UUID and store the mapping
+  const newUUID = generateUUID();
+  localStorage.setItem(storageKey, newUUID);
+  console.log(`Created UUID mapping: ${resultId} -> ${newUUID}`);
+
+  return newUUID;
+}
+
 // Chat message interface
 export interface ChatMessage {
   id: string;
@@ -46,31 +83,71 @@ export async function startChatConversation(
   resultId: string,
   assessmentResult: AssessmentResult
 ): Promise<ChatConversation> {
+  console.log('Starting chat conversation for result:', resultId);
+
   try {
-    // Try to use real API first
+    // First, test if the chatbot API is available
+    console.log('Testing chatbot API health...');
+    const healthCheck = await apiService.testChatbotHealth();
+
+    if (!healthCheck.success) {
+      console.warn('Chatbot API health check failed:', healthCheck.error);
+      // Don't throw error here - let it fall through to try the API anyway
+      console.log('Proceeding to try API despite health check failure...');
+    } else {
+      console.log('Chatbot API is healthy, proceeding with conversation creation...');
+    }
+
+    // Get or create UUID for the result ID (API requires UUID format)
+    const apiAssessmentId = getOrCreateUUIDForResultId(resultId);
+    console.log(`Using UUID for API: ${apiAssessmentId} (original: ${resultId})`);
+
+    // Try to use real API
     const response = await apiService.startChatConversation({
-      resultId,
+      resultId: apiAssessmentId, // Use UUID for API
       assessmentContext: assessmentResult
     });
 
     if (response.success && response.data) {
+      console.log('Successfully created conversation via API:', response.data.id);
+
       // Ensure messages is always an array
       const messages = Array.isArray(response.data.messages) ? response.data.messages : [];
 
-      return {
+      const conversation = {
         ...response.data,
         messages
       };
+
+      // Store in localStorage for persistence (important for real API conversation retrieval)
+      localStorage.setItem(`chat-${resultId}`, JSON.stringify(conversation));
+
+      return conversation;
     }
 
     throw new Error(response.error?.message || 'Failed to start conversation');
   } catch (error) {
-    console.warn('API chat failed, using mock implementation:', error);
+    console.error('Real API chat failed:', {
+      error: error.message,
+      resultId,
+      stack: error.stack
+    });
+
+    // Check if it's an authentication error - only throw for auth errors
+    if (error.response?.status === 401) {
+      throw new Error('Authentication required. Please login again.');
+    }
+
+    // For all other errors (including 404, 500, network errors), fall back to mock
+    console.warn('Falling back to mock implementation due to API error:', {
+      status: error.response?.status,
+      message: error.message
+    });
 
     // Fallback to mock implementation
     await delay(1000);
 
-    const conversationId = 'chat-' + Date.now().toString(36);
+    const conversationId = 'mock-chat-' + Date.now().toString(36);
     const welcomeMessage = generateWelcomeMessage(assessmentResult);
 
     const conversation: ChatConversation = {
@@ -97,25 +174,17 @@ export async function sendChatMessage(
   resultId: string,
   message: string
 ): Promise<ChatMessage> {
-  try {
-    // Try to use real API first
-    const response = await apiService.sendChatMessage({
-      conversationId,
-      resultId,
-      message
-    });
+  console.log('Sending chat message:', { conversationId, resultId, messageLength: message.length });
 
-    if (response.success && response.data && response.data.message) {
-      return response.data.message;
-    }
+  // Check if this is a mock conversation (starts with 'mock-chat-')
+  const isMockConversation = conversationId.startsWith('mock-chat-');
 
-    throw new Error(response.error?.message || 'Failed to send message');
-  } catch (error) {
-    console.warn('API chat failed, using mock implementation:', error);
-    
-    // Fallback to mock implementation
+  if (isMockConversation) {
+    console.log('Using mock implementation for mock conversation:', conversationId);
+
+    // Use mock implementation directly for mock conversations
     await delay(1500); // Simulate thinking time
-    
+
     // Get existing conversation
     const existingConversation = getStoredConversation(resultId);
     if (!existingConversation) {
@@ -133,7 +202,7 @@ export async function sendChatMessage(
 
     // Generate AI response
     const aiResponse = generateAIResponse(message, existingConversation.assessmentContext);
-    
+
     const aiMessage: ChatMessage = {
       id: 'msg-' + (Date.now() + 1).toString(36),
       role: 'assistant',
@@ -145,10 +214,101 @@ export async function sendChatMessage(
     // Update conversation
     existingConversation.messages.push(userMessage, aiMessage);
     existingConversation.updatedAt = new Date().toISOString();
-    
+
     // Store updated conversation
     localStorage.setItem(`chat-${resultId}`, JSON.stringify(existingConversation));
-    
+
+    return aiMessage;
+  }
+
+  try {
+    // Get the UUID that was used for API calls (if conversation was created via API)
+    const apiAssessmentId = getOrCreateUUIDForResultId(resultId);
+
+    // Try to use real API for real conversations
+    const response = await apiService.sendChatMessage({
+      conversationId,
+      resultId: apiAssessmentId, // Use UUID for API consistency
+      message
+    });
+
+    if (response.success && response.data && response.data.message) {
+      // Update local storage with the new message
+      const existingConversation = getStoredConversation(resultId);
+      if (existingConversation) {
+        // Add user message and AI response to local conversation
+        const userMessage: ChatMessage = {
+          id: 'user-' + Date.now().toString(36),
+          role: 'user',
+          content: message,
+          timestamp: new Date().toISOString(),
+          resultId
+        };
+
+        existingConversation.messages.push(userMessage, response.data.message);
+        existingConversation.updatedAt = new Date().toISOString();
+        localStorage.setItem(`chat-${resultId}`, JSON.stringify(existingConversation));
+      }
+
+      return response.data.message;
+    }
+
+    throw new Error(response.error?.message || 'Failed to send message');
+  } catch (error) {
+    console.error('Real API chat message failed:', {
+      error: error.message,
+      conversationId,
+      resultId,
+      status: error.response?.status
+    });
+
+    // Check for specific error types - only throw for auth errors
+    if (error.response?.status === 401) {
+      throw new Error('Authentication required. Please login again.');
+    }
+
+    // For all other errors (including 404, 500, network errors), fall back to mock
+    console.warn('Falling back to mock implementation due to API error:', {
+      status: error.response?.status,
+      message: error.message
+    });
+
+    // Fallback to mock implementation
+    await delay(1500); // Simulate thinking time
+
+    // Get existing conversation
+    const existingConversation = getStoredConversation(resultId);
+    if (!existingConversation) {
+      throw new Error('Conversation not found');
+    }
+
+    // Create user message
+    const userMessage: ChatMessage = {
+      id: 'msg-' + Date.now().toString(36),
+      role: 'user',
+      content: message,
+      timestamp: new Date().toISOString(),
+      resultId
+    };
+
+    // Generate AI response
+    const aiResponse = generateAIResponse(message, existingConversation.assessmentContext);
+
+    const aiMessage: ChatMessage = {
+      id: 'msg-' + (Date.now() + 1).toString(36),
+      role: 'assistant',
+      content: aiResponse,
+      timestamp: new Date().toISOString(),
+      resultId
+    };
+
+    // Update conversation
+    existingConversation.messages.push(userMessage, aiMessage);
+    existingConversation.updatedAt = new Date().toISOString();
+
+    // Store updated conversation
+    localStorage.setItem(`chat-${resultId}`, JSON.stringify(existingConversation));
+
     return aiMessage;
   }
 }

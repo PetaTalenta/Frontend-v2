@@ -3,11 +3,13 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { clearDemoAssessmentData } from '../services/user-stats';
+import { getUserProfile } from '../services/profile-api';
 
 interface User {
   id: string;
   email: string;
   name?: string;
+  username?: string;
   avatar?: string;
 }
 
@@ -19,6 +21,7 @@ interface AuthContextType {
   login: (token: string, user: User) => void;
   logout: () => void;
   register: (token: string, user: User) => void;
+  updateUser: (userData: Partial<User>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -60,6 +63,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         // Ensure cookie is set for server-side middleware
         document.cookie = `token=${savedToken}; path=/; max-age=${7 * 24 * 60 * 60}`;
         console.log('AuthContext: Restored existing authentication for user:', parsedUser.name);
+
+        // Always try to fetch the latest username from profile to ensure it's up to date
+        console.log('AuthContext: Triggering username fetch from profile on mount...');
+        fetchUsernameFromProfile(savedToken);
       } catch (error) {
         // Clear invalid data
         localStorage.removeItem('token');
@@ -89,7 +96,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     // Set cookie for server-side middleware
     document.cookie = `token=${newToken}; path=/; max-age=${7 * 24 * 60 * 60}`; // 7 days
 
-    console.log('AuthContext: Login successful, redirecting to dashboard');
+    console.log('AuthContext: Login successful, fetching username from profile...');
+
+    // Fetch username from profile to ensure we have the latest data
+    fetchUsernameFromProfile(newToken);
 
     // Redirect to dashboard after login
     router.push('/dashboard');
@@ -109,10 +119,43 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     // Set cookie for server-side middleware
     document.cookie = `token=${newToken}; path=/; max-age=${7 * 24 * 60 * 60}`; // 7 days
 
-    console.log('AuthContext: Registration successful, redirecting to dashboard');
+    console.log('AuthContext: Registration successful, fetching username from profile...');
+
+    // Fetch username from profile to ensure we have the latest data
+    fetchUsernameFromProfile(newToken);
 
     // Redirect to dashboard after registration
     router.push('/dashboard');
+  };
+
+  const updateUser = (userData: Partial<User>) => {
+    if (!user) return;
+
+    const updatedUser = { ...user, ...userData };
+    setUser(updatedUser);
+    localStorage.setItem('user', JSON.stringify(updatedUser));
+    console.log('AuthContext: User data updated:', updatedUser);
+  };
+
+  // Fetch username from profile if not available
+  const fetchUsernameFromProfile = async (token: string) => {
+    try {
+      console.log('AuthContext: Fetching username from profile...');
+      const profileData = await getUserProfile(token);
+      console.log('AuthContext: Profile data received:', profileData);
+
+      if (profileData && profileData.success && profileData.data?.user?.username) {
+        const username = profileData.data.user.username;
+        console.log('AuthContext: Username fetched from profile:', username);
+        updateUser({ username });
+      } else {
+        console.log('AuthContext: No username found in profile data or profile fetch failed');
+        console.log('AuthContext: Profile structure:', JSON.stringify(profileData, null, 2));
+      }
+    } catch (error) {
+      console.log('AuthContext: Failed to fetch username from profile:', error);
+      // Don't throw error, just log it - this is optional enhancement
+    }
   };
 
   const logout = () => {
@@ -135,6 +178,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     login,
     logout,
     register,
+    updateUser,
     isAuthenticated: !!token
   };
 

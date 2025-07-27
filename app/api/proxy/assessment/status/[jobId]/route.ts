@@ -4,10 +4,10 @@ const REAL_API_BASE_URL = 'https://api.chhrone.web.id';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { jobId: string } }
+  { params }: { params: Promise<{ jobId: string }> }
 ) {
   try {
-    const { jobId } = params;
+    const { jobId } = await params;
     console.log(`Assessment Status Proxy: Checking status for job ${jobId}`);
     
     const response = await fetch(`${REAL_API_BASE_URL}/api/assessment/status/${jobId}`, {
@@ -24,13 +24,18 @@ export async function GET(
     });
 
     const data = await response.json();
-    
-    return NextResponse.json({
-      success: response.ok,
-      status: response.status,
-      data: data,
-      timestamp: Date.now(),
-    }, {
+
+    // Return the real API response directly to avoid double-wrapping
+    // Add proxy metadata only if needed for debugging
+    const responseData = {
+      ...data,
+      _proxy: {
+        timestamp: Date.now(),
+        source: 'real-api'
+      }
+    };
+
+    return NextResponse.json(responseData, {
       status: response.status,
       headers: {
         'Access-Control-Allow-Origin': '*',

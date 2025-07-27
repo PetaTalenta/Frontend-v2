@@ -4,7 +4,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { AssessmentScores, getScoreInterpretation } from '../../types/assessment-results';
 import { getDominantRiasecType, getTopViaStrengths } from '../../utils/assessment-calculations';
-import { TrendingUp, BarChart3, Brain, Palette } from 'lucide-react';
+import { TrendingUp, BarChart3, Palette } from 'lucide-react';
 
 interface VisualSummaryProps {
   scores: AssessmentScores;
@@ -69,7 +69,7 @@ export default function VisualSummary({ scores }: VisualSummaryProps) {
       shortName: 'TECH',
       score: technicalScore,
       color: '#4f46e5', // Indigo - matches development/investigative
-      icon: Brain,
+      icon: BarChart3,
       type: 'Technical & Analytical',
       description: 'Kemampuan teknis, analitis, dan penelitian',
       riasecMapping: 'Investigative (I)',
@@ -261,7 +261,7 @@ export default function VisualSummary({ scores }: VisualSummaryProps) {
           </div>
 
           {/* Right side - Legend */}
-          <div className="flex-1 ml-12 space-y-6">
+          <div className="flex-1 ml-8 space-y-6">
             {sortedCompetencies.map((competency, index) => (
               <div
                 key={index}
@@ -320,31 +320,26 @@ export default function VisualSummary({ scores }: VisualSummaryProps) {
 
         {/* Talent Insights */}
         <div className="bg-indigo-50 rounded-lg p-4 border border-indigo-200">
-          <div className="flex items-start gap-3">
-            <div className="p-2 bg-indigo-100 rounded-lg flex-shrink-0">
-              <Brain className="w-4 h-4 text-indigo-600" />
-            </div>
-            <div>
-              <h4 className="text-sm font-semibold text-indigo-900 mb-2">
-                Talent Profile Insight
-              </h4>
-              <p className="text-xs text-indigo-700 leading-relaxed mb-3">
-                {overallTalentScore >= 80
-                  ? "Anda memiliki profil talenta yang sangat kuat dengan kompetensi karir yang menonjol. Fokuskan pada pengembangan area terkuat untuk mencapai potensi maksimal."
-                  : overallTalentScore >= 60
-                  ? "Anda menunjukkan profil talenta yang seimbang dengan beberapa kompetensi karir yang menonjol. Pertimbangkan karir yang memanfaatkan kekuatan utama Anda."
-                  : "Anda memiliki potensi talenta yang baik untuk dikembangkan. Fokuskan pada pengembangan kompetensi dengan skor tertinggi untuk membangun keunggulan karir."
-                }
-              </p>
+          <div>
+            <h4 className="text-sm font-semibold text-indigo-900 mb-2">
+              Talent Profile Insight
+            </h4>
+            <p className="text-xs text-indigo-700 leading-relaxed mb-3">
+              {overallTalentScore >= 80
+                ? "Anda memiliki profil talenta yang sangat kuat dengan kompetensi karir yang menonjol. Fokuskan pada pengembangan area terkuat untuk mencapai potensi maksimal."
+                : overallTalentScore >= 60
+                ? "Anda menunjukkan profil talenta yang seimbang dengan beberapa kompetensi karir yang menonjol. Pertimbangkan karir yang memanfaatkan kekuatan utama Anda."
+                : "Anda memiliki potensi talenta yang baik untuk dikembangkan. Fokuskan pada pengembangan kompetensi dengan skor tertinggi untuk membangun keunggulan karir."
+              }
+            </p>
 
-              <div className="mt-3 p-2 bg-white rounded border border-indigo-200">
-                <p className="text-xs font-medium text-indigo-900 mb-1">Rekomendasi Pengembangan:</p>
-                <p className="text-xs text-indigo-700">
-                  Kompetensi terkuat Anda: <strong>{sortedCompetencies[0]?.name}</strong>.
-                  Pertimbangkan karir di bidang <strong>{sortedCompetencies[0]?.type}</strong>
-                  yang memanfaatkan kekuatan {sortedCompetencies[0]?.riasecMapping}.
-                </p>
-              </div>
+            <div className="mt-3 p-2 bg-white rounded border border-indigo-200">
+              <p className="text-xs font-medium text-indigo-900 mb-1">Rekomendasi Pengembangan:</p>
+              <p className="text-xs text-indigo-700">
+                Kompetensi terkuat Anda: <strong>{sortedCompetencies[0]?.name}</strong>.
+                Pertimbangkan karir di bidang <strong>{sortedCompetencies[0]?.type}</strong>
+                yang memanfaatkan kekuatan {sortedCompetencies[0]?.riasecMapping}.
+              </p>
             </div>
           </div>
         </div>

@@ -61,7 +61,21 @@ export default function ChatInterface({ assessmentResult, onBack }: ChatInterfac
       }
     } catch (err) {
       console.error('Failed to initialize chat:', err);
-      setError('Gagal memulai percakapan. Silakan coba lagi.');
+
+      // Provide more specific error messages
+      let errorMessage = 'Gagal memulai percakapan. ';
+
+      if (err.message.includes('Authentication required')) {
+        errorMessage += 'Silakan login ulang untuk melanjutkan.';
+      } else if (err.message.includes('Network error')) {
+        errorMessage += 'Periksa koneksi internet Anda dan coba lagi.';
+      } else if (err.message.includes('not available')) {
+        errorMessage += 'Layanan chatbot sedang tidak tersedia. Coba lagi nanti.';
+      } else {
+        errorMessage += 'Silakan coba lagi atau hubungi support jika masalah berlanjut.';
+      }
+
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -115,11 +129,27 @@ export default function ChatInterface({ assessmentResult, onBack }: ChatInterfac
 
     } catch (err) {
       console.error('Failed to send message:', err);
-      setError('Gagal mengirim pesan. Silakan coba lagi.');
+
+      // Provide more specific error messages
+      let errorMessage = 'Gagal mengirim pesan. ';
+
+      if (err.message.includes('Authentication required')) {
+        errorMessage += 'Silakan login ulang untuk melanjutkan.';
+      } else if (err.message.includes('Network error')) {
+        errorMessage += 'Periksa koneksi internet Anda dan coba lagi.';
+      } else if (err.message.includes('Conversation not found')) {
+        errorMessage += 'Percakapan tidak ditemukan. Silakan mulai percakapan baru.';
+      } else if (err.message.includes('Server error')) {
+        errorMessage += 'Terjadi kesalahan server. Coba lagi nanti.';
+      } else {
+        errorMessage += 'Silakan coba lagi.';
+      }
+
+      setError(errorMessage);
       setTypingMessage(null);
-      
+
       // Remove the temporary user message on error
-      setMessages(prev => prev.filter(msg => msg.id !== 'temp-user-' + Date.now()));
+      setMessages(prev => prev.filter(msg => msg.id !== userMessage.id));
     } finally {
       setIsSending(false);
     }
@@ -146,7 +176,20 @@ export default function ChatInterface({ assessmentResult, onBack }: ChatInterfac
         <div className="p-4">
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
+            <AlertDescription>
+              {error}
+              {process.env.NODE_ENV === 'development' && (
+                <div className="mt-2">
+                  <a
+                    href="/debug-chatbot"
+                    target="_blank"
+                    className="text-sm underline hover:no-underline"
+                  >
+                    🔧 Debug Chatbot API
+                  </a>
+                </div>
+              )}
+            </AlertDescription>
           </Alert>
         </div>
       )}

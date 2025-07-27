@@ -51,7 +51,7 @@ export default function RiasecDetailPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 py-8">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <Skeleton className="h-8 w-64 mb-6" />
           <div className="space-y-6">
             {[1, 2, 3, 4, 5, 6].map((i) => (
@@ -66,7 +66,7 @@ export default function RiasecDetailPage() {
   if (error || !result) {
     return (
       <div className="min-h-screen bg-gray-50 py-8">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <h1 className="text-2xl font-bold text-gray-900 mb-4">Error</h1>
             <p className="text-gray-600 mb-6">{error || 'Assessment result not found'}</p>
@@ -185,7 +185,7 @@ export default function RiasecDetailPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-4 mb-4">
@@ -236,41 +236,35 @@ export default function RiasecDetailPage() {
           <RiasecRadarChart scores={result.assessment_data} />
         </div>
 
-        {/* Detailed RIASEC Types */}
-        <div className="space-y-6">
+        {/* Detailed RIASEC Types - 2x2 Grid Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {sortedTypes.map((type, index) => {
             const interpretation = getScoreInterpretation(type.score);
             const Icon = type.icon;
-            
+
             return (
-              <Card key={type.key} className="bg-white border-gray-200 shadow-sm">
+              <Card key={type.key} className="bg-white border-gray-200 shadow-sm h-full">
                 <CardHeader className="pb-4">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-3">
                       <div className="flex items-center justify-center w-8 h-8 bg-gray-100 text-gray-600 text-sm font-bold rounded-full">
                         {index + 1}
                       </div>
-                      <div 
+                      <div
                         className="p-3 rounded-lg"
                         style={{ backgroundColor: type.color + '20' }}
                       >
                         <Icon className="w-6 h-6" style={{ color: type.color }} />
-                      </div>
-                      <div>
-                        <CardTitle className="text-xl font-semibold text-gray-900">
-                          {type.name}
-                        </CardTitle>
-                        <p className="text-sm text-gray-600">{type.description}</p>
                       </div>
                     </div>
                     <div className="text-right">
                       <p className="text-2xl font-bold" style={{ color: type.color }}>
                         {type.score}
                       </p>
-                      <Badge 
-                        style={{ 
-                          backgroundColor: interpretation.color + '20', 
-                          color: interpretation.color 
+                      <Badge
+                        style={{
+                          backgroundColor: interpretation.color + '20',
+                          color: interpretation.color
                         }}
                         className="font-medium"
                       >
@@ -278,13 +272,19 @@ export default function RiasecDetailPage() {
                       </Badge>
                     </div>
                   </div>
+                  <div>
+                    <CardTitle className="text-xl font-semibold text-gray-900">
+                      {type.name}
+                    </CardTitle>
+                    <p className="text-sm text-gray-600">{type.description}</p>
+                  </div>
                 </CardHeader>
-                
-                <CardContent className="space-y-4">
+
+                <CardContent className="space-y-4 flex-1">
                   {/* Progress Bar */}
                   <div className="space-y-2">
-                    <Progress 
-                      value={type.score} 
+                    <Progress
+                      value={type.score}
                       className="h-3"
                       style={{
                         '--progress-background': type.color,
@@ -299,19 +299,19 @@ export default function RiasecDetailPage() {
 
                   {/* Detailed Description */}
                   <div className="bg-gray-50 rounded-lg p-4">
-                    <p className="text-gray-700 leading-relaxed">
+                    <p className="text-gray-700 leading-relaxed text-sm">
                       {type.detailedDescription}
                     </p>
                   </div>
 
                   {/* Characteristics */}
                   <div>
-                    <h4 className="font-semibold text-gray-900 mb-3">Karakteristik Utama:</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <h4 className="font-semibold text-gray-900 mb-3 text-sm">Karakteristik Utama:</h4>
+                    <div className="space-y-2">
                       {type.characteristics.map((char, idx) => (
-                        <div key={idx} className="flex items-center gap-2">
-                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: type.color }} />
-                          <span className="text-sm text-gray-700">{char}</span>
+                        <div key={idx} className="flex items-start gap-2">
+                          <div className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0" style={{ backgroundColor: type.color }} />
+                          <span className="text-sm text-gray-700 leading-relaxed">{char}</span>
                         </div>
                       ))}
                     </div>
@@ -319,14 +319,15 @@ export default function RiasecDetailPage() {
 
                   {/* Career Examples */}
                   <div>
-                    <h4 className="font-semibold text-gray-900 mb-3">Contoh Karir:</h4>
+                    <h4 className="font-semibold text-gray-900 mb-3 text-sm">Contoh Karir:</h4>
                     <div className="flex flex-wrap gap-2">
                       {type.careers.map((career, idx) => (
-                        <Badge 
+                        <Badge
                           key={idx}
                           variant="secondary"
-                          style={{ 
-                            backgroundColor: type.color + '10', 
+                          className="text-xs"
+                          style={{
+                            backgroundColor: type.color + '10',
                             color: type.color,
                             borderColor: type.color + '30'
                           }}

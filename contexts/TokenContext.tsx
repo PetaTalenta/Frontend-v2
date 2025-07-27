@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { TokenBalanceInfo, checkTokenBalance } from '../utils/token-balance';
 import { useAuth } from './AuthContext';
+import { useAssessmentWebSocket } from '../hooks/useAssessmentWebSocket';
 
 interface TokenContextType {
   tokenInfo: TokenBalanceInfo | null;
@@ -104,16 +105,54 @@ export const TokenProvider: React.FC<TokenProviderProps> = ({ children }) => {
     }
   }, [isAuthenticated, user]);
 
-  // Auto-refresh token balance every 30 seconds when authenticated
+  // WebSocket connection for real-time token balance updates
+  const {
+    isConnected: wsConnected,
+    isAuthenticated: wsAuthenticated,
+    connect: wsConnect,
+    disconnect: wsDisconnect
+  } = useAssessmentWebSocket({
+    autoConnect: isAuthenticated,
+    fallbackToPolling: false, // We'll handle fallback manually
+    onAssessmentUpdate: (event) => {
+      // Handle token balance updates from WebSocket
+      if (event.type === 'token-balance-updated' && event.data?.balance !== undefined) {
+        console.log('TokenContext: Received token balance update via WebSocket:', event.data.balance);
+        updateTokenBalance(event.data.balance);
+      }
+    },
+    onConnected: () => {
+      console.log('TokenContext: WebSocket connected for token updates');
+      // Subscribe to token balance updates when connected
+      import('../services/websocket-assessment').then(({ getAssessmentWebSocketService }) => {
+        const wsService = getAssessmentWebSocketService();
+        wsService.subscribeToTokenUpdates();
+      });
+    },
+    onDisconnected: () => {
+      console.log('TokenContext: WebSocket disconnected');
+    },
+    onError: (error) => {
+      console.warn('TokenContext: WebSocket error, will use manual refresh only:', error);
+    }
+  });
+
+  // Fallback: Manual refresh only when WebSocket is not available
+  // This replaces the automatic 30-second polling
   useEffect(() => {
     if (!isAuthenticated) return;
 
-    const interval = setInterval(() => {
-      refreshTokenBalance();
-    }, 30000); // 30 seconds
+    // Only set up fallback polling if WebSocket is not connected after a reasonable time
+    const fallbackTimer = setTimeout(() => {
+      if (!wsConnected) {
+        console.log('TokenContext: WebSocket not available, using manual refresh only');
+        // We don't set up automatic polling anymore - user will need to refresh manually
+        // or we can trigger refresh on specific user actions
+      }
+    }, 5000); // Wait 5 seconds for WebSocket to connect
 
-    return () => clearInterval(interval);
-  }, [isAuthenticated]);
+    return () => clearTimeout(fallbackTimer);
+  }, [isAuthenticated, wsConnected]);
 
   const value: TokenContextType = {
     tokenInfo,

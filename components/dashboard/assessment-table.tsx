@@ -23,13 +23,15 @@ import type { AssessmentData } from "../../types/dashboard"
 
 interface AssessmentTableProps {
   data: AssessmentData[]
+  onRefresh?: () => Promise<void>
 }
 
-export function AssessmentTable({ data }: AssessmentTableProps) {
+export function AssessmentTable({ data, onRefresh }: AssessmentTableProps) {
   const router = useRouter();
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
   const [assessmentData, setAssessmentData] = useState(data)
+  const [isDeleting, setIsDeleting] = useState<string | null>(null)
 
   // Update assessment data when prop changes
   useEffect(() => {
@@ -41,15 +43,45 @@ export function AssessmentTable({ data }: AssessmentTableProps) {
   const endIndex = startIndex + itemsPerPage
   const currentData = assessmentData.slice(startIndex, endIndex)
 
-  const handleDelete = (id: number) => {
-    // Filter out the item with the specified id
-    const updatedData = assessmentData.filter(item => item.id !== id)
-    setAssessmentData(updatedData)
+  const handleDelete = async (id: number) => {
+    // Find the assessment item to get the resultId
+    const assessmentItem = assessmentData.find(item => item.id === id);
+    if (!assessmentItem?.resultId) {
+      console.error('No resultId found for assessment item:', id);
+      return;
+    }
 
-    // If current page becomes empty after deletion, go to previous page
-    const newTotalPages = Math.ceil(updatedData.length / itemsPerPage)
-    if (currentPage > newTotalPages && newTotalPages > 0) {
-      setCurrentPage(newTotalPages)
+    setIsDeleting(assessmentItem.resultId);
+
+    try {
+      // Import API service dynamically
+      const { apiService } = await import('../../services/apiService');
+
+      // Call the API to delete the result
+      await apiService.deleteResult(assessmentItem.resultId);
+
+      console.log('Assessment deleted successfully:', assessmentItem.resultId);
+
+      // Refresh the data if callback is provided
+      if (onRefresh) {
+        await onRefresh();
+      } else {
+        // Fallback: remove from local state
+        const updatedData = assessmentData.filter(item => item.id !== id);
+        setAssessmentData(updatedData);
+
+        // If current page becomes empty after deletion, go to previous page
+        const newTotalPages = Math.ceil(updatedData.length / itemsPerPage);
+        if (currentPage > newTotalPages && newTotalPages > 0) {
+          setCurrentPage(newTotalPages);
+        }
+      }
+    } catch (error) {
+      console.error('Error deleting assessment:', error);
+      // You might want to show a toast notification here
+      alert('Gagal menghapus assessment. Silakan coba lagi.');
+    } finally {
+      setIsDeleting(null);
     }
   }
 
@@ -129,7 +161,12 @@ export function AssessmentTable({ data }: AssessmentTableProps) {
 
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          disabled={isDeleting === item.resultId}
+                        >
                           <Trash2 className="w-4 h-4 text-[#64707d]" />
                         </Button>
                       </AlertDialogTrigger>
@@ -142,12 +179,15 @@ export function AssessmentTable({ data }: AssessmentTableProps) {
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
-                          <AlertDialogCancel>Batal</AlertDialogCancel>
+                          <AlertDialogCancel disabled={isDeleting === item.resultId}>
+                            Batal
+                          </AlertDialogCancel>
                           <AlertDialogAction
                             onClick={() => handleDelete(item.id)}
                             className="bg-red-600 hover:bg-red-700"
+                            disabled={isDeleting === item.resultId}
                           >
-                            Ya, Hapus
+                            {isDeleting === item.resultId ? 'Menghapus...' : 'Ya, Hapus'}
                           </AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>

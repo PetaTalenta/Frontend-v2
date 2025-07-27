@@ -10,8 +10,10 @@ import { ProgressCard } from "./components/dashboard/progress-card"
 import { chartData } from "./data/mockData"
 import { useAuth } from "./contexts/AuthContext"
 import { calculateUserStats, formatStatsForDashboard, formatAssessmentHistory, calculateUserProgress } from "./services/user-stats"
-import { useState, useEffect } from "react"
+import { getLatestAssessmentResult } from "./services/assessment-api"
+import { useState, useEffect, useCallback } from "react"
 import type { StatCard, ProgressItem } from "./types/dashboard"
+import type { OceanScores } from "./types/assessment-results"
 
 // Error Boundary Component
 import React from "react"
@@ -68,8 +70,10 @@ function DashboardContent() {
   const [statsData, setStatsData] = useState<StatCard[]>([]);
   const [assessmentData, setAssessmentData] = useState<any[]>([]);
   const [progressData, setProgressData] = useState<ProgressItem[]>([]);
+  const [oceanScores, setOceanScores] = useState<OceanScores | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   console.log('DashboardContent: Rendering with state:', {
     user: user?.email,
@@ -80,7 +84,7 @@ function DashboardContent() {
   });
 
   // Load user data function with better error handling
-  const loadUserData = async () => {
+  const loadUserData = useCallback(async () => {
     if (!user) {
       console.log('Dashboard: No user found, skipping data load');
       setIsLoading(false);
@@ -124,10 +128,10 @@ function DashboardContent() {
       // Format data for dashboard components
       console.log('Dashboard: Formatting data for dashboard...');
       const formattedStats = formatStatsForDashboard(userStats);
-      const formattedAssessments = formatAssessmentHistory(userStats);
-      const formattedProgress = calculateUserProgress(userStats);
+      const formattedAssessments = await formatAssessmentHistory(userStats);
+      const formattedProgress = await calculateUserProgress(userStats);
 
-      // Fallback if localHistory is empty
+      // Fallback if API history is empty
       if (!formattedAssessments || formattedAssessments.length === 0) {
         console.warn('Dashboard: No assessment history found, using localStorage fallback');
         setAssessmentData(localHistory);
@@ -144,6 +148,23 @@ function DashboardContent() {
       }
 
       setStatsData(formattedStats);
+
+      // Fetch latest assessment result for Ocean scores
+      try {
+        console.log('Dashboard: Fetching latest assessment for Ocean scores...');
+        const latestAssessment = await getLatestAssessmentResult(user.id);
+        if (latestAssessment && latestAssessment.assessment_data && latestAssessment.assessment_data.ocean) {
+          console.log('Dashboard: Found Ocean scores from latest assessment:', latestAssessment.assessment_data.ocean);
+          setOceanScores(latestAssessment.assessment_data.ocean);
+        } else {
+          console.log('Dashboard: No Ocean scores found in latest assessment, using defaults');
+          setOceanScores(undefined); // Will use defaults in WorldMapCard
+        }
+      } catch (oceanError) {
+        console.error('Dashboard: Error fetching Ocean scores:', oceanError);
+        setOceanScores(undefined); // Will use defaults in WorldMapCard
+      }
+
       console.log('Dashboard: Data formatted successfully');
       console.log('Stats:', formattedStats);
       console.log('Assessments:', formattedAssessments);
@@ -168,8 +189,27 @@ function DashboardContent() {
         { label: "Leadership", value: 0 },
         { label: "Analytical", value: 0 },
       ]);
+      setOceanScores(undefined); // Will use defaults in WorldMapCard
     } finally {
       setIsLoading(false);
+    }
+  }, []);
+
+  // Refresh assessment data function
+  const refreshAssessmentData = async () => {
+    if (!user) return;
+
+    setIsRefreshing(true);
+    try {
+      console.log('Dashboard: Refreshing assessment data...');
+      const userStats = await calculateUserStats(user.id);
+      const formattedAssessments = await formatAssessmentHistory(userStats);
+      setAssessmentData(formattedAssessments || []);
+      console.log('Dashboard: Assessment data refreshed successfully');
+    } catch (error) {
+      console.error('Dashboard: Error refreshing assessment data:', error);
+    } finally {
+      setIsRefreshing(false);
     }
   };
 
@@ -200,6 +240,9 @@ function DashboardContent() {
 
   // Get user's display name
   const getUserDisplayName = () => {
+    if (user?.username) {
+      return user.username;
+    }
     if (user?.name) {
       return user.name;
     }
@@ -340,7 +383,10 @@ function DashboardContent() {
               </div>
 
               {/* Assessment History */}
-              <AssessmentTable data={assessmentData} />
+              <AssessmentTable
+                data={assessmentData}
+                onRefresh={refreshAssessmentData}
+              />
             </div>
 
             {/* Right Sidebar */}
@@ -348,6 +394,7 @@ function DashboardContent() {
               <WorldMapCard
                 title={getUserDisplayName()}
                 description="Discover your potential and prepare yourself to reach higher goals."
+                oceanScores={oceanScores}
               />
 
               <ProgressCard

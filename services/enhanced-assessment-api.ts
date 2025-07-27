@@ -34,12 +34,12 @@ const ASSESSMENT_ENDPOINTS = {
   IDEMPOTENCY_CLEANUP: '/api/assessment/idempotency/cleanup',
 } as const;
 
-// Polling configuration
+// Polling configuration - Optimized for faster response
 const POLLING_CONFIG = {
-  INITIAL_DELAY: 2000, // 2 seconds
-  MAX_DELAY: 30000, // 30 seconds
-  MAX_ATTEMPTS: 60, // Maximum polling attempts (30 minutes with max delay)
-  BACKOFF_MULTIPLIER: 1.5,
+  INITIAL_DELAY: 800, // 800ms for faster initial response
+  MAX_DELAY: 2000, // 2 seconds max delay for more responsive polling
+  MAX_ATTEMPTS: 50, // More attempts with faster intervals
+  BACKOFF_MULTIPLIER: 1.1, // Slower backoff for more frequent checks
 } as const;
 
 /**
@@ -97,6 +97,9 @@ async function makeAssessmentApiRequest(
   }
 }
 
+// Track active submissions to prevent duplicates
+const activeSubmissions = new Set<string>();
+
 /**
  * Submit assessment for AI analysis
  */
@@ -105,17 +108,29 @@ export async function submitAssessment(
   assessmentName: string = 'AI-Driven Talent Mapping',
   onTokenBalanceUpdate?: () => Promise<void>
 ): Promise<AssessmentSubmitResponse> {
-  
-  console.log('Enhanced Assessment API: Submitting assessment...');
-  
-  const requestData: AssessmentSubmitRequest = {
-    assessmentName: assessmentName as any,
-    riasec: assessmentData.riasec,
-    ocean: assessmentData.ocean,
-    viaIs: assessmentData.viaIs,
-  };
-  
+
+  // Create unique key for this submission
+  const submissionKey = JSON.stringify({ assessmentData, assessmentName });
+
+  // Check if this exact submission is already in progress
+  if (activeSubmissions.has(submissionKey)) {
+    console.warn('Enhanced Assessment API: Duplicate submission detected, rejecting');
+    throw new Error('Assessment submission already in progress');
+  }
+
+  // Mark this submission as active
+  activeSubmissions.add(submissionKey);
+
   try {
+    console.log('Enhanced Assessment API: Submitting assessment...');
+
+    const requestData: AssessmentSubmitRequest = {
+      assessmentName: assessmentName as any,
+      riasec: assessmentData.riasec,
+      ocean: assessmentData.ocean,
+      viaIs: assessmentData.viaIs,
+    };
+
     const { response, apiSource } = await makeAssessmentApiRequest(
       ASSESSMENT_ENDPOINTS.SUBMIT,
       {
@@ -123,10 +138,10 @@ export async function submitAssessment(
         body: JSON.stringify(requestData),
       }
     );
-    
+
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      
+
       // Handle specific error cases
       if (response.status === 401) {
         showTokenError('Authentication failed. Please login again.');
@@ -138,21 +153,21 @@ export async function submitAssessment(
         showTokenError('Rate limit exceeded. Please try again later.');
         throw new Error('Rate limit exceeded');
       }
-      
+
       throw new Error(errorData.error?.message || `HTTP ${response.status}: ${response.statusText}`);
     }
-    
+
     const result: AssessmentSubmitResponse = await response.json();
-    
+
     console.log(`Enhanced Assessment API: Assessment submitted successfully via ${apiSource} API`);
     console.log(`Job ID: ${result.data.jobId}, Queue Position: ${result.data.queuePosition}`);
-    
+
     // Show success notification
     showTokenSuccess(
       `Assessment submitted successfully! Job ID: ${result.data.jobId}`,
       `Queue position: ${result.data.queuePosition}, Estimated time: ${result.data.estimatedProcessingTime}`
     );
-    
+
     // Refresh token balance
     if (onTokenBalanceUpdate) {
       try {
@@ -162,19 +177,22 @@ export async function submitAssessment(
         console.error('Enhanced Assessment API: Error refreshing token balance:', error);
       }
     }
-    
+
     return result;
-    
+
   } catch (error) {
     console.error('Enhanced Assessment API: Submit assessment error:', error);
-    
+
     if (error instanceof Error) {
       showTokenError(`Assessment submission failed: ${error.message}`);
       throw error;
     }
-    
+
     showTokenError('Assessment submission failed due to unknown error');
     throw new Error('Assessment submission failed');
+  } finally {
+    // Always remove from active submissions
+    activeSubmissions.delete(submissionKey);
   }
 }
 
@@ -196,9 +214,18 @@ export async function getAssessmentStatus(jobId: string): Promise<AssessmentStat
     }
     
     const result: AssessmentStatusResponse = await response.json();
-    
+
+    // Debug logging to understand response structure
+    console.log(`Enhanced Assessment API: Raw response for job ${jobId}:`, JSON.stringify(result, null, 2));
+
+    // Check if we have the expected structure
+    if (!result.data) {
+      console.error(`Enhanced Assessment API: Missing data property in response for job ${jobId}`);
+      throw new Error('Invalid response structure: missing data property');
+    }
+
     console.log(`Enhanced Assessment API: Job ${jobId} status: ${result.data.status} (${result.data.progress}%) via ${apiSource} API`);
-    
+
     return result;
     
   } catch (error) {
@@ -423,6 +450,27 @@ export async function submitAssessmentWithPolling(
     undefined, // onComplete callback handled by return
     undefined  // onError callback handled by throw
   );
+}
+
+/**
+ * Submit assessment with WebSocket support
+ * Returns jobId for WebSocket subscription
+ */
+export async function submitAssessmentForWebSocket(
+  assessmentData: AssessmentScores,
+  assessmentName: string = 'AI-Driven Talent Mapping',
+  onTokenBalanceUpdate?: () => Promise<void>
+): Promise<{ jobId: string; queuePosition?: number }> {
+
+  console.log('Enhanced Assessment API: Submitting assessment for WebSocket monitoring');
+
+  // Submit assessment (same as regular submission)
+  const submitResponse = await submitAssessment(assessmentData, assessmentName, onTokenBalanceUpdate);
+
+  return {
+    jobId: submitResponse.data.jobId,
+    queuePosition: submitResponse.data.queuePosition,
+  };
 }
 
 /**

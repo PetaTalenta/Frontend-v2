@@ -91,13 +91,20 @@ export const API_ENDPOINTS = {
     DELETE_CONVERSATION: (conversationId) => `/api/chat/conversation/${conversationId}`,
   },
 
-  // Chatbot endpoints (real API)
+  // Chatbot endpoints (real API) - Updated to match API documentation
   CHATBOT: {
     CREATE_CONVERSATION: '/api/chatbot/conversations',
     CREATE_FROM_ASSESSMENT: '/api/chatbot/assessment/from-assessment',
     GET_CONVERSATIONS: '/api/chatbot/conversations',
     GET_CONVERSATION: (conversationId) => `/api/chatbot/conversations/${conversationId}`,
     SEND_MESSAGE: (conversationId) => `/api/chatbot/conversations/${conversationId}/messages`,
+    UPDATE_CONVERSATION: (conversationId) => `/api/chatbot/conversations/${conversationId}`,
+    DELETE_CONVERSATION: (conversationId) => `/api/chatbot/conversations/${conversationId}`,
+    GET_SUGGESTIONS: '/api/chatbot/suggestions',
+    AUTO_INITIALIZE: '/api/chatbot/auto-initialize',
+    GET_MESSAGES: (conversationId) => `/api/chatbot/conversations/${conversationId}/messages`,
+    HEALTH: '/api/chatbot/health',
+    HEALTH: '/api/chatbot/health',
   },
 
   // Health check endpoints

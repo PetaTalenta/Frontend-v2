@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { PersonaProfile } from '../../types/assessment-results';
-import { User, Star, ArrowRight } from 'lucide-react';
+import { User, Star, ArrowRight, Briefcase } from 'lucide-react';
 
 interface PersonaProfileSummaryProps {
   profile: PersonaProfile;
@@ -21,6 +21,9 @@ export default function PersonaProfileSummary({ profile, resultId }: PersonaProf
 
   // Get top 3 strengths
   const topStrengths = profile.strengths.slice(0, 3);
+
+  // Get top 2 career recommendations
+  const topCareers = profile.careerRecommendation.slice(0, 2);
 
   return (
     <Card className="bg-gradient-to-br from-[#6475e9] to-[#5a6bd8] text-white border-none shadow-lg">
@@ -63,6 +66,40 @@ export default function PersonaProfileSummary({ profile, resultId }: PersonaProf
             ))}
           </div>
         </div>
+
+        {/* Top Career Recommendations */}
+        {topCareers.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <Briefcase className="w-5 h-5 text-green-300" />
+              <h3 className="font-semibold text-white">Rekomendasi Karir</h3>
+            </div>
+            <div className="grid grid-cols-1 gap-2">
+              {topCareers.map((career, index) => (
+                <div key={index} className="bg-white/10 rounded-lg p-3">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-white/90 text-sm font-medium">{career.careerName}</span>
+                    {career.matchPercentage && (
+                      <span className="text-green-300 text-xs font-semibold">
+                        {career.matchPercentage}% match
+                      </span>
+                    )}
+                  </div>
+                  {career.description && (
+                    <p className="text-white/70 text-xs leading-relaxed">
+                      {career.description.length > 80
+                        ? career.description.substring(0, 80) + '...'
+                        : career.description}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+
+
 
         {/* View Full Profile Button */}
         <div className="pt-2">

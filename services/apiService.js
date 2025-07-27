@@ -19,24 +19,55 @@ class ApiService {
     // Add request interceptor to include auth token
     this.axiosInstance.interceptors.request.use(
       (config) => {
-        const token = localStorage.getItem('token');
+        // Try multiple token storage keys for compatibility
+        const token = localStorage.getItem('token') ||
+                     localStorage.getItem('auth_token') ||
+                     localStorage.getItem('authToken');
+
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
+          console.log('API Request: Adding Bearer token to headers');
+        } else {
+          console.warn('API Request: No authentication token found');
         }
+
+        // Log the request for debugging
+        console.log(`API Request: ${config.method?.toUpperCase()} ${config.url}`, {
+          headers: config.headers,
+          data: config.data
+        });
+
         return config;
       },
       (error) => {
+        console.error('API Request Interceptor Error:', error);
         return Promise.reject(error);
       }
     );
 
     // Add response interceptor for error handling
     this.axiosInstance.interceptors.response.use(
-      (response) => response,
+      (response) => {
+        console.log(`API Response: ${response.status} ${response.config.method?.toUpperCase()} ${response.config.url}`);
+        return response;
+      },
       (error) => {
+        // Log detailed error information
+        console.error('API Response Error:', {
+          status: error.response?.status,
+          statusText: error.response?.statusText,
+          url: error.config?.url,
+          method: error.config?.method,
+          data: error.response?.data,
+          message: error.message
+        });
+
         if (error.response?.status === 401) {
           // Token expired, clear auth data
+          console.warn('Authentication failed - clearing tokens and redirecting');
           localStorage.removeItem('token');
+          localStorage.removeItem('auth_token');
+          localStorage.removeItem('authToken');
           localStorage.removeItem('user');
           delete axios.defaults.headers.common['Authorization'];
           // Redirect to auth page
@@ -45,7 +76,14 @@ class ApiService {
           // Payment required - insufficient token balance
           console.error('Insufficient token balance for API request');
           // You can add custom handling here, like showing a modal or notification
+        } else if (error.response?.status === 404) {
+          console.error('API endpoint not found:', error.config?.url);
+        } else if (error.response?.status >= 500) {
+          console.error('Server error:', error.response?.status);
+        } else if (error.code === 'NETWORK_ERROR' || !error.response) {
+          console.error('Network error - API might be unreachable');
         }
+
         return Promise.reject(error);
       }
     );
@@ -215,12 +253,24 @@ class ApiService {
    */
   async startChatConversation(data) {
     try {
+      // Debug logging
+      console.log('Starting chat conversation:', {
+        endpoint: API_ENDPOINTS.CHATBOT.CREATE_FROM_ASSESSMENT,
+        payload: {
+          assessment_id: data.resultId,
+          conversation_type: 'career_guidance',
+          include_suggestions: true
+        }
+      });
+
       // Try the real chatbot API first
       const response = await this.axiosInstance.post(API_ENDPOINTS.CHATBOT.CREATE_FROM_ASSESSMENT, {
         assessment_id: data.resultId,
         conversation_type: 'career_guidance',
         include_suggestions: true
       });
+
+      console.log('Chat conversation creation response:', response.data);
 
       if (response.data.success) {
         // Transform the response to match our expected structure
@@ -245,14 +295,18 @@ class ApiService {
             suggestions: apiData.suggestions
           }
         };
+      } else {
+        throw new Error(response.data.message || 'API returned unsuccessful response');
       }
     } catch (error) {
-      console.warn('Real chatbot API failed, falling back to local API:', error);
+      console.error('Real chatbot API failed:', {
+        error: error.response?.data || error.message,
+        status: error.response?.status,
+        endpoint: API_ENDPOINTS.CHATBOT.CREATE_FROM_ASSESSMENT
+      });
+      // Throw error to let chat-api.ts handle the fallback to mock implementation
+      throw error;
     }
-
-    // Fallback to local API
-    const response = await this.axiosInstance.post(API_ENDPOINTS.CHAT.START_CONVERSATION, data);
-    return response.data;
   }
 
   /**
@@ -264,11 +318,23 @@ class ApiService {
    */
   async sendChatMessage(data) {
     try {
+      // Debug logging
+      console.log('Sending chat message:', {
+        conversationId: data.conversationId,
+        endpoint: API_ENDPOINTS.CHATBOT.SEND_MESSAGE(data.conversationId),
+        payload: {
+          content: data.message,
+          type: 'text'
+        }
+      });
+
       // Try the real chatbot API first
       const response = await this.axiosInstance.post(API_ENDPOINTS.CHATBOT.SEND_MESSAGE(data.conversationId), {
-        message: data.message,
-        message_type: 'text'
+        content: data.message,
+        type: 'text'
       });
+
+      console.log('Chat API response:', response.data);
 
       if (response.data.success) {
         // Transform the response to match our expected structure
@@ -277,22 +343,51 @@ class ApiService {
           success: true,
           data: {
             message: {
-              id: apiData.messageId || `msg-${Date.now()}`,
+              id: apiData.aiResponse.id || `msg-${Date.now()}`,
               role: 'assistant',
-              content: apiData.content || apiData.response,
-              timestamp: apiData.timestamp || new Date().toISOString(),
+              content: apiData.aiResponse.content,
+              timestamp: apiData.aiResponse.timestamp || new Date().toISOString(),
               resultId: data.resultId
             }
           }
         };
+      } else {
+        throw new Error(response.data.message || 'API returned unsuccessful response');
       }
     } catch (error) {
-      console.warn('Real chatbot API failed, falling back to local API:', error);
+      console.error('Real chatbot API failed:', {
+        error: error.response?.data || error.message,
+        status: error.response?.status,
+        conversationId: data.conversationId
+      });
+      // Throw error to let chat-api.ts handle the fallback to mock implementation
+      throw error;
     }
+  }
 
-    // Fallback to local API
-    const response = await this.axiosInstance.post(API_ENDPOINTS.CHAT.SEND_MESSAGE, data);
-    return response.data;
+  /**
+   * Test chatbot API health
+   */
+  async testChatbotHealth() {
+    try {
+      console.log('Testing chatbot API health...');
+      const response = await this.axiosInstance.get(API_ENDPOINTS.CHATBOT.HEALTH);
+
+      console.log('Chatbot health check response:', response.data);
+      return {
+        success: true,
+        data: response.data
+      };
+    } catch (error) {
+      console.error('Chatbot health check failed:', {
+        error: error.response?.data || error.message,
+        status: error.response?.status
+      });
+      return {
+        success: false,
+        error: error.response?.data || { message: error.message }
+      };
+    }
   }
 
   /**
@@ -301,17 +396,117 @@ class ApiService {
    */
   async getChatConversation(resultId) {
     try {
-      // For the real API, we would need to first get the conversation ID
-      // This is a limitation - we might need to store conversation IDs locally
-      // For now, fall back to local API
-      throw new Error('Real API conversation retrieval not implemented yet');
+      // First, try to get the conversation ID from localStorage
+      const storedConversation = localStorage.getItem(`chat-${resultId}`);
+      if (storedConversation) {
+        const conversation = JSON.parse(storedConversation);
+        if (conversation.id && conversation.id.startsWith('550e8400-')) {
+          // This looks like a real API conversation ID, try to fetch from API
+          const response = await this.axiosInstance.get(API_ENDPOINTS.CHATBOT.GET_CONVERSATION(conversation.id));
+
+          if (response.data.success) {
+            const apiData = response.data.data.conversation;
+            return {
+              success: true,
+              data: {
+                id: apiData.id,
+                resultId: resultId,
+                messages: apiData.messages.map(msg => ({
+                  id: msg.id,
+                  role: msg.sender === 'ai' ? 'assistant' : msg.sender,
+                  content: msg.content,
+                  timestamp: msg.timestamp,
+                  resultId: resultId
+                })),
+                createdAt: apiData.createdAt,
+                updatedAt: apiData.lastActivity,
+                assessmentContext: conversation.assessmentContext
+              }
+            };
+          }
+        }
+      }
+
+      // If no stored conversation or API call failed, return null to trigger new conversation
+      return null;
     } catch (error) {
-      console.warn('Real chatbot API failed, falling back to local API:', error);
+      console.warn('Real chatbot API failed:', error.response?.data || error.message);
+      // Return null to trigger new conversation creation
+      return null;
+    }
+  }
+
+  /**
+   * Get all conversations for the authenticated user
+   * @param {Object} params - Query parameters
+   * @param {number} params.page - Page number
+   * @param {number} params.limit - Items per page
+   * @param {string} params.status - Filter by status
+   * @param {string} params.context - Filter by context
+   */
+  async getChatConversations(params = {}) {
+    try {
+      const queryParams = new URLSearchParams();
+
+      if (params.page) queryParams.append('page', params.page);
+      if (params.limit) queryParams.append('limit', params.limit);
+      if (params.status) queryParams.append('status', params.status);
+      if (params.context) queryParams.append('context', params.context);
+
+      const url = `${API_ENDPOINTS.CHATBOT.GET_CONVERSATIONS}${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
+      const response = await this.axiosInstance.get(url);
+
+      if (response.data.success) {
+        return {
+          success: true,
+          data: response.data.data
+        };
+      }
+    } catch (error) {
+      console.warn('Failed to get conversations from real API:', error);
     }
 
-    // Fallback to local API
-    const response = await this.axiosInstance.get(API_ENDPOINTS.CHAT.GET_CONVERSATION(resultId));
-    return response.data;
+    // Return empty result for fallback
+    return {
+      success: true,
+      data: {
+        conversations: [],
+        pagination: {
+          currentPage: 1,
+          totalPages: 0,
+          totalConversations: 0,
+          hasNextPage: false,
+          hasPreviousPage: false
+        }
+      }
+    };
+  }
+
+  /**
+   * Update conversation details
+   * @param {string} conversationId - Conversation ID
+   * @param {Object} data - Update data
+   * @param {string} data.title - New title
+   * @param {string} data.status - New status
+   */
+  async updateChatConversation(conversationId, data) {
+    try {
+      const response = await this.axiosInstance.put(API_ENDPOINTS.CHATBOT.GET_CONVERSATION(conversationId), data);
+
+      if (response.data.success) {
+        return {
+          success: true,
+          data: response.data.data
+        };
+      }
+    } catch (error) {
+      console.warn('Failed to update conversation:', error);
+    }
+
+    return {
+      success: false,
+      error: { message: 'Failed to update conversation' }
+    };
   }
 
   // ==================== ARCHIVE ====================
@@ -331,10 +526,30 @@ class ApiService {
     if (params.limit) queryParams.append('limit', params.limit);
     if (params.status) queryParams.append('status', params.status);
     if (params.jobId) queryParams.append('jobId', params.jobId);
+    if (params.sort) queryParams.append('sort', params.sort);
+    if (params.order) queryParams.append('order', params.order);
 
-    const url = `${API_ENDPOINTS.ARCHIVE.RESULTS}${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
-    const response = await this.axiosInstance.get(url);
-    return response.data;
+    // Use local proxy to avoid CORS issues
+    const url = `/api/proxy/archive/results${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
+
+    // Get token for authorization
+    const token = localStorage.getItem('token') ||
+                 localStorage.getItem('auth_token') ||
+                 localStorage.getItem('authToken');
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` })
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Archive API request failed: ${response.status}`);
+    }
+
+    return await response.json();
   }
 
   /**
@@ -342,8 +557,27 @@ class ApiService {
    * @param {string} resultId - Result ID
    */
   async getResultById(resultId) {
-    const response = await this.axiosInstance.get(API_ENDPOINTS.ARCHIVE.RESULT_BY_ID(resultId));
-    return response.data;
+    // Use local proxy to avoid CORS issues
+    const url = `/api/proxy/archive/results/${resultId}`;
+
+    // Get token for authorization
+    const token = localStorage.getItem('token') ||
+                 localStorage.getItem('auth_token') ||
+                 localStorage.getItem('authToken');
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` })
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Archive API request failed: ${response.status}`);
+    }
+
+    return await response.json();
   }
 
   /**

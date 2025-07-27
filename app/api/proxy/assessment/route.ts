@@ -94,13 +94,18 @@ export async function GET(request: NextRequest) {
     });
 
     const data = await response.json();
-    
-    return NextResponse.json({
-      success: response.ok,
-      status: response.status,
-      data: data,
-      timestamp: Date.now(),
-    }, {
+
+    // Return the real API response directly to avoid double-wrapping
+    // Add proxy metadata only if needed for debugging
+    const responseData = {
+      ...data,
+      _proxy: {
+        timestamp: Date.now(),
+        source: 'real-api'
+      }
+    };
+
+    return NextResponse.json(responseData, {
       status: response.status,
       headers: {
         'Access-Control-Allow-Origin': '*',

@@ -314,8 +314,9 @@ export async function generateComprehensiveAnalysis(scores: AssessmentScores): P
 
 /**
  * Poll for assessment completion with enhanced token tracking
+ * Optimized for faster completion detection
  */
-async function pollForCompletion(jobId: string, maxAttempts: number = 30, interval: number = 2000): Promise<any> {
+async function pollForCompletion(jobId: string, maxAttempts: number = 20, interval: number = 1000): Promise<any> {
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     try {
       console.log(`Polling attempt ${attempt + 1}/${maxAttempts} for job ${jobId}`);
@@ -376,10 +377,11 @@ async function pollForCompletion(jobId: string, maxAttempts: number = 30, interv
 
 /**
  * Fallback local analysis (original implementation)
+ * Optimized for faster response
  */
 async function generateLocalAnalysis(scores: AssessmentScores): Promise<PersonaProfile> {
-  // Simulate AI processing delay
-  await new Promise(resolve => setTimeout(resolve, 2000));
+  // Reduced processing delay for faster fallback
+  await new Promise(resolve => setTimeout(resolve, 800));
 
   // Analyze dominant traits
   const analysis = analyzeTraits(scores);

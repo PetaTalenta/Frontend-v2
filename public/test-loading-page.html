@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Assessment Loading Page</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f8fafc;
+        }
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        .button {
+            background: #6475e9;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 8px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .button:hover {
+            background: #5a6bd8;
+        }
+        .button.secondary {
+            background: #e5e7eb;
+            color: #374151;
+        }
+        .button.secondary:hover {
+            background: #d1d5db;
+        }
+        .status {
+            padding: 12px;
+            border-radius: 8px;
+            margin: 8px 0;
+            font-size: 14px;
+        }
+        .status.success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+        .status.error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+        }
+        .status.info {
+            background: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #93c5fd;
+        }
+        .code {
+            background: #f3f4f6;
+            padding: 16px;
+            border-radius: 8px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 12px;
+            overflow-x: auto;
+            margin: 12px 0;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            margin: 16px 0;
+        }
+        .card {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 16px;
+        }
+        .card h4 {
+            margin: 0 0 8px 0;
+            color: #374151;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .card p {
+            margin: 0;
+            color: #6b7280;
+            font-size: 12px;
+        }
+        .progress {
+            width: 100%;
+            height: 8px;
+            background: #e5e7eb;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 8px 0;
+        }
+        .progress-bar {
+            height: 100%;
+            background: #6475e9;
+            transition: width 0.3s ease;
+        }
+        .log {
+            background: #1f2937;
+            color: #f9fafb;
+            padding: 16px;
+            border-radius: 8px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin: 16px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Test Assessment Loading Page</h1>
+        <p>Halaman ini untuk menguji fungsionalitas loading page assessment dengan animasi CSS (tanpa Lottie).</p>
+    </div>
+
+    <div class="container">
+        <h2>📊 Mock Data Setup</h2>
+        <div class="grid">
+            <div class="card">
+                <h4>Assessment Answers</h4>
+                <p>20 jawaban mock untuk testing</p>
+                <button class="button" onclick="setupMockAnswers()">Setup Mock Answers</button>
+            </div>
+            <div class="card">
+                <h4>Assessment Name</h4>
+                <p>Nama assessment untuk testing</p>
+                <button class="button" onclick="setupAssessmentName()">Setup Assessment Name</button>
+            </div>
+            <div class="card">
+                <h4>Clear Data</h4>
+                <p>Hapus semua data testing</p>
+                <button class="button secondary" onclick="clearTestData()">Clear All Data</button>
+            </div>
+        </div>
+        <div id="setup-status"></div>
+    </div>
+
+    <div class="container">
+        <h2>🚀 Navigation Tests</h2>
+        <div class="grid">
+            <div class="card">
+                <h4>Loading Page</h4>
+                <p>Test halaman loading utama</p>
+                <button class="button" onclick="testLoadingPage()">Open Loading Page</button>
+            </div>
+            <div class="card">
+                <h4>Loading Demo</h4>
+                <p>Test halaman demo loading</p>
+                <button class="button" onclick="testLoadingDemo()">Open Loading Demo</button>
+            </div>
+            <div class="card">
+                <h4>With URL Params</h4>
+                <p>Test dengan parameter URL</p>
+                <button class="button" onclick="testWithUrlParams()">Test URL Params</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>🔧 Functionality Tests</h2>
+        <button class="button" onclick="runAllTests()">Run All Tests</button>
+        <button class="button secondary" onclick="clearLog()">Clear Log</button>
+        <div id="test-log" class="log"></div>
+    </div>
+
+    <div class="container">
+        <h2>📱 Current Status</h2>
+        <div id="current-status">
+            <div class="status info">
+                <strong>Ready:</strong> Siap untuk testing. Klik "Setup Mock Answers" untuk memulai.
+            </div>
+        </div>
+        
+        <h3>LocalStorage Contents:</h3>
+        <div id="storage-contents" class="code">
+            <em>Tidak ada data tersimpan</em>
+        </div>
+        
+        <button class="button secondary" onclick="refreshStatus()">Refresh Status</button>
+    </div>
+
+    <script>
+        // Mock data
+        const mockAnswers = {
+            1: 4, 2: 3, 3: 5, 4: 2, 5: 4,
+            6: 3, 7: 4, 8: 5, 9: 2, 10: 3,
+            11: 4, 12: 3, 13: 5, 14: 4, 15: 2,
+            16: 3, 17: 4, 18: 5, 19: 3, 20: 4
+        };
+
+        // Logging function
+        function log(message, type = 'info') {
+            const logElement = document.getElementById('test-log');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${message}\n`;
+            logElement.textContent += logEntry;
+            logElement.scrollTop = logElement.scrollHeight;
+            
+            console.log(message);
+        }
+
+        function clearLog() {
+            document.getElementById('test-log').textContent = '';
+        }
+
+        // Setup functions
+        function setupMockAnswers() {
+            try {
+                localStorage.setItem('assessment-answers', JSON.stringify(mockAnswers));
+                localStorage.setItem('assessment-submission-time', new Date().toISOString());
+                
+                document.getElementById('setup-status').innerHTML = 
+                    '<div class="status success">✅ Mock answers berhasil disimpan ke localStorage</div>';
+                
+                refreshStatus();
+                log('✅ Mock answers setup completed');
+            } catch (error) {
+                document.getElementById('setup-status').innerHTML = 
+                    '<div class="status error">❌ Gagal menyimpan mock answers: ' + error.message + '</div>';
+                log('❌ Failed to setup mock answers: ' + error.message, 'error');
+            }
+        }
+
+        function setupAssessmentName() {
+            try {
+                localStorage.setItem('assessment-name', 'AI-Driven Talent Mapping');
+                
+                document.getElementById('setup-status').innerHTML = 
+                    '<div class="status success">✅ Assessment name berhasil disimpan</div>';
+                
+                refreshStatus();
+                log('✅ Assessment name setup completed');
+            } catch (error) {
+                document.getElementById('setup-status').innerHTML = 
+                    '<div class="status error">❌ Gagal menyimpan assessment name: ' + error.message + '</div>';
+                log('❌ Failed to setup assessment name: ' + error.message, 'error');
+            }
+        }
+
+        function clearTestData() {
+            try {
+                localStorage.removeItem('assessment-answers');
+                localStorage.removeItem('assessment-name');
+                localStorage.removeItem('assessment-submission-time');
+                
+                document.getElementById('setup-status').innerHTML = 
+                    '<div class="status info">🗑️ Semua data testing telah dihapus</div>';
+                
+                refreshStatus();
+                log('🗑️ Test data cleared');
+            } catch (error) {
+                log('❌ Failed to clear test data: ' + error.message, 'error');
+            }
+        }
+
+        // Navigation functions
+        function testLoadingPage() {
+            log('🚀 Opening loading page...');
+            window.open('/assessment-loading', '_blank');
+        }
+
+        function testLoadingDemo() {
+            log('🚀 Opening loading demo...');
+            window.open('/assessment-loading-demo', '_blank');
+        }
+
+        function testWithUrlParams() {
+            try {
+                const params = new URLSearchParams({
+                    answers: encodeURIComponent(JSON.stringify(mockAnswers)),
+                    name: 'AI-Driven Talent Mapping'
+                });
+                
+                const url = `/assessment-loading?${params.toString()}`;
+                log('🚀 Opening loading page with URL params...');
+                log('📝 URL: ' + url);
+                window.open(url, '_blank');
+            } catch (error) {
+                log('❌ Failed to create URL with params: ' + error.message, 'error');
+            }
+        }
+
+        // Test functions
+        function runAllTests() {
+            log('🧪 Starting comprehensive tests...');
+            
+            // Test localStorage
+            log('📦 Testing localStorage...');
+            try {
+                const testData = { test: 'value' };
+                localStorage.setItem('test-key', JSON.stringify(testData));
+                const retrieved = JSON.parse(localStorage.getItem('test-key'));
+                localStorage.removeItem('test-key');
+                
+                if (retrieved.test === 'value') {
+                    log('✅ localStorage test passed');
+                } else {
+                    log('❌ localStorage test failed: data mismatch');
+                }
+            } catch (error) {
+                log('❌ localStorage test failed: ' + error.message);
+            }
+
+            // Test URL encoding
+            log('🔗 Testing URL encoding...');
+            try {
+                const encoded = encodeURIComponent(JSON.stringify(mockAnswers));
+                const decoded = JSON.parse(decodeURIComponent(encoded));
+                
+                if (Object.keys(decoded).length === Object.keys(mockAnswers).length) {
+                    log('✅ URL encoding test passed');
+                } else {
+                    log('❌ URL encoding test failed: data loss');
+                }
+            } catch (error) {
+                log('❌ URL encoding test failed: ' + error.message);
+            }
+
+            // Test data validation
+            log('✔️ Testing data validation...');
+            const answerCount = Object.keys(mockAnswers).length;
+            const nullAnswers = Object.values(mockAnswers).filter(v => v === null).length;
+            
+            log(`📊 Total answers: ${answerCount}`);
+            log(`❌ Null answers: ${nullAnswers}`);
+            
+            if (answerCount > 0) {
+                log('✅ Data validation test passed');
+            } else {
+                log('❌ Data validation test failed: no answers');
+            }
+
+            log('🎉 All tests completed!');
+        }
+
+        // Status functions
+        function refreshStatus() {
+            const answers = localStorage.getItem('assessment-answers');
+            const name = localStorage.getItem('assessment-name');
+            const time = localStorage.getItem('assessment-submission-time');
+            
+            let statusHtml = '';
+            
+            if (answers && name) {
+                const answerCount = Object.keys(JSON.parse(answers)).length;
+                statusHtml = `
+                    <div class="status success">
+                        <strong>Ready:</strong> ${answerCount} jawaban tersimpan, assessment "${name}" siap untuk testing.
+                    </div>
+                `;
+            } else if (answers) {
+                statusHtml = `
+                    <div class="status info">
+                        <strong>Partial:</strong> Answers tersimpan, tapi assessment name belum di-set.
+                    </div>
+                `;
+            } else {
+                statusHtml = `
+                    <div class="status info">
+                        <strong>Empty:</strong> Belum ada data tersimpan. Setup mock data terlebih dahulu.
+                    </div>
+                `;
+            }
+            
+            document.getElementById('current-status').innerHTML = statusHtml;
+            
+            // Update storage contents
+            const storageData = {
+                'assessment-answers': answers ? `${Object.keys(JSON.parse(answers)).length} answers` : null,
+                'assessment-name': name,
+                'assessment-submission-time': time
+            };
+            
+            const storageHtml = Object.entries(storageData)
+                .map(([key, value]) => `${key}: ${value || 'null'}`)
+                .join('\n');
+            
+            document.getElementById('storage-contents').textContent = storageHtml || 'Tidak ada data tersimpan';
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            log('🚀 Assessment Loading Page Test initialized');
+            refreshStatus();
+        });
+    </script>
+</body>
+</html>

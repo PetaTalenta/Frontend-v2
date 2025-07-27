@@ -21,7 +21,7 @@ import VisualSummary from '../../../components/results/VisualSummary';
 
 // Dynamic imports for chart components to avoid SSR issues
 const AssessmentRadarChart = dynamic(
-  () => import('../../../components/results/AssessmentRadarChart').then(mod => ({ default: mod.default })),
+  () => import('../../../components/results/AssessmentRadarChart'),
   {
     ssr: false,
     loading: () => (
@@ -314,21 +314,24 @@ function FullResultsPage() {
           </div>
         </div>
 
-        {/* Summary Statistics */}
-        <ResultSummaryStats
-          scores={result.assessment_data}
-          createdAt={result.createdAt}
-        />
-
-        {/* Persona Profile & Performance Summary */}
+        {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Persona Profile Summary - Left */}
-          <PersonaProfileSummary
-            profile={result.persona_profile}
-            resultId={result.id}
-          />
+          {/* Left Column - Stats and Persona Profile */}
+          <div className="space-y-6">
+            {/* Summary Statistics */}
+            <ResultSummaryStats
+              scores={result.assessment_data}
+              createdAt={result.createdAt}
+            />
 
-          {/* Performance Summary - Right */}
+            {/* Persona Profile Summary */}
+            <PersonaProfileSummary
+              profile={result.persona_profile}
+              resultId={result.id}
+            />
+          </div>
+
+          {/* Right Column - Performance Summary */}
           <VisualSummary scores={result.assessment_data} />
         </div>
 

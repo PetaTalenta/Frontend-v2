@@ -300,7 +300,7 @@ export function generateMockResult(id: string): AssessmentResult {
     persona_profile: {
       title: 'The Dynamic Achiever',
       description: 'Profil kepribadian yang unik dengan kombinasi kekuatan yang menarik untuk dieksplorasi lebih lanjut.',
-      strengths: ['Adaptabilitas tinggi', 'Kemampuan problem solving', 'Motivasi internal yang kuat'],
+      strengths: ['Adaptabilitas tinggi', 'Kemampuan problem solving', 'Motivasi internal yang kuat', 'Kemampuan komunikasi yang efektif'],
       recommendations: ['Eksplorasi berbagai peluang karir', 'Kembangkan kekuatan utama', 'Pertimbangkan peran yang menantang'],
       careerRecommendation: [
         {
