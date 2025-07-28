@@ -54,7 +54,7 @@ export function OceanCard({ oceanScores }: OceanCardProps) {
         {/* OCEAN Header */}
         <div className="ocean-card__header">
           <h3 className="ocean-card__title">OCEAN</h3>
-          <p className="ocean-card__description">Big Five Personality Traits</p>
+          <p className="ocean-card__description">Lima Sifat Kepribadian Utama</p>
         </div>
 
         {/* OCEAN Bar Chart */}

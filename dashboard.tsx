@@ -463,7 +463,7 @@ function DashboardContent() {
 
               <ProgressCard
                 title="RIASEC"
-                description="Know where you can grow and contribute the most."
+                description="Ketahui di mana Anda dapat tumbuh dan berkontribusi paling banyak."
                 data={progressData}
               />
             </div>

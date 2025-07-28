@@ -132,7 +132,7 @@ export function WorldMapCard({ title, description, oceanScores, viaScores }: Wor
               </div>
             ))}
           </div>
-          <p className="world-map-card__viais-description">Top Character Strengths</p>
+          <p className="world-map-card__viais-description">Kekuatan Karakter Utama</p>
         </div>
 
         <div className="world-map-card__ocean-container">

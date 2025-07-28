@@ -83,7 +83,7 @@ export function VIAISCard({ viaScores }: VIAISCardProps) {
         {/* VIAIS Statistics Header */}
         <div className="viais-card__header">
           <h3 className="viais-card__title">VIAIS</h3>
-          <p className="viais-card__description">Top Character Strengths</p>
+          <p className="viais-card__description">Kekuatan Karakter Utama</p>
           <div className="viais-card__strengths-grid">
             {topStrengths.map((strength) => (
               <div key={strength.name} className="viais-card__strength-item">
