@@ -1,9 +1,10 @@
 /**
  * WebSocket Assessment Service
- * Provides real-time assessment notifications to replace polling mechanism
+ * Provides real-time assessment notifications as primary mechanism (no longer optional)
  */
 
 import { io, Socket } from 'socket.io-client';
+// WebSocket configuration is now centralized and mandatory
 
 // WebSocket Event Types - Updated to match API documentation
 export interface AssessmentWebSocketEvent {
@@ -36,11 +37,12 @@ const WEBSOCKET_CONFIG = {
   RECONNECTION_ATTEMPTS: 3,
   RECONNECTION_DELAY: 1000,
   TIMEOUT: 10000,
-  CONNECTION_TIMEOUT: 15000,
-  AUTHENTICATION_TIMEOUT: 10000, // Must authenticate within 10 seconds as per API docs
+  CONNECTION_TIMEOUT: 20000, // Increased from 15s to 20s for better reliability
+  AUTHENTICATION_TIMEOUT: 15000, // Increased from 10s to 15s for slower connections
   HEALTH_CHECK_TIMEOUT: 1500,
   PING_TIMEOUT: 3000, // Ping timeout for connection health
   PING_INTERVAL: 10000, // Ping every 10 seconds to keep connection alive
+  ANALYSIS_TIMEOUT: 90000, // 90 seconds for analysis completion (matches workflow timeout)
 } as const;
 
 /**

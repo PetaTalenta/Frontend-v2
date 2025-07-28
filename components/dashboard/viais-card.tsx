@@ -1,5 +1,6 @@
 import { Card, CardContent } from "../ui/card"
 import { ViaScores } from "../../types/assessment-results"
+import "../../styles/components/dashboard/viais-card.css"
 
 interface VIAISCardProps {
   viaScores?: ViaScores
@@ -77,17 +78,17 @@ export function VIAISCard({ viaScores }: VIAISCardProps) {
   const topStrengths = getTopViaStrengths(viaData, 4)
 
   return (
-    <Card className="bg-[#6475e9] border-[#eaecf0]">
-      <CardContent className="flex flex-col space-y-1.5 p-6">
+    <Card className="viais-card">
+      <CardContent className="viais-card__content">
         {/* VIAIS Statistics Header */}
-        <div className="text-center">
-          <h3 className="text-lg font-semibold text-[#f1f1f1] text-left">VIAIS Assessment</h3>
-          <p className="text-xs text-[#f1f1f1] text-left mb-2">Top Character Strengths</p>
-          <div className="grid grid-cols-2 gap-2 ">
-            {topStrengths.map((strength, index) => (
-              <div key={strength.name} className="bg-[#f8f9fa] rounded-lg p-2">
-                <div className="text-xs font-medium text-[#64707d] truncate">{strength.name}</div>
-                <div className="text-sm font-semibold text-[#1e1e1e]">{strength.score}%</div>
+        <div className="viais-card__header">
+          <h3 className="viais-card__title">VIAIS</h3>
+          <p className="viais-card__description">Top Character Strengths</p>
+          <div className="viais-card__strengths-grid">
+            {topStrengths.map((strength) => (
+              <div key={strength.name} className="viais-card__strength-item">
+                <div className="viais-card__strength-name">{strength.name}</div>
+                <div className="viais-card__strength-score">{strength.score}%</div>
               </div>
             ))}
           </div>

@@ -72,43 +72,43 @@ export default function CareerRecommendationsCard({ recommendations }: CareerRec
 
   return (
     <Card className="bg-white border-[#eaecf0]">
-      <CardHeader className="pb-4">
-        <div className="flex items-center gap-2">
-          <div className="p-2 bg-[#e7eaff] rounded-lg">
-            <Briefcase className="w-6 h-6 text-[#6475e9]" />
+      <CardHeader className="pb-4 lg:pb-6">
+        <div className="flex items-center gap-2 lg:gap-3">
+          <div className="p-2 lg:p-3 bg-[#e7eaff] rounded-lg">
+            <Briefcase className="w-6 h-6 lg:w-7 lg:h-7 text-[#6475e9]" />
           </div>
           <div>
-            <CardTitle className="text-xl font-semibold text-[#1e1e1e]">
+            <CardTitle className="text-xl lg:text-2xl font-semibold text-[#1e1e1e]">
               Rekomendasi Karir
             </CardTitle>
-            <p className="text-sm text-[#64707d]">
+            <p className="text-sm lg:text-base text-[#64707d]">
               Karir yang sesuai dengan profil kepribadian Anda
             </p>
           </div>
         </div>
       </CardHeader>
       
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-6 lg:space-y-8">
         {recommendations.map((career, index) => (
-          <div key={index} className="border border-[#eaecf0] rounded-lg p-4 space-y-4">
+          <div key={index} className="border border-[#eaecf0] rounded-lg p-4 lg:p-6 space-y-4 lg:space-y-5">
             {/* Career Header */}
             <div className="flex items-start justify-between">
               <div className="flex-1">
-                <div className="flex items-center gap-3 mb-2">
-                  <h3 className="text-lg font-semibold text-[#1e1e1e]">
+                <div className="flex items-center gap-3 mb-2 lg:mb-3">
+                  <h3 className="text-lg lg:text-xl font-semibold text-[#1e1e1e]">
                     {career.careerName}
                   </h3>
                   {career.matchPercentage && (
-                    <Badge 
-                      variant="secondary" 
-                      className="bg-[#e7eaff] text-[#6475e9] font-medium"
+                    <Badge
+                      variant="secondary"
+                      className="bg-[#e7eaff] text-[#6475e9] font-medium text-sm lg:text-base"
                     >
                       {career.matchPercentage}% Match
                     </Badge>
                   )}
                 </div>
                 {career.description && (
-                  <p className="text-sm text-[#64707d] leading-relaxed">
+                  <p className="text-sm lg:text-base text-[#64707d] leading-relaxed">
                     {career.description}
                   </p>
                 )}

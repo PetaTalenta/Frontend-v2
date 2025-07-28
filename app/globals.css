@@ -2,6 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Import Dashboard Components CSS */
+@import '../styles/components/dashboard/index.css';
+
 @layer utilities {
   .text-balance {
     text-wrap: balance;

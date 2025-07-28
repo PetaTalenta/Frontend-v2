@@ -105,24 +105,24 @@ export default function AssessmentAIDemoPage() {
               </p>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
               {demoScenarios.map((scenario, index) => (
-                <Card 
+                <Card
                   key={index}
                   className="bg-white border-[#eaecf0] hover:border-[#6475e9] cursor-pointer transition-all hover:shadow-md"
                   onClick={() => handleScenarioSelect(index)}
                 >
                   <CardHeader>
-                    <CardTitle className="text-lg font-semibold text-[#1e1e1e]">
+                    <CardTitle className="text-lg lg:text-xl font-semibold text-[#1e1e1e]">
                       {scenario.name}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-sm text-[#64707d] mb-4">
+                    <p className="text-sm lg:text-base text-[#64707d] mb-4 lg:mb-6">
                       {scenario.description}
                     </p>
-                    <Button className="w-full bg-[#6475e9] hover:bg-[#5a6bd8] text-white">
-                      <Brain className="w-4 h-4 mr-2" />
+                    <Button className="w-full bg-[#6475e9] hover:bg-[#5a6bd8] text-white text-sm lg:text-base py-2 lg:py-3">
+                      <Brain className="w-4 h-4 lg:w-5 lg:h-5 mr-2" />
                       Pilih Profil
                     </Button>
                   </CardContent>

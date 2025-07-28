@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/ca
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { Coins, RefreshCw, AlertTriangle, CheckCircle } from 'lucide-react';
+import { TOKEN_CONFIG } from '../../config/token-config';
 
 export default function TokenBalanceTestPage() {
   const { user, isAuthenticated } = useAuth();
@@ -161,10 +162,10 @@ export default function TokenBalanceTestPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3 text-sm text-[#64707d]">
-              <p><strong>Base Tokens:</strong> 10 (starting balance)</p>
-              <p><strong>Assessment Cost:</strong> 2 tokens per submission</p>
-              <p><strong>Earn Tokens:</strong> 5 tokens per completed assessment</p>
-              <p><strong>Formula:</strong> Base (10) + (Completed × 5) - (Processing × 2)</p>
+              <p><strong>Base Tokens:</strong> {TOKEN_CONFIG.STARTING_BALANCE} (starting balance)</p>
+              <p><strong>Assessment Cost:</strong> {TOKEN_CONFIG.ASSESSMENT_COST} token per submission</p>
+              <p><strong>Earn Tokens:</strong> {TOKEN_CONFIG.COMPLETION_REWARD} tokens per completed assessment</p>
+              <p><strong>Formula:</strong> Base ({TOKEN_CONFIG.STARTING_BALANCE}) + (Completed × {TOKEN_CONFIG.COMPLETION_REWARD}) - (Processing × {TOKEN_CONFIG.ASSESSMENT_COST})</p>
             </div>
           </CardContent>
         </Card>

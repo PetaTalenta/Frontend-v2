@@ -222,48 +222,16 @@ export default function AssessmentLoadingPage({
                 <XCircle className="w-12 h-12 text-white" />
               </div>
             </div>
-          ) : (
-            <div className="w-32 h-32 mx-auto mb-6 flex items-center justify-center">
-              {/* Enhanced CSS Animation for Processing */}
-              <div className="relative">
-                {/* Outer rotating ring */}
-                <div className="absolute inset-0 animate-spin" style={{ animationDuration: '3s' }}>
-                  <div className="w-24 h-24 border-4 border-blue-200 border-t-blue-500 rounded-full"></div>
-                </div>
-
-                {/* Middle pulsing circle */}
-                <div className="absolute inset-2 animate-pulse">
-                  <div className="w-20 h-20 bg-gradient-to-br from-purple-100 to-blue-100 rounded-full flex items-center justify-center">
-                    <Brain className="w-10 h-10 text-purple-600" />
-                  </div>
-                </div>
-
-                {/* Inner bouncing sparkles */}
-                <div className="absolute inset-6 animate-bounce" style={{ animationDuration: '2s' }}>
-                  <div className="w-12 h-12 flex items-center justify-center">
-                    <Sparkles className="w-6 h-6 text-yellow-500" />
-                  </div>
-                </div>
-
-                {/* Floating books */}
-                <div className="absolute -top-2 -right-2 animate-bounce" style={{ animationDelay: '0.5s', animationDuration: '2.5s' }}>
-                  <BookOpen className="w-6 h-6 text-blue-600" />
-                </div>
-                <div className="absolute -bottom-2 -left-2 animate-bounce" style={{ animationDelay: '1s', animationDuration: '2.5s' }}>
-                  <BookOpen className="w-6 h-6 text-green-600" />
-                </div>
-              </div>
-            </div>
-          )}
+          ) : null}
 
           <div className="space-y-3">
-            <h1 className="text-4xl font-bold text-gray-900">
+            <h1 className="text-3xl font-bold text-gray-900 mt-4">
               {isCompleted ? 'Assessment Selesai!' :
                isFailed ? 'Terjadi Kesalahan' :
                'Sedang Memproses Assessment Anda'}
             </h1>
 
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto leading-relaxed">
+            <p className="text-lg text-gray-600 max-w-xl mx-auto leading-relaxed">
               {isCompleted ? 'Hasil assessment Anda telah siap. Kami akan mengarahkan Anda ke halaman hasil.' :
                isFailed ? 'Terjadi kesalahan saat memproses assessment Anda. Silakan coba lagi.' :
                'AI kami sedang menganalisis jawaban Anda untuk memberikan insight yang mendalam tentang kepribadian dan bakat Anda.'}

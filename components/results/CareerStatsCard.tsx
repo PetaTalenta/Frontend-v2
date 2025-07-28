@@ -56,31 +56,31 @@ export default function CareerStatsCard({ scores }: CareerStatsCardProps) {
 
   return (
     <Card className="bg-white border-gray-200/60 shadow-sm">
-      <CardHeader className="pb-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-[#4f46e5]/10 rounded-lg">
-            <TrendingUp className="w-5 h-5 text-[#4f46e5]" />
+      <CardHeader className="pb-4 lg:pb-6">
+        <div className="flex items-center gap-3 lg:gap-4">
+          <div className="p-2 lg:p-3 bg-[#4f46e5]/10 rounded-lg">
+            <TrendingUp className="w-5 h-5 lg:w-6 lg:h-6 text-[#4f46e5]" />
           </div>
           <div>
-            <CardTitle className="text-lg font-semibold text-[#1f2937]">
+            <CardTitle className="text-lg lg:text-xl font-semibold text-[#1f2937]">
               Performance Insights
             </CardTitle>
-            <p className="text-xs text-[#6b7280]">Detailed analysis of your career competencies</p>
+            <p className="text-xs lg:text-sm text-[#6b7280]">Detailed analysis of your career competencies</p>
           </div>
         </div>
       </CardHeader>
       
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 lg:space-y-6">
         {/* Top Skill */}
-        <div className="p-4 bg-gradient-to-r from-[#22c55e]/10 to-[#16a34a]/10 rounded-lg border border-[#22c55e]/20">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <Award className="w-4 h-4 text-[#22c55e]" />
-              <span className="text-sm font-medium text-[#1e1e1e]">Top Skill</span>
+        <div className="p-4 lg:p-6 bg-gradient-to-r from-[#22c55e]/10 to-[#16a34a]/10 rounded-lg border border-[#22c55e]/20">
+          <div className="flex items-center justify-between mb-2 lg:mb-3">
+            <div className="flex items-center gap-2 lg:gap-3">
+              <Award className="w-4 h-4 lg:w-5 lg:h-5 text-[#22c55e]" />
+              <span className="text-sm lg:text-base font-medium text-[#1e1e1e]">Top Skill</span>
             </div>
-            <Badge 
+            <Badge
               style={{ backgroundColor: topSkillLevel.color + '20', color: topSkillLevel.color }}
-              className="text-xs font-medium"
+              className="text-xs lg:text-sm font-medium"
             >
               {topSkillLevel.label}
             </Badge>

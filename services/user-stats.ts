@@ -134,28 +134,28 @@ export function formatStatsForDashboard(userStats: UserStats): StatCard[] {
     {
       id: "analysis",
       value: totalAnalysis,
-      label: "Total Analysis",
+      label: "Total Asesmen",
       color: "#dbeafe",
       icon: "MagnifyingGlass.svg"
     },
     {
       id: "completed",
       value: completed,
-      label: "Completed",
+      label: "Selesai",
       color: "#dbfce7",
       icon: "Check.svg"
     },
     {
       id: "processing",
       value: processing,
-      label: "Processing",
+      label: "Proses",
       color: "#dbeafe",
       icon: "Cpu.svg"
     },
     {
       id: "balance",
       value: userStats.tokenBalance,
-      label: "Token Balance",
+      label: "Saldo Token",
       color: "#f3e8ff",
       icon: "Command.svg"
     }
@@ -224,18 +224,27 @@ export async function fetchAssessmentHistoryFromAPI() {
     console.log('Archive API: Sample result data:', allResults.slice(0, 2));
 
     // Transform API data to match AssessmentData interface
-    const assessmentHistory = allResults.map((result: any, index: number) => ({
-      id: index + 1,
-      nama: result.persona_profile?.archetype || result.assessment_name || 'Assessment Result',
-      tipe: "Personality Assessment" as const,
-      tanggal: new Date(result.created_at).toLocaleDateString('id-ID', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric'
-      }),
-      status: result.status === 'completed' ? "Selesai" as const : "Belum Selesai" as const,
-      resultId: result.id
-    }));
+    const assessmentHistory = allResults.map((result: any, index: number) => {
+      const personaTitle = result.persona_profile?.title || result.persona_profile?.archetype || result.assessment_name || 'Assessment Result';
+
+      // Log for debugging persona title consistency
+      if (result.persona_profile) {
+        console.log(`Archive API: Assessment ${result.id} - Using persona title: "${personaTitle}" (from ${result.persona_profile?.title ? 'title' : result.persona_profile?.archetype ? 'archetype' : 'fallback'})`);
+      }
+
+      return {
+        id: index + 1,
+        nama: personaTitle,
+        tipe: "Personality Assessment" as const,
+        tanggal: new Date(result.created_at).toLocaleDateString('id-ID', {
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric'
+        }),
+        status: result.status === 'completed' ? "Selesai" as const : "Belum Selesai" as const,
+        resultId: result.id
+      };
+    });
 
     console.log('Archive API: Successfully fetched assessment history:', assessmentHistory.length, 'items');
     return assessmentHistory;
@@ -327,10 +336,13 @@ export async function formatAssessmentHistory(userStats: UserStats) {
       // Try to get the assessment result to extract persona profile title
       const assessmentResult = JSON.parse(localStorage.getItem(`assessment-result-${item.resultId}`) || '{}');
       if (assessmentResult.persona_profile?.title) {
+        console.log(`LocalStorage: Assessment ${item.resultId} - Updated nama from "${item.nama}" to "${assessmentResult.persona_profile.title}"`);
         return {
           ...item,
           nama: assessmentResult.persona_profile.title
         };
+      } else {
+        console.log(`LocalStorage: Assessment ${item.resultId} - No persona profile title found, keeping original nama: "${item.nama}"`);
       }
     }
     return item;

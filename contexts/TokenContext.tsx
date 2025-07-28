@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { TokenBalanceInfo, checkTokenBalance } from '../utils/token-balance';
 import { useAuth } from './AuthContext';
 import { useAssessmentWebSocket } from '../hooks/useAssessmentWebSocket';
+import { hasEnoughTokensForAssessment, getInsufficientTokensMessage } from '../config/token-config';
 
 interface TokenContextType {
   tokenInfo: TokenBalanceInfo | null;
@@ -85,10 +86,10 @@ export const TokenProvider: React.FC<TokenProviderProps> = ({ children }) => {
       const updatedTokenInfo: TokenBalanceInfo = {
         ...tokenInfo,
         balance: newBalance,
-        hasEnoughTokens: newBalance >= 2,
-        message: newBalance >= 2 
+        hasEnoughTokens: hasEnoughTokensForAssessment(newBalance),
+        message: hasEnoughTokensForAssessment(newBalance)
           ? `You have ${newBalance} tokens available.`
-          : `Insufficient tokens. You have ${newBalance} tokens but need at least 2 to submit an assessment.`,
+          : getInsufficientTokensMessage(newBalance),
         lastUpdated: new Date().toISOString(),
       };
       setTokenInfo(updatedTokenInfo);

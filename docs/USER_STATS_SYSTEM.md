@@ -148,7 +148,7 @@ Format Data → Update State → Render Components
 - **Purpose:** Shows pending work, costs tokens
 
 ### **Token Balance**
-- **Formula:** `10 + (completed × 5) - (processing × 2)`
+- **Formula:** `10 + (completed × 5) - (processing × 1)`
 - **Purpose:** Gamification element, shows user "credit"
 - **Range:** Minimum 0 (never negative)
 
@@ -157,7 +157,7 @@ Format Data → Update State → Render Components
 ### **Token Economy:**
 - **Starting Bonus:** 10 tokens for new users
 - **Completion Reward:** +5 tokens per completed assessment
-- **Processing Cost:** -2 tokens per processing assessment
+- **Processing Cost:** -1 token per processing assessment
 - **Minimum Balance:** 0 (prevents negative tokens)
 
 ### **Progress Tracking:**

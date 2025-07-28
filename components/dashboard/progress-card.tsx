@@ -1,6 +1,7 @@
 import { Card, CardContent } from "../ui/card"
 import { Progress } from "../ui/progress"
 import type { ProgressItem } from "../../types/dashboard"
+import "../../styles/components/dashboard/progress-card.css"
 
 interface ProgressCardProps {
   title: string
@@ -10,21 +11,21 @@ interface ProgressCardProps {
 
 export function ProgressCard({ title, description, data }: ProgressCardProps) {
   return (
-    <Card className="bg-white border-[#eaecf0]">
-      <CardContent className="p-6">
-        <h3 className="font-semibold text-[#1e1e1e]">{title}</h3>
-        <p className="text-xs text-[#64707d] mb-2">{description}</p>
+    <Card className="progress-card">
+      <CardContent className="progress-card__content">
+        <h3 className="progress-card__title">{title}</h3>
+        <p className="progress-card__description">{description}</p>
 
-        <div className="space-y-4">
+        <div className="progress-card__items">
           {data.map((item, index) => (
-            <div key={index} className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-[#64707d]">{item.label}</span>
-                <span className="text-[#1e1e1e] font-medium">{item.value}%</span>
+            <div key={index} className="progress-card__item">
+              <div className="progress-card__item-header">
+                <span className="progress-card__item-label">{item.label}</span>
+                <span className="progress-card__item-value">{item.value}%</span>
               </div>
               <Progress
                 value={item.value}
-                className="h-2 bg-[#eaecf0]"
+                className="progress-card__progress-bar"
                 style={{
                   "--progress-background": "#6475e9",
                 } as React.CSSProperties}

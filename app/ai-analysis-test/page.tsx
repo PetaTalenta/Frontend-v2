@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
-import { generateComprehensiveAnalysis } from '../../services/ai-analysis';
+import { generateApiOnlyAnalysis } from '../../services/ai-analysis';
 import { AssessmentScores, PersonaProfile } from '../../types/assessment-results';
 import { Loader2, Brain, User, Star, Target, Users, Briefcase } from 'lucide-react';
 
@@ -161,7 +161,7 @@ export default function AIAnalysisTestPage() {
 
     try {
       const scores = testCases[selectedTestCase].scores;
-      const result = await generateComprehensiveAnalysis(scores);
+      const result = await generateApiOnlyAnalysis(scores);
       setAnalysisResult(result);
     } catch (error) {
       console.error('Analysis failed:', error);

@@ -49,7 +49,7 @@ export default function EnhancedAssessmentSubmission({
     reset
   } = useAssessmentWorkflow({
     onComplete: (result) => {
-      console.log('Assessment completed successfully:', result);
+      console.log('Assessment completed successfully via WebSocket:', result);
       if (onComplete) {
         onComplete(result);
       }
@@ -60,7 +60,8 @@ export default function EnhancedAssessmentSubmission({
     onTokenBalanceUpdate: async () => {
       // This would typically refresh the token balance in the UI
       console.log('Token balance updated');
-    }
+    },
+    preferWebSocket: true // Explicitly enable WebSocket (though it's now default)
   });
 
   const handleSubmit = async () => {

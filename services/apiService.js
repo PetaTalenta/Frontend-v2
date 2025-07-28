@@ -205,12 +205,27 @@ class ApiService {
   }
 
   /**
-   * Submit assessment with polling for completion
+   * Submit assessment with WebSocket monitoring (preferred method)
+   * FIXED: Now uses direct submission to prevent double token consumption
+   * @param {Object} assessmentData - Assessment data
+   * @param {string} assessmentName - Assessment type name
+   * @param {Function} onProgress - Progress callback
+   * @param {Function} onTokenBalanceUpdate - Token balance update callback
+   */
+  async submitAssessmentWithWebSocket(assessmentData, assessmentName = 'AI-Driven Talent Mapping', onProgress, onTokenBalanceUpdate) {
+    console.log('ApiService: Using fixed WebSocket submission (direct call to prevent double token consumption)');
+    const { submitAssessmentWithWebSocket } = await import('./enhanced-assessment-api');
+    return await submitAssessmentWithWebSocket(assessmentData, assessmentName, onProgress, onTokenBalanceUpdate);
+  }
+
+  /**
+   * Submit assessment with polling for completion (FALLBACK ONLY)
    * @param {Object} assessmentData - Assessment data
    * @param {string} assessmentName - Assessment type name
    * @param {Function} onProgress - Progress callback
    */
   async submitAssessmentWithPolling(assessmentData, assessmentName = 'AI-Driven Talent Mapping', onProgress) {
+    console.warn('ApiService: Using polling fallback - WebSocket preferred for better performance');
     const { submitAssessmentWithPolling } = await import('./enhanced-assessment-api');
     return await submitAssessmentWithPolling(assessmentData, assessmentName, onProgress);
   }

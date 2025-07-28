@@ -1,0 +1,42 @@
+/* VIAIS Card Component Styles */
+.viais-card {
+  border-color: #eaecf0;
+  background-color: #6475e9;
+}
+
+.viais-card__content {
+  @apply flex flex-col space-y-1 p-4;
+}
+
+.viais-card__header {
+  @apply text-center;
+}
+
+.viais-card__title {
+  @apply text-xl font-semibold text-left;
+  color: #f1f1f1;
+}
+
+.viais-card__description {
+  @apply text-xs text-left mb-4;
+  color: #f1f1f1;
+}
+
+.viais-card__strengths-grid {
+  @apply grid grid-cols-2 gap-2;
+}
+
+.viais-card__strength-item {
+  @apply rounded-lg p-2;
+  background-color: #f8f9fa;
+}
+
+.viais-card__strength-name {
+  @apply text-xs font-medium truncate;
+  color: #64707d;
+}
+
+.viais-card__strength-score {
+  @apply text-sm font-semibold;
+  color: #1e1e1e;
+}

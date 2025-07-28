@@ -25,3 +25,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# test data and reports
+/test-reports/
+/test-data/
+test-instance-*.log

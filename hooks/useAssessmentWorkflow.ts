@@ -18,7 +18,7 @@ export interface UseAssessmentWorkflowOptions {
   onError?: (error: Error) => void;
   onTokenBalanceUpdate?: () => Promise<void>;
   autoReset?: boolean; // Reset workflow after completion
-  preferWebSocket?: boolean; // WebSocket is mandatory - this option is kept for compatibility
+  preferWebSocket?: boolean; // WebSocket is now mandatory by default - this option is kept for compatibility
 }
 
 export interface UseAssessmentWorkflowReturn {
@@ -28,20 +28,22 @@ export interface UseAssessmentWorkflowReturn {
   isProcessing: boolean;
   isCompleted: boolean;
   isFailed: boolean;
+  canRetry: boolean;
   result: AssessmentResult | null;
-  
+
   // Actions
   submitFromAnswers: (
-    answers: Record<number, number | null>, 
+    answers: Record<number, number | null>,
     assessmentName?: string
   ) => Promise<AssessmentResult | null>;
   submitFromScores: (
-    scores: AssessmentScores, 
+    scores: AssessmentScores,
     assessmentName?: string
   ) => Promise<AssessmentResult | null>;
   cancel: () => void;
   reset: () => void;
-  
+  retry: () => Promise<AssessmentResult | null>;
+
   // Utilities
   getProgressPercentage: () => number;
   getStatusMessage: () => string;
@@ -85,6 +87,15 @@ export function useAssessmentWorkflow(
       }
     },
     onComplete: (result: AssessmentResult) => {
+      // Update local state to completed with result
+      setState(prevState => ({
+        ...prevState,
+        status: 'completed',
+        progress: 100,
+        message: 'Assessment completed successfully',
+        result: result
+      }));
+
       if (optionsRef.current.onComplete) {
         optionsRef.current.onComplete(result);
       }
@@ -98,6 +109,16 @@ export function useAssessmentWorkflow(
     },
     onError: (error: Error, errorState: WorkflowState) => {
       console.error('Assessment Workflow Hook: Error occurred', error);
+
+      // Update local state to failed
+      setState(prevState => ({
+        ...prevState,
+        status: 'failed',
+        message: error.message || 'Assessment failed',
+        error: error.message,
+        canRetry: true
+      }));
+
       if (optionsRef.current.onError) {
         optionsRef.current.onError(error);
       }
@@ -134,10 +155,12 @@ export function useAssessmentWorkflow(
     try {
       const workflow = initializeWorkflow();
 
-      // Ensure WebSocket connection if preferWebSocket is enabled
-      if (options.preferWebSocket && token) {
+      // Always ensure WebSocket connection for real-time monitoring
+      if (token) {
         console.log('Assessment Workflow Hook: Ensuring WebSocket connection before submission...');
         await workflow.ensureWebSocketConnection(token);
+      } else {
+        console.warn('Assessment Workflow Hook: No token available for WebSocket connection');
       }
 
       const result = await workflow.submitFromAnswers(answers, assessmentName);
@@ -146,7 +169,7 @@ export function useAssessmentWorkflow(
       console.error('Assessment submission failed:', error);
       return null;
     }
-  }, [initializeWorkflow, options.preferWebSocket, token]);
+  }, [initializeWorkflow, token]);
 
   // Submit assessment from scores
   const submitFromScores = useCallback(async (
@@ -156,10 +179,12 @@ export function useAssessmentWorkflow(
     try {
       const workflow = initializeWorkflow();
 
-      // Ensure WebSocket connection if preferWebSocket is enabled
-      if (options.preferWebSocket && token) {
+      // Always ensure WebSocket connection for real-time monitoring
+      if (token) {
         console.log('Assessment Workflow Hook: Ensuring WebSocket connection before submission...');
         await workflow.ensureWebSocketConnection(token);
+      } else {
+        console.warn('Assessment Workflow Hook: No token available for WebSocket connection');
       }
 
       const result = await workflow.submitFromScores(scores, assessmentName);
@@ -168,7 +193,7 @@ export function useAssessmentWorkflow(
       console.error('Assessment submission failed:', error);
       return null;
     }
-  }, [initializeWorkflow, options.preferWebSocket, token]);
+  }, [initializeWorkflow, token]);
 
   // Cancel current workflow
   const cancel = useCallback(() => {
@@ -189,6 +214,19 @@ export function useAssessmentWorkflow(
     });
   }, []);
 
+  // Retry failed assessment
+  const retry = useCallback(async (): Promise<AssessmentResult | null> => {
+    if (workflowRef.current) {
+      try {
+        return await workflowRef.current.retry();
+      } catch (error) {
+        console.error('Assessment retry failed:', error);
+        return null;
+      }
+    }
+    return null;
+  }, []);
+
   // Utility functions
   const getProgressPercentage = useCallback(() => {
     return state.progress || 0;
@@ -207,6 +245,7 @@ export function useAssessmentWorkflow(
   const isProcessing = ['validating', 'submitting', 'queued', 'processing'].includes(state.status);
   const isCompleted = state.status === 'completed';
   const isFailed = state.status === 'failed';
+  const canRetry = state.canRetry || false;
   const result = state.result || null;
 
   // Cleanup on unmount
@@ -225,14 +264,16 @@ export function useAssessmentWorkflow(
     isProcessing,
     isCompleted,
     isFailed,
+    canRetry,
     result,
-    
+
     // Actions
     submitFromAnswers,
     submitFromScores,
     cancel,
     reset,
-    
+    retry,
+
     // Utilities
     getProgressPercentage,
     getStatusMessage,

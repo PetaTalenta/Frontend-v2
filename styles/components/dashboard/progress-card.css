@@ -1,0 +1,50 @@
+/* Progress Card Component Styles */
+.progress-card {
+  @apply bg-white;
+  border-color: #eaecf0;
+}
+
+.progress-card__content {
+  @apply p-6;
+}
+
+.progress-card__title {
+  @apply font-semibold;
+  color: #1e1e1e;
+}
+
+.progress-card__description {
+  @apply text-xs mb-2;
+  color: #64707d;
+}
+
+.progress-card__items {
+  @apply space-y-4;
+}
+
+.progress-card__item {
+  @apply space-y-2;
+}
+
+.progress-card__item-header {
+  @apply flex justify-between text-sm;
+}
+
+.progress-card__item-label {
+  color: #64707d;
+}
+
+.progress-card__item-value {
+  @apply font-medium;
+  color: #1e1e1e;
+}
+
+.progress-card__progress-bar {
+  @apply h-2;
+  background-color: #eaecf0;
+}
+
+/* Custom CSS variable for progress bar color */
+.progress-card__progress-bar {
+  --progress-background: #6475e9;
+}

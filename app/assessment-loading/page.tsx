@@ -6,6 +6,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import AssessmentLoadingPage from '../../components/assessment/AssessmentLoadingPage';
 import { useAssessmentWorkflow } from '../../hooks/useAssessmentWorkflow';
 import { WorkflowState } from '../../utils/assessment-workflow';
+import { addToAssessmentHistory } from '../../utils/assessment-history';
 
 export default function AssessmentLoadingPageRoute() {
   const router = useRouter();
@@ -18,6 +19,9 @@ export default function AssessmentLoadingPageRoute() {
   const submissionAttempted = useRef(false);
   const isSubmitting = useRef(false);
 
+  // Track useEffect calls to detect multiple submissions
+  const useEffectCallCount = useRef(0);
+
   // Get assessment workflow with static WebSocket preference
   const {
     state,
@@ -25,16 +29,33 @@ export default function AssessmentLoadingPageRoute() {
     isProcessing,
     isCompleted,
     isFailed,
+    canRetry,
     result,
     submitFromAnswers,
     cancel,
-    reset
+    reset,
+    retry
   } = useAssessmentWorkflow({
     preferWebSocket: true, // Static preference - let workflow handle fallback
     onComplete: (result) => {
       console.log('Assessment completed successfully:', result);
       console.log(`Assessment Loading: Received result with ID: ${result.id}, navigating to /results/${result.id}`);
       isSubmitting.current = false;
+
+      // Add to assessment history with duplicate prevention
+      addToAssessmentHistory({
+        id: Date.now(),
+        nama: result.persona_profile?.title || "Assessment Lengkap",
+        tipe: "Personality Assessment",
+        tanggal: new Date().toLocaleDateString('id-ID', {
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric'
+        }),
+        status: "Selesai",
+        resultId: result.id
+      });
+
       // Redirect to results
       setTimeout(() => {
         console.log(`Assessment Loading: Executing navigation to /results/${result.id}`);
@@ -47,15 +68,21 @@ export default function AssessmentLoadingPageRoute() {
       // Reset submission guard on error to allow retry
       submissionAttempted.current = false;
 
-      // Show specific error message for WebSocket failures
+      // Show specific error message for different failure types
       if (error.message.includes('WebSocket')) {
         console.error('WebSocket connection error - assessment requires real-time connection');
+      } else if (error.message.includes('timeout')) {
+        console.error('Assessment timeout - server took too long to respond');
+      } else if (error.message.includes('Analysis timeout')) {
+        console.error('Analysis timeout - assessment processing took longer than expected');
       }
     },
     onTokenBalanceUpdate: async () => {
       console.log('Token balance updated');
     }
   });
+
+  // Note: Using useCallback approach instead of useRef for better stability
 
   // Load answers from localStorage or URL params on mount
   useEffect(() => {
@@ -100,7 +127,11 @@ export default function AssessmentLoadingPageRoute() {
   }, [authLoading, isAuthenticated, router, searchParams]);
 
   // Auto-submit when answers are loaded and workflow is idle (with guards)
+  // FIXED: Simplified approach to prevent multiple submissions
   useEffect(() => {
+    useEffectCallCount.current += 1;
+    console.log(`Assessment Loading: useEffect called (call #${useEffectCallCount.current}) - checking submission conditions...`);
+
     if (
       answers &&
       isIdle &&
@@ -110,16 +141,29 @@ export default function AssessmentLoadingPageRoute() {
       !submissionAttempted.current &&
       !isSubmitting.current
     ) {
-      console.log('Auto-submitting assessment with answers:', answers);
+      console.log('Assessment Loading: Auto-submitting assessment with answers (FIXED: Single submission only):', Object.keys(answers).length, 'answers');
+      console.log('Assessment Loading: Submission guards - submissionAttempted:', submissionAttempted.current, 'isSubmitting:', isSubmitting.current);
+
       submissionAttempted.current = true;
       isSubmitting.current = true;
 
       // Submit with a small delay to ensure all hooks are ready
       setTimeout(() => {
+        console.log('Assessment Loading: Executing submitFromAnswers - this will call the actual API (FIXED: Direct call)');
         submitFromAnswers(answers, assessmentName);
       }, 100);
+    } else {
+      console.log('Assessment Loading: Auto-submit conditions not met:', {
+        hasAnswers: !!answers,
+        isIdle,
+        isProcessing,
+        isCompleted,
+        isFailed,
+        submissionAttempted: submissionAttempted.current,
+        isSubmitting: isSubmitting.current
+      });
     }
-  }, [answers, isIdle, isProcessing, isCompleted, isFailed, submitFromAnswers, assessmentName]);
+  }, [answers, isIdle, isProcessing, isCompleted, isFailed, assessmentName]); // Removed submitFromAnswers to prevent loops
 
   // Handle cancel
   const handleCancel = () => {
@@ -133,16 +177,29 @@ export default function AssessmentLoadingPageRoute() {
   };
 
   // Handle retry
-  const handleRetry = () => {
-    reset();
+  const handleRetry = async () => {
+    console.log('Assessment Loading: Retrying assessment...');
     isSubmitting.current = false;
     submissionAttempted.current = false;
-    if (answers) {
-      setTimeout(() => {
-        submissionAttempted.current = true;
-        isSubmitting.current = true;
-        submitFromAnswers(answers, assessmentName);
-      }, 500);
+
+    try {
+      // Use the built-in retry functionality if available
+      if (canRetry) {
+        await retry();
+      } else if (answers) {
+        // Fallback to manual retry
+        reset();
+        setTimeout(() => {
+          submissionAttempted.current = true;
+          isSubmitting.current = true;
+          submitFromAnswers(answers, assessmentName);
+        }, 500);
+      }
+    } catch (error) {
+      console.error('Retry failed:', error);
+      // Reset guards to allow another retry attempt
+      isSubmitting.current = false;
+      submissionAttempted.current = false;
     }
   };
 

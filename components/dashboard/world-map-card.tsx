@@ -1,5 +1,6 @@
 import { Card, CardContent } from "../ui/card"
 import { OceanScores, ViaScores } from "../../types/assessment-results"
+import "../../styles/components/dashboard/world-map-card.css"
 
 interface WorldMapCardProps {
   title: string
@@ -118,39 +119,39 @@ export function WorldMapCard({ title, description, oceanScores, viaScores }: Wor
     },
   ]
   return (
-    <Card className="bg-white border-[#eaecf0]">
-      <CardContent className="flex flex-col space-y-1.5 p-6">
+    <Card className="world-map-card">
+      <CardContent className="world-map-card__content">
         {/* VIAIS Statistics Header */}
-        <div className="text-center mb-6">
-          <h3 className="text-lg font-semibold text-[#1e1e1e] mb-3" >VIAIS Assessment</h3>
-          <div className="grid grid-cols-2 gap-2 mb-4">
-            {topStrengths.map((strength, index) => (
-              <div key={strength.name} className="bg-[#f8f9fa] rounded-lg p-2">
-                <div className="text-xs font-medium text-[#64707d] truncate">{strength.name}</div>
-                <div className="text-sm font-semibold text-[#1e1e1e]">{strength.score}%</div>
+        <div className="world-map-card__viais-header">
+          <h3 className="world-map-card__viais-title">VIAIS Assessment</h3>
+          <div className="world-map-card__strengths-grid">
+            {topStrengths.map((strength) => (
+              <div key={strength.name} className="world-map-card__strength-item">
+                <div className="world-map-card__strength-name">{strength.name}</div>
+                <div className="world-map-card__strength-score">{strength.score}%</div>
               </div>
             ))}
           </div>
-          <p className="text-xs text-[#64707d]">Top Character Strengths</p>
+          <p className="world-map-card__viais-description">Top Character Strengths</p>
         </div>
 
-        <div className="flex items-center justify-center gap-2">
-          {oceanData.map((item, index) => {
+        <div className="world-map-card__ocean-container">
+          {oceanData.map((item) => {
             const heightPercentage = Math.max((item.score / 100) * 100, 15) // Minimum 15% height for visibility
             return (
-              <div key={item.trait} className="flex flex-col items-center gap-1 flex-1">
+              <div key={item.trait} className="world-map-card__ocean-bar-item">
                 {/* Percentage label positioned above the bar chart area */}
-                <div className="h-6 flex items-center justify-center">
-                  <span className="text-xs font-semibold text-[#1e1e1e]">
+                <div className="world-map-card__ocean-percentage-container">
+                  <span className="world-map-card__ocean-percentage">
                     {item.score}%
                   </span>
                 </div>
                 <div
-                  className="relative w-full rounded-lg overflow-hidden"
+                  className="world-map-card__ocean-bar-background"
                   style={{ height: '128px', backgroundColor: '#F3F3F3' }}
                 >
                   <div
-                    className="absolute bottom-0 w-full transition-all duration-300"
+                    className="world-map-card__ocean-bar-fill"
                     style={{
                       height: `${heightPercentage}%`,
                       backgroundColor: item.color,
@@ -158,7 +159,7 @@ export function WorldMapCard({ title, description, oceanScores, viaScores }: Wor
                     }}
                   />
                 </div>
-                <span className="text-xs font-medium text-[#1e1e1e]">{item.trait}</span>
+                <span className="world-map-card__ocean-trait-label">{item.trait}</span>
               </div>
             )
           })}

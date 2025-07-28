@@ -1,5 +1,6 @@
 import { Card, CardContent } from "../ui/card"
 import { OceanScores } from "../../types/assessment-results"
+import "../../styles/components/dashboard/ocean-card.css"
 
 interface OceanCardProps {
   oceanScores?: OceanScores
@@ -48,32 +49,32 @@ export function OceanCard({ oceanScores }: OceanCardProps) {
   ]
 
   return (
-    <Card className="bg-white border-[#eaecf0]">
-      <CardContent className="flex flex-col space-y-1.5 p-6">
+    <Card className="ocean-card">
+      <CardContent className="ocean-card__content">
         {/* OCEAN Header */}
-        <div className="text-center mb-0">
-          <h3 className="text-lg font-semibold text-[#1e1e1e] text-left">OCEAN Assessment</h3>
-          <p className="text-xs text-[#64707d] text-left">Big Five Personality Traits</p>
+        <div className="ocean-card__header">
+          <h3 className="ocean-card__title">OCEAN</h3>
+          <p className="ocean-card__description">Big Five Personality Traits</p>
         </div>
 
         {/* OCEAN Bar Chart */}
-        <div className="flex items-center justify-center gap-2">
-          {oceanData.map((item, index) => {
+        <div className="ocean-card__chart-container">
+          {oceanData.map((item) => {
             const heightPercentage = Math.max((item.score / 100) * 100, 15) // Minimum 15% height for visibility
             return (
-              <div key={item.trait} className="flex flex-col items-center gap-1 flex-1">
+              <div key={item.trait} className="ocean-card__bar-item">
                 {/* Percentage label positioned above the bar chart area */}
-                <div className="h-6 flex items-center justify-center">
-                  <span className="text-xs font-semibold text-[#1e1e1e]">
+                <div className="ocean-card__percentage-container">
+                  <span className="ocean-card__percentage">
                     {item.score}%
                   </span>
                 </div>
                 <div
-                  className="relative w-full rounded-lg overflow-hidden"
+                  className="ocean-card__bar-background"
                   style={{ height: '128px', backgroundColor: '#F3F3F3' }}
                 >
                   <div
-                    className="absolute bottom-0 w-full transition-all duration-300"
+                    className="ocean-card__bar-fill"
                     style={{
                       height: `${heightPercentage}%`,
                       backgroundColor: item.color,
@@ -81,7 +82,7 @@ export function OceanCard({ oceanScores }: OceanCardProps) {
                     }}
                   />
                 </div>
-                <span className="text-xs font-medium text-[#1e1e1e]">{item.trait}</span>
+                <span className="ocean-card__trait-label">{item.trait}</span>
               </div>
             )
           })}

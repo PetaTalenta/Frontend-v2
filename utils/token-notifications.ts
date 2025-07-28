@@ -1,5 +1,6 @@
 import { toast } from 'sonner';
 import { TokenTransaction } from './token-balance';
+import { TOKEN_CONFIG } from '../config/token-config';
 
 /**
  * Show success notification for token operations
@@ -31,30 +32,20 @@ export function showTokenError(message: string, details?: string) {
 
 /**
  * Show warning notification for insufficient tokens
+ * @deprecated Token validation is now handled by backend
  */
-export function showInsufficientTokensWarning(currentBalance: number, requiredTokens: number = 2) {
-  toast.warning('Insufficient Token Balance', {
-    description: `You have ${currentBalance} tokens but need ${requiredTokens} tokens to submit an assessment.`,
-    duration: 8000,
-    action: {
-      label: 'Got it',
-      onClick: () => {},
-    },
-  });
+export function showInsufficientTokensWarning(currentBalance: number, requiredTokens: number = TOKEN_CONFIG.MIN_TOKENS_FOR_ASSESSMENT) {
+  console.warn('showInsufficientTokensWarning is deprecated - token validation is now handled by backend');
+  // No longer show warning in frontend - backend will handle this
 }
 
 /**
  * Show notification for token deduction
+ * @deprecated Token deduction is now handled by backend
  */
 export function showTokenDeduction(tokensDeducted: number, newBalance: number, reason: string = 'assessment submission') {
-  toast.info('Tokens Deducted', {
-    description: `${tokensDeducted} tokens deducted for ${reason}. New balance: ${newBalance} tokens.`,
-    duration: 5000,
-    action: {
-      label: 'OK',
-      onClick: () => {},
-    },
-  });
+  console.warn('showTokenDeduction is deprecated - token deduction is now handled by backend');
+  // No longer show deduction notification in frontend - backend will handle this
 }
 
 /**

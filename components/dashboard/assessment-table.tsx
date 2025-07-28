@@ -20,6 +20,7 @@ import {
 } from "../ui/alert-dialog"
 import { ExternalLink, Trash2, Plus } from "lucide-react"
 import type { AssessmentData } from "../../types/dashboard"
+import "../../styles/components/dashboard/assessment-table.css"
 
 interface AssessmentTableProps {
   data: AssessmentData[]
@@ -95,61 +96,61 @@ export function AssessmentTable({ data, onRefresh }: AssessmentTableProps) {
   }
 
   return (
-    <Card className="bg-white border-[#eaecf0] h-[800px] flex flex-col">
-      <CardHeader className="flex flex-row items-center justify-between flex-shrink-0">
-        <div>
-          <CardTitle className="text-lg font-semibold text-[#1e1e1e]">Assessment History</CardTitle>
-          <p className="text-xs text-[#64707d] mt-1">
-            Review your analytics results and use this information to improve future performance.
+    <Card className="assessment-table">
+      <CardHeader className="assessment-table__header">
+        <div className="assessment-table__header-text">
+          <CardTitle className="assessment-table__title">Riwayat Asesmen</CardTitle>
+          <p className="assessment-table__description">
+            Tinjau hasil analisis Anda dan gunakan informasi ini untuk meningkatkan kinerja di masa mendatang.
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button className="bg-[#6475e9] hover:bg-[#5a6bd8] text-white text-xs" onClick={() => router.push("/select-assessment") }>
-            <Plus className="w-4 h-4 mr-2" />
-            New Assessment
+        <div className="assessment-table__header-actions">
+          <Button className="assessment-table__new-button" onClick={() => router.push("/select-assessment") }>
+            <Plus className="assessment-table__new-button-icon" />
+            Asesmen Baru
           </Button>
         </div>
       </CardHeader>
-      <CardContent className="flex flex-col flex-1 min-h-0">
-        <div className="flex-1 overflow-auto">
+      <CardContent className="assessment-table__content">
+        <div className="assessment-table__table-container">
           <Table>
           <TableHeader>
-            <TableRow className="border-[#eaecf0]">
-              <TableHead className="text-[#64707d] font-medium">Nomor</TableHead>
-              <TableHead className="text-[#64707d] font-medium">Nama</TableHead>
-              <TableHead className="text-[#64707d] font-medium">Tipe Ujian</TableHead>
-              <TableHead className="text-[#64707d] font-medium">Tanggal Ujian</TableHead>
-              <TableHead className="text-[#64707d] font-medium">Status</TableHead>
-              <TableHead className="text-[#64707d] font-medium">Action</TableHead>
+            <TableRow className="assessment-table__table-row">
+              <TableHead className="assessment-table__table-head">Nomor</TableHead>
+              <TableHead className="assessment-table__table-head">Nama</TableHead>
+              <TableHead className="assessment-table__table-head">Tipe Ujian</TableHead>
+              <TableHead className="assessment-table__table-head">Tanggal Ujian</TableHead>
+              <TableHead className="assessment-table__table-head">Status</TableHead>
+              <TableHead className="assessment-table__table-head">Action</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {currentData.map((item, index) => (
-              <TableRow key={item.id} className="border-[#eaecf0]">
-                <TableCell className="text-[#1e1e1e]">{startIndex + index + 1}</TableCell>
-                <TableCell className="text-[#1e1e1e]">{item.nama}</TableCell>
+              <TableRow key={item.id} className="assessment-table__table-row">
+                <TableCell className="assessment-table__table-cell">{startIndex + index + 1}</TableCell>
+                <TableCell className="assessment-table__table-cell">{item.nama}</TableCell>
                 <TableCell>
-                  <Badge variant="secondary" className="bg-[#f3f3f3] text-[#64707d]">
+                  <Badge variant="secondary" className="assessment-table__badge">
                     {item.tipe}
                   </Badge>
                 </TableCell>
-                <TableCell className="text-[#64707d]">{item.tanggal}</TableCell>
+                <TableCell className="assessment-table__table-cell--secondary">{item.tanggal}</TableCell>
                 <TableCell>
                   <Badge
                     variant="secondary"
-                    className={`${
+                    className={`assessment-table__badge ${
                       item.status === "Selesai"
-                        ? "bg-green-100 text-green-800 border-green-200"
-                        : "bg-yellow-100 text-yellow-800 border-yellow-200"
+                        ? "assessment-table__badge--success"
+                        : "assessment-table__badge--warning"
                     }`}
                   >
                     {item.status}
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  <div className="flex gap-2">
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleView(item.id)}>
-                      <ExternalLink className="w-4 h-4 text-[#64707d]" />
+                  <div className="assessment-table__action-buttons">
+                    <Button variant="ghost" size="icon" className="assessment-table__action-button" onClick={() => handleView(item.id)}>
+                      <ExternalLink className="assessment-table__action-icon" />
                     </Button>
 
                     <AlertDialog>
@@ -157,10 +158,10 @@ export function AssessmentTable({ data, onRefresh }: AssessmentTableProps) {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8"
+                          className="assessment-table__action-button"
                           disabled={isDeleting === item.resultId}
                         >
-                          <Trash2 className="w-4 h-4 text-[#64707d]" />
+                          <Trash2 className="assessment-table__action-icon" />
                         </Button>
                       </AlertDialogTrigger>
                       <AlertDialogContent>
@@ -194,11 +195,11 @@ export function AssessmentTable({ data, onRefresh }: AssessmentTableProps) {
         </div>
 
         {/* Pagination */}
-        <div className="flex items-center justify-between pt-4 border-t border-[#eaecf0] mt-4 flex-shrink-0">
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-[#64707d]">Show</span>
+        <div className="assessment-table__pagination">
+          <div className="assessment-table__pagination-left">
+            <span className="assessment-table__pagination-text">Show</span>
             <Select value={itemsPerPage.toString()} onValueChange={(value) => setItemsPerPage(Number(value))}>
-              <SelectTrigger className="w-16 h-8">
+              <SelectTrigger className="assessment-table__pagination-select">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -207,17 +208,17 @@ export function AssessmentTable({ data, onRefresh }: AssessmentTableProps) {
                 <SelectItem value="50">50</SelectItem>
               </SelectContent>
             </Select>
-            <span className="text-sm text-[#64707d]">Data</span>
+            <span className="assessment-table__pagination-text">Data</span>
           </div>
 
-          <div className="flex gap-1">
+          <div className="assessment-table__pagination-right">
             {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
               <Button
                 key={page}
                 variant={currentPage === page ? "default" : "ghost"}
                 size="sm"
-                className={`w-8 h-8 ${
-                  currentPage === page ? "bg-[#6475e9] hover:bg-[#5a6bd8] text-white" : "text-[#64707d]"
+                className={`assessment-table__pagination-button ${
+                  currentPage === page ? "assessment-table__pagination-button--active" : "assessment-table__pagination-button--inactive"
                 }`}
                 onClick={() => setCurrentPage(page)}
               >

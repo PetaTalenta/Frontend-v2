@@ -121,25 +121,25 @@ export default function ResultsDemoPage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-10">
             {demoResults.map((result) => (
               <Card key={result.id} className="bg-white border-[#eaecf0] overflow-hidden hover:shadow-lg transition-shadow">
-                <div className={`h-2 bg-gradient-to-r ${result.color}`} />
-                
-                <CardHeader className="pb-4">
+                <div className={`h-2 lg:h-3 bg-gradient-to-r ${result.color}`} />
+
+                <CardHeader className="pb-4 lg:pb-6">
                   <div className="flex items-start justify-between">
                     <div>
-                      <CardTitle className="text-xl font-bold text-[#1e1e1e] mb-2">
+                      <CardTitle className="text-xl lg:text-2xl font-bold text-[#1e1e1e] mb-2 lg:mb-3">
                         {result.title}
                       </CardTitle>
-                      <p className="text-sm text-[#64707d] leading-relaxed">
+                      <p className="text-sm lg:text-base text-[#64707d] leading-relaxed">
                         {result.description}
                       </p>
                     </div>
                   </div>
                 </CardHeader>
 
-                <CardContent className="space-y-6">
+                <CardContent className="space-y-6 lg:space-y-8">
                   {/* Key Highlights */}
                   <div>
                     <h4 className="text-sm font-semibold text-[#1e1e1e] mb-3 flex items-center gap-2">

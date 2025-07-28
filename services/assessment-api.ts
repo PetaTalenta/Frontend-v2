@@ -2,9 +2,8 @@
 // Handles submission and retrieval of assessment results
 
 import { AssessmentResult, AssessmentScores } from '../types/assessment-results';
-import { getMockResultById, generateMockResult } from '../data/mockAssessmentResults';
 import { calculateAllScores, validateAnswers } from '../utils/assessment-calculations';
-import { generateComprehensiveAnalysis } from './ai-analysis';
+import { generateApiOnlyAnalysis } from './ai-analysis';
 
 // Simulate API delay
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -33,7 +32,7 @@ export async function submitAssessment(
   const resultId = 'result-' + Date.now().toString(36);
 
   // Generate AI analysis based on scores
-  const aiAnalysis = await generateComprehensiveAnalysis(scores);
+  const aiAnalysis = await generateApiOnlyAnalysis(scores);
 
   // Create result with AI-generated analysis
   const result: AssessmentResult = {
@@ -92,7 +91,7 @@ export async function submitAssessmentFlexible(
   const resultId = 'result-' + Date.now().toString(36);
 
   // Generate AI analysis based on scores
-  const aiAnalysis = await generateComprehensiveAnalysis(scores);
+  const aiAnalysis = await generateApiOnlyAnalysis(scores);
 
   // Create result with AI-generated analysis
   const result: AssessmentResult = {
@@ -177,15 +176,6 @@ export async function getAssessmentResult(resultId: string): Promise<AssessmentR
     }
   } else {
     console.log(`getAssessmentResult: Running on server-side, skipping localStorage check`);
-  }
-
-  // Fall back to mock data
-  const mockResult = getMockResultById(resultId);
-  console.log(`getAssessmentResult: Mock result found: ${!!mockResult}`);
-
-  if (mockResult) {
-    console.log(`getAssessmentResult: Returning mock result: ${mockResult.persona_profile?.title}`);
-    return mockResult;
   }
 
   // If not found, throw error
@@ -302,7 +292,7 @@ export async function generateAIAnalysis(scores: AssessmentScores): Promise<{
   strengths: string[];
   recommendations: string[];
 }> {
-  const analysis = await generateComprehensiveAnalysis(scores);
+  const analysis = await generateApiOnlyAnalysis(scores);
 
   return {
     personaTitle: analysis.title,

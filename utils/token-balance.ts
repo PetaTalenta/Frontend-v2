@@ -1,4 +1,5 @@
 import { apiService } from '../services/apiService';
+import { TOKEN_CONFIG, hasEnoughTokensForAssessment, getInsufficientTokensMessage } from '../config/token-config';
 
 export interface TokenBalanceInfo {
   balance: number;
@@ -86,11 +87,11 @@ export async function checkTokenBalance(): Promise<TokenBalanceInfo> {
 
     const result = {
       balance,
-      hasEnoughTokens: balance >= 2,
+      hasEnoughTokens: hasEnoughTokensForAssessment(balance),
       lastUpdated,
-      message: balance >= 2
+      message: hasEnoughTokensForAssessment(balance)
         ? `You have ${balance} tokens available.`
-        : `Insufficient tokens. You have ${balance} tokens but need at least 2 to submit an assessment.`,
+        : getInsufficientTokensMessage(balance),
       error: false,
     };
 
@@ -113,30 +114,17 @@ export async function checkTokenBalance(): Promise<TokenBalanceInfo> {
 
 /**
  * Check if user has enough tokens for assessment submission
+ * @deprecated Token validation is now handled by backend
  */
 export async function validateTokensForAssessment(): Promise<{
   canSubmit: boolean;
   tokenInfo: TokenBalanceInfo;
   errorMessage?: string;
 }> {
+  console.warn('validateTokensForAssessment is deprecated - token validation is now handled by backend');
   const tokenInfo = await checkTokenBalance();
 
-  if (tokenInfo.error) {
-    return {
-      canSubmit: false,
-      tokenInfo,
-      errorMessage: 'Unable to verify token balance. Please check your connection and try again.',
-    };
-  }
-
-  if (!tokenInfo.hasEnoughTokens) {
-    return {
-      canSubmit: false,
-      tokenInfo,
-      errorMessage: `Insufficient tokens. You need at least 2 tokens to submit an assessment, but you only have ${tokenInfo.balance} tokens.`,
-    };
-  }
-
+  // Always allow submission - backend will handle token validation
   return {
     canSubmit: true,
     tokenInfo,
@@ -153,7 +141,7 @@ export function getTokenBalanceErrorMessage(error: any): string {
     if (details) {
       return `Insufficient token balance. You have ${details.currentBalance} tokens but need ${details.requiredTokens} tokens to submit an assessment.`;
     }
-    return 'Insufficient token balance. You need at least 2 tokens to submit an assessment.';
+    return `Insufficient token balance. You need at least ${TOKEN_CONFIG.MIN_TOKENS_FOR_ASSESSMENT} token to submit an assessment.`;
   }
 
   // Handle specific token-related errors

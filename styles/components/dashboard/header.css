@@ -1,0 +1,76 @@
+/* Dashboard Header Component Styles */
+.dashboard-header {
+  @apply flex items-start justify-between;
+}
+
+.dashboard-header__left {
+  @apply flex items-center gap-4;
+}
+
+.dashboard-header__logo-container {
+  @apply w-16 h-16 rounded-full flex items-center justify-center;
+  background-color: #6475e9;
+}
+
+.dashboard-header__logo {
+  @apply w-8 h-8 object-contain;
+}
+
+.dashboard-header__text-container {
+  /* Container for title and description */
+}
+
+.dashboard-header__title {
+  @apply text-2xl font-semibold;
+  color: #1e1e1e;
+}
+
+.dashboard-header__description {
+  @apply text-sm mt-1;
+  color: #64707d;
+}
+
+.dashboard-header__right {
+  @apply flex items-center gap-4;
+}
+
+.dashboard-header__user-button {
+  @apply relative h-10 w-10 rounded-full;
+}
+
+.dashboard-header__avatar {
+  @apply h-10 w-10;
+}
+
+.dashboard-header__avatar-fallback {
+  @apply text-white;
+  background-color: #6475e9;
+}
+
+.dashboard-header__dropdown {
+  @apply w-56;
+}
+
+.dashboard-header__user-info {
+  @apply flex flex-col space-y-1;
+}
+
+.dashboard-header__username {
+  @apply text-sm font-medium leading-none;
+}
+
+.dashboard-header__email {
+  @apply text-xs leading-none text-muted-foreground;
+}
+
+.dashboard-header__menu-item {
+  /* Base menu item styles */
+}
+
+.dashboard-header__menu-item--danger {
+  @apply text-red-600;
+}
+
+.dashboard-header__menu-icon {
+  @apply mr-2 h-4 w-4;
+}

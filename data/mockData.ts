@@ -1,16 +1,7 @@
 import type { AssessmentData, StatCard, ProgressItem, ChartData } from "../types/dashboard"
 
-export const assessmentData: AssessmentData[] = [
-  { id: 1, nama: "Matematika", tipe: "PG", tanggal: "12 Juni 2024", status: "Selesai" },
-  { id: 2, nama: "Bahasa Inggris", tipe: "PG", tanggal: "12 Juni 2024", status: "Selesai" },
-  { id: 3, nama: "Bahasa Indonesia", tipe: "PG", tanggal: "22 Juni 2024", status: "Belum Selesai" },
-  { id: 4, nama: "Biologi", tipe: "Essay", tanggal: "22 Juni 2024", status: "Selesai" },
-  { id: 6, nama: "Bahasa Inggris", tipe: "PG", tanggal: "12 Juni 2024", status: "Belum Selesai" },
-  { id: 7, nama: "Kimia", tipe: "Essay", tanggal: "16 Juni 2024", status: "Selesai" },
-  { id: 8, nama: "Fisika", tipe: "PG", tanggal: "18 Juni 2024", status: "Belum Selesai" },
-  { id: 9, nama: "Fisika", tipe: "PG", tanggal: "18 Juni 2024", status: "Selesai" },
-  { id: 10, nama: "Fisika", tipe: "PG", tanggal: "18 Juni 2024", status: "Belum Selesai" },
-]
+// Assessment data is now fetched from API - no more mock data
+export const assessmentData: AssessmentData[] = []
 
 export const statsData: StatCard[] = [
   { id: "analysis", value: 3, label: "Total Analysis", color: "#dbeafe", icon: "MagnifyingGlass.svg" },

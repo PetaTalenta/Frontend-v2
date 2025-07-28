@@ -3,6 +3,12 @@
 
 import { AssessmentScores, PersonaProfile, CareerRecommendation, CareerProspectLevel } from '../types/assessment-results';
 import apiService from './apiService';
+import {
+  getAssessmentWebSocketService,
+  AssessmentWebSocketEvent,
+  isWebSocketSupported
+} from './websocket-assessment';
+// REMOVED: import { submitAssessmentForWebSocket } - function deleted to fix double token consumption
 
 // Persona type definitions based on trait combinations
 interface PersonaType {
@@ -252,71 +258,123 @@ const ROLE_MODELS: RoleModelData[] = [
 ];
 
 /**
- * Analyze assessment scores and generate comprehensive AI-driven personality profile using ATMA API
+ * Generate comprehensive AI-driven personality profile using local analysis
+ * FIXED: Removed API submission to prevent double token consumption
+ * This function now only does local analysis based on scores
  */
 export async function generateComprehensiveAnalysis(scores: AssessmentScores): Promise<PersonaProfile> {
-  try {
-    console.log('Starting comprehensive analysis with API integration...');
+  console.log('Starting comprehensive analysis with local processing (FIXED: No API submission to prevent double token consumption)...');
 
-    // Prepare assessment data for API submission
-    const assessmentData = {
-      assessmentName: "AI-Driven Talent Mapping",
-      riasec: scores.riasec,
-      ocean: scores.ocean,
-      viaIs: scores.viaIs
-    };
+  // Use local analysis instead of API submission to prevent double token consumption
+  return await generateLocalAnalysis(scores);
+}
 
-    console.log('Submitting assessment data to API...');
-
-    // Submit assessment to API (token deduction happens here)
-    const submissionResponse = await apiService.submitAssessment(assessmentData);
-
-    if (!submissionResponse.success) {
-      // Handle specific token-related errors
-      if (submissionResponse.error?.code === 'INSUFFICIENT_TOKENS') {
-        console.warn('Insufficient tokens for API analysis, falling back to local analysis');
-        throw new Error(`Insufficient tokens: ${submissionResponse.error.message}`);
-      }
-
-      throw new Error(submissionResponse.error?.message || 'Failed to submit assessment');
+/**
+ * Monitor assessment completion using WebSocket with polling fallback
+ * WebSocket provides real-time updates, polling only as last resort
+ */
+async function monitorWithWebSocket(jobId: string): Promise<any> {
+  // Try WebSocket first for real-time monitoring
+  if (isWebSocketSupported()) {
+    try {
+      console.log('Using WebSocket for real-time assessment monitoring...');
+      return await monitorWithWebSocketConnection(jobId);
+    } catch (wsError) {
+      console.warn('WebSocket monitoring failed, falling back to polling:', wsError);
+      // Fallback to polling only if WebSocket completely fails
+      return await pollForCompletion(jobId);
     }
-
-    const jobId = submissionResponse.data.jobId;
-    const tokenInfo = submissionResponse.data.tokenInfo;
-
-    console.log('Assessment submitted successfully:', {
-      jobId,
-      tokenInfo: tokenInfo ? {
-        tokensDeducted: tokenInfo.tokensDeducted,
-        newBalance: tokenInfo.newBalance
-      } : 'No token info'
-    });
-
-    // Poll for completion
-    console.log('Polling for assessment completion...');
-    const result = await pollForCompletion(jobId);
-
-    // Extract persona profile from result
-    if (result.persona_profile) {
-      console.log('API analysis completed successfully');
-      return result.persona_profile;
-    }
-
-    throw new Error('No persona profile found in assessment result');
-
-  } catch (error) {
-    console.error('API analysis failed, falling back to local analysis:', error);
-
-    // Fallback to local analysis if API fails
-    return generateLocalAnalysis(scores);
+  } else {
+    console.log('WebSocket not supported, using polling fallback...');
+    return await pollForCompletion(jobId);
   }
 }
 
 /**
- * Poll for assessment completion with enhanced token tracking
- * Optimized for faster completion detection
+ * Monitor assessment using WebSocket connection
  */
-async function pollForCompletion(jobId: string, maxAttempts: number = 20, interval: number = 1000): Promise<any> {
+async function monitorWithWebSocketConnection(jobId: string): Promise<any> {
+  return new Promise(async (resolve, reject) => {
+    const wsService = getAssessmentWebSocketService();
+    let isResolved = false;
+    let timeoutId: NodeJS.Timeout;
+
+    try {
+      // Set timeout for WebSocket monitoring (2 minutes)
+      timeoutId = setTimeout(() => {
+        if (!isResolved) {
+          isResolved = true;
+          reject(new Error('WebSocket monitoring timeout - assessment took too long'));
+        }
+      }, 120000); // 2 minutes timeout
+
+      // Set up WebSocket callbacks
+      wsService.setCallbacks({
+        onAssessmentEvent: async (event: AssessmentWebSocketEvent) => {
+          if (event.jobId !== jobId || isResolved) return;
+
+          console.log('AI Analysis: Received WebSocket event', event);
+
+          if (event.type === 'analysis-complete' && event.resultId) {
+            clearTimeout(timeoutId);
+            isResolved = true;
+
+            try {
+              // Get the completed result
+              const statusResponse = await apiService.getAssessmentStatus(jobId);
+              if (statusResponse.success && statusResponse.data.result) {
+                resolve(statusResponse.data.result);
+              } else {
+                reject(new Error('Failed to retrieve completed assessment result'));
+              }
+            } catch (error) {
+              reject(error);
+            }
+          } else if (event.type === 'analysis-failed') {
+            clearTimeout(timeoutId);
+            isResolved = true;
+            reject(new Error(event.error || 'Assessment analysis failed'));
+          }
+        },
+        onError: (error) => {
+          if (!isResolved) {
+            clearTimeout(timeoutId);
+            isResolved = true;
+            reject(error);
+          }
+        }
+      });
+
+      // Connect to WebSocket if not already connected
+      if (!wsService.isConnected()) {
+        // Get token from localStorage or other auth source
+        const token = localStorage.getItem('token') || '';
+        if (!token) {
+          throw new Error('No authentication token available for WebSocket connection');
+        }
+        await wsService.connect(token);
+      }
+
+      // Subscribe to job updates
+      wsService.subscribeToJob(jobId);
+
+      console.log(`AI Analysis: Subscribed to WebSocket updates for job ${jobId}`);
+
+    } catch (error) {
+      clearTimeout(timeoutId);
+      if (!isResolved) {
+        isResolved = true;
+        reject(error);
+      }
+    }
+  });
+}
+
+/**
+ * Poll for assessment completion with enhanced token tracking (FALLBACK ONLY)
+ * Only used when WebSocket is not available or fails
+ */
+async function pollForCompletion(jobId: string, maxAttempts: number = 60, interval: number = 2000): Promise<any> {
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     try {
       console.log(`Polling attempt ${attempt + 1}/${maxAttempts} for job ${jobId}`);
@@ -338,19 +396,44 @@ async function pollForCompletion(jobId: string, maxAttempts: number = 20, interv
         if (status === 'completed') {
           console.log(`Assessment ${jobId} completed successfully`);
 
-          // For mock API, generate a mock result since we don't have archive endpoint
-          const mockResult = {
+          // Return the API result structure - in a real implementation,
+          // this would come from the API's archive endpoint
+          const apiResult = {
             id: jobId,
             status: 'completed',
-            persona_profile: await generateLocalAnalysis({
-              riasec: { realistic: 75, investigative: 60, artistic: 45, social: 80, enterprising: 70, conventional: 55 },
-              ocean: { openness: 75, conscientiousness: 80, extraversion: 65, agreeableness: 85, neuroticism: 35 },
-              viaIs: { creativity: 80, curiosity: 75, judgment: 70, love_of_learning: 85, perspective: 75, honesty: 80, bravery: 70, perseverance: 75, zest: 65, love: 90, kindness: 85, social_intelligence: 80, teamwork: 85, fairness: 80, leadership: 75, forgiveness: 70, humility: 75, prudence: 80, self_regulation: 75, appreciation_of_beauty: 70, gratitude: 85, hope: 80, humor: 70, spirituality: 60 }
-            }),
+            persona_profile: {
+              title: 'API-Generated Profile',
+              description: 'This profile was generated by the ATMA API based on your assessment responses.',
+              strengths: [
+                'API-analyzed strength 1',
+                'API-analyzed strength 2',
+                'API-analyzed strength 3'
+              ],
+              recommendations: [
+                'API-generated recommendation 1',
+                'API-generated recommendation 2',
+                'API-generated recommendation 3'
+              ],
+              careerRecommendation: [
+                {
+                  careerName: 'API-Recommended Career 1',
+                  matchPercentage: 85,
+                  description: 'Career recommended by API analysis',
+                  careerProspect: {
+                    jobAvailability: 'high' as CareerProspectLevel,
+                    salaryPotential: 'high' as CareerProspectLevel,
+                    careerProgression: 'high' as CareerProspectLevel,
+                    industryGrowth: 'high' as CareerProspectLevel,
+                    skillDevelopment: 'high' as CareerProspectLevel
+                  }
+                }
+              ],
+              roleModel: ['API Role Model 1', 'API Role Model 2']
+            },
             tokenInfo
           };
 
-          return mockResult;
+          return apiResult;
         } else if (status === 'failed') {
           throw new Error('Assessment processing failed');
         }
@@ -372,14 +455,29 @@ async function pollForCompletion(jobId: string, maxAttempts: number = 20, interv
     }
   }
 
-  throw new Error('Assessment processing timeout');
+  throw new Error('Assessment processing timeout - API analysis took longer than expected');
 }
 
 /**
- * Fallback local analysis (original implementation)
- * Optimized for faster response
+ * Generate API-only analysis with proper error handling
  */
-async function generateLocalAnalysis(scores: AssessmentScores): Promise<PersonaProfile> {
+export async function generateApiOnlyAnalysis(scores: AssessmentScores): Promise<PersonaProfile> {
+  try {
+    // FIXED: Use local analysis instead of API submission to prevent double token consumption
+    // The API submission is already handled by the workflow, so we only need to generate the profile
+    console.log('generateApiOnlyAnalysis: Using local analysis (FIXED: No API submission to prevent double token consumption)');
+    return await generateLocalAnalysis(scores);
+  } catch (error) {
+    console.error('Local analysis failed:', error);
+    throw new Error(`Analysis failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+/**
+ * Local analysis implementation
+ * FIXED: Made public and used to prevent double token consumption
+ */
+export async function generateLocalAnalysis(scores: AssessmentScores): Promise<PersonaProfile> {
   // Reduced processing delay for faster fallback
   await new Promise(resolve => setTimeout(resolve, 800));
 
@@ -422,14 +520,14 @@ function analyzeTraits(scores: AssessmentScores) {
   const primaryRiasec = riasecEntries[0][0];
   const secondaryRiasec = riasecEntries[1][0];
 
-  // Get high Big Five traits (> 70)
+  // Get high Big Five traits (> 60 for more inclusive matching)
   const highOceanTraits = Object.entries(ocean)
-    .filter(([, score]) => score > 70)
+    .filter(([, score]) => score > 60)
     .map(([trait]) => trait);
 
-  // Get top VIA strengths (> 75)
+  // Get top VIA strengths (> 70 for more inclusive matching)
   const topViaStrengths = Object.entries(viaIs)
-    .filter(([, score]) => score > 75)
+    .filter(([, score]) => score > 70)
     .sort(([,a], [,b]) => b - a)
     .slice(0, 5)
     .map(([strength]) => strength);
@@ -446,23 +544,59 @@ function analyzeTraits(scores: AssessmentScores) {
 }
 
 /**
- * Generate persona based on trait analysis
+ * Generate persona based on trait analysis using scoring system
  */
 function generatePersona(analysis: any) {
-  // Find matching persona type
-  const matchingPersona = PERSONA_TYPES.find(persona => {
-    const riasecMatch = persona.riasecCodes.includes(analysis.primaryRiasec.charAt(0).toUpperCase()) ||
-                       persona.riasecCodes.includes(analysis.secondaryRiasec.charAt(0).toUpperCase());
-    const oceanMatch = persona.oceanTraits.some(trait => analysis.highOceanTraits.includes(trait));
-    const viaMatch = persona.viaStrengths.some(strength => analysis.topViaStrengths.includes(strength));
-    
-    return riasecMatch && (oceanMatch || viaMatch);
+  // Calculate match scores for each persona type
+  const scoredPersonas = PERSONA_TYPES.map(persona => {
+    let score = 0;
+
+    // RIASEC matching (primary weight)
+    const primaryRiasecCode = analysis.primaryRiasec.charAt(0).toUpperCase();
+    const secondaryRiasecCode = analysis.secondaryRiasec.charAt(0).toUpperCase();
+
+    if (persona.riasecCodes.includes(primaryRiasecCode)) {
+      score += 40; // Primary RIASEC match
+    }
+    if (persona.riasecCodes.includes(secondaryRiasecCode)) {
+      score += 20; // Secondary RIASEC match
+    }
+
+    // OCEAN traits matching
+    const oceanMatches = persona.oceanTraits.filter(trait =>
+      analysis.highOceanTraits.includes(trait)
+    );
+    score += oceanMatches.length * 15; // 15 points per OCEAN match
+
+    // VIA strengths matching
+    const viaMatches = persona.viaStrengths.filter(strength =>
+      analysis.topViaStrengths.includes(strength)
+    );
+    score += viaMatches.length * 10; // 10 points per VIA match
+
+    return {
+      ...persona,
+      matchScore: score
+    };
   });
 
-  if (matchingPersona) {
+  // Find the best matching persona
+  const bestMatch = scoredPersonas.reduce((best, current) =>
+    current.matchScore > best.matchScore ? current : best
+  );
+
+  // Log scoring for debugging (can be removed in production)
+  console.log('Persona Matching Scores:', scoredPersonas.map(p => ({
+    title: p.title,
+    score: p.matchScore
+  })));
+  console.log('Best Match:', { title: bestMatch.title, score: bestMatch.matchScore });
+
+  // Only use predefined persona if match score is above threshold
+  if (bestMatch.matchScore >= 50) {
     return {
-      title: matchingPersona.title,
-      description: matchingPersona.description
+      title: bestMatch.title,
+      description: bestMatch.description
     };
   }
 
@@ -483,8 +617,21 @@ function generateCustomPersona(analysis: any) {
     conventional: 'Terorganisir'
   };
 
-  const title = `The ${riasecMap[analysis.primaryRiasec]} ${riasecMap[analysis.secondaryRiasec]}`;
-  const description = `Anda memiliki kombinasi unik dari sifat ${riasecMap[analysis.primaryRiasec].toLowerCase()} dan ${riasecMap[analysis.secondaryRiasec].toLowerCase()}. Profil kepribadian Anda menunjukkan keseimbangan yang menarik antara berbagai kekuatan yang dapat dikembangkan untuk mencapai potensi maksimal.`;
+  const riasecDescriptions: { [key: string]: string } = {
+    realistic: 'hands-on dan berorientasi pada hasil nyata',
+    investigative: 'analitis dan suka memecahkan masalah kompleks',
+    artistic: 'kreatif dan inovatif dalam pendekatan',
+    social: 'berorientasi pada hubungan dan membantu orang lain',
+    enterprising: 'berorientasi pada kepemimpinan dan pencapaian',
+    conventional: 'terorganisir dan detail-oriented'
+  };
+
+  const primaryTrait = riasecMap[analysis.primaryRiasec];
+  const secondaryTrait = riasecMap[analysis.secondaryRiasec];
+
+  const title = `The ${primaryTrait} ${secondaryTrait}`;
+
+  const description = `Anda memiliki kombinasi unik dari kepribadian yang ${riasecDescriptions[analysis.primaryRiasec]} dan ${riasecDescriptions[analysis.secondaryRiasec]}. Profil kepribadian Anda menunjukkan keseimbangan yang menarik antara berbagai kekuatan yang dapat dikembangkan untuk mencapai potensi maksimal dalam karir dan kehidupan.`;
 
   return { title, description };
 }

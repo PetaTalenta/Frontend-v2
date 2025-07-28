@@ -86,38 +86,38 @@ export default function CombinedAssessmentGrid({ scores }: CombinedAssessmentGri
 
   return (
     <div className="w-full max-w-[1280px] mx-auto">
-      <div className="grid grid-cols-2 gap-6 h-auto">
+      <div className="grid grid-cols-2 gap-6 lg:gap-8 h-auto">
         {/* RIASEC - Top Left */}
-        <Card className="bg-white border-[#eaecf0] h-[600px]">
-          <CardHeader className="pb-4">
-            <div className="flex items-center gap-2">
-              <div className="p-2 bg-[#e7eaff] rounded-lg">
-                <BarChart3 className="w-5 h-5 text-[#6475e9]" />
+        <Card className="bg-white border-[#eaecf0] h-[600px] lg:h-[750px]">
+          <CardHeader className="pb-4 lg:pb-6">
+            <div className="flex items-center gap-2 lg:gap-3">
+              <div className="p-2 lg:p-3 bg-[#e7eaff] rounded-lg">
+                <BarChart3 className="w-5 h-5 lg:w-6 lg:h-6 text-[#6475e9]" />
               </div>
               <div>
-                <CardTitle className="text-lg font-semibold text-[#1e1e1e]">
+                <CardTitle className="text-lg lg:text-xl font-semibold text-[#1e1e1e]">
                   RIASEC Holland Codes
                 </CardTitle>
-                <p className="text-xs text-[#64707d]">Tipe Kepribadian Karir</p>
+                <p className="text-xs lg:text-sm text-[#64707d]">Tipe Kepribadian Karir</p>
               </div>
             </div>
           </CardHeader>
-          <CardContent className="space-y-4 h-[calc(100%-120px)] overflow-y-auto">
+          <CardContent className="space-y-4 lg:space-y-5 h-[calc(100%-120px)] lg:h-[calc(100%-140px)] overflow-y-auto">
             {/* Dominant Type Summary */}
-            <div className="bg-gradient-to-r from-[#6475e9] to-[#4f46e5] text-white rounded-lg p-4">
+            <div className="bg-gradient-to-r from-[#6475e9] to-[#4f46e5] text-white rounded-lg p-4 lg:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="font-semibold">Tipe Dominan</h3>
-                  <p className="text-lg font-bold">{dominantRiasec.code}</p>
-                  <p className="text-sm opacity-90">
+                  <h3 className="font-semibold text-base lg:text-lg">Tipe Dominan</h3>
+                  <p className="text-lg lg:text-xl font-bold">{dominantRiasec.code}</p>
+                  <p className="text-sm lg:text-base opacity-90">
                     {riasecLabels[dominantRiasec.primary as keyof typeof riasecLabels]}
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-2xl font-bold">
+                  <p className="text-2xl lg:text-3xl font-bold">
                     {scores.riasec[dominantRiasec.primary as keyof typeof scores.riasec]}
                   </p>
-                  <p className="text-sm opacity-90">Skor</p>
+                  <p className="text-sm lg:text-base opacity-90">Skor</p>
                 </div>
               </div>
             </div>

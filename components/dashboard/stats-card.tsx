@@ -1,5 +1,6 @@
 import { Card, CardContent } from "../ui/card"
 import type { StatCard } from "../../types/dashboard"
+import "../../styles/components/dashboard/stats-card.css"
 
 interface StatsCardProps {
   stat: StatCard
@@ -7,21 +8,21 @@ interface StatsCardProps {
 
 export function StatsCard({ stat }: StatsCardProps) {
   return (
-    <Card className="rounded-2xl border text-card-foreground shadow-sm bg-white border-[#eaecf0]">
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="text-3xl font-bold text-[#1e1e1e]">{stat.value}</div>
-            <div className="text-xs text-[#64707d]">{stat.label}</div>
+    <Card className="stats-card">
+      <CardContent className="stats-card__content">
+        <div className="stats-card__container">
+          <div className="stats-card__text-container">
+            <div className="stats-card__value">{stat.value}</div>
+            <div className="stats-card__label">{stat.label}</div>
           </div>
           <div
-            className="w-12 h-12 rounded-full flex items-center justify-center"
+            className="stats-card__icon-container"
             style={{ backgroundColor: stat.color }}
           >
             <img
               src={`/icons/${stat.icon}`}
               alt={stat.label}
-              className="w-6 h-6"
+              className="stats-card__icon"
             />
           </div>
         </div>

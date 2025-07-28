@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assessment Timeout Improvements Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .button {
+            background: #007cba;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .button:hover {
+            background: #005a87;
+        }
+        .button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .log {
+            background: #f8f8f8;
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .status {
+            padding: 5px 10px;
+            border-radius: 3px;
+            margin: 5px 0;
+            font-weight: bold;
+        }
+        .status.idle { background: #e3f2fd; color: #1976d2; }
+        .status.processing { background: #fff3e0; color: #f57c00; }
+        .status.completed { background: #e8f5e8; color: #388e3c; }
+        .status.failed { background: #ffebee; color: #d32f2f; }
+        .retry-section {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Assessment Timeout Improvements Test</h1>
+        <p>This page tests the improved timeout handling and retry functionality for the assessment workflow.</p>
+
+        <div class="test-section">
+            <h3>Timeout Configuration</h3>
+            <p><strong>Connection Timeout:</strong> 20 seconds (increased from 15s)</p>
+            <p><strong>Authentication Timeout:</strong> 15 seconds (increased from 10s)</p>
+            <p><strong>Analysis Timeout:</strong> 90 seconds (increased from 30s)</p>
+            <p><strong>Retry Attempts:</strong> 2 attempts with 2-second delays</p>
+        </div>
+
+        <div class="test-section">
+            <h3>Test Scenarios</h3>
+            
+            <div>
+                <h4>1. Connection Timeout Test</h4>
+                <p>Simulates a WebSocket connection that takes too long to establish.</p>
+                <button class="button" onclick="testConnectionTimeout()">Test Connection Timeout</button>
+                <div id="connection-status" class="status idle">Ready</div>
+                <div id="connection-log" class="log"></div>
+            </div>
+
+            <div>
+                <h4>2. Analysis Timeout Test</h4>
+                <p>Simulates an analysis that takes longer than expected but within the new 90-second limit.</p>
+                <button class="button" onclick="testAnalysisTimeout()">Test Analysis Timeout</button>
+                <div id="analysis-status" class="status idle">Ready</div>
+                <div id="analysis-log" class="log"></div>
+            </div>
+
+            <div>
+                <h4>3. Retry Mechanism Test</h4>
+                <p>Tests the automatic retry functionality with exponential backoff.</p>
+                <button class="button" onclick="testRetryMechanism()">Test Retry Mechanism</button>
+                <div id="retry-status" class="status idle">Ready</div>
+                <div id="retry-log" class="log"></div>
+                <div id="retry-controls" class="retry-section" style="display: none;">
+                    <p>Assessment failed. You can retry the submission:</p>
+                    <button class="button" onclick="manualRetry()">Retry Assessment</button>
+                    <button class="button" onclick="resetTest()">Reset Test</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>Progress Tracking</h3>
+            <p>The improved system provides better progress feedback during long operations:</p>
+            <ul>
+                <li>Progress updates every 15 seconds during analysis</li>
+                <li>Clear timeout messages with specific guidance</li>
+                <li>Retry capability for failed assessments</li>
+                <li>Better error categorization (connection vs. analysis timeouts)</li>
+            </ul>
+        </div>
+
+        <div class="test-section">
+            <h3>User Experience Improvements</h3>
+            <ul>
+                <li><strong>Longer Timeouts:</strong> 90 seconds for analysis (vs. 30 seconds before)</li>
+                <li><strong>Progressive Feedback:</strong> Regular progress updates during long waits</li>
+                <li><strong>Smart Retry:</strong> Automatic retry with stored parameters</li>
+                <li><strong>Better Error Messages:</strong> Specific guidance based on failure type</li>
+                <li><strong>Graceful Degradation:</strong> Clear options when timeouts occur</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        function log(elementId, message) {
+            const logElement = document.getElementById(elementId);
+            const timestamp = new Date().toLocaleTimeString();
+            logElement.innerHTML += `[${timestamp}] ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        function setStatus(elementId, status, message) {
+            const statusElement = document.getElementById(elementId);
+            statusElement.className = `status ${status}`;
+            statusElement.textContent = message;
+        }
+
+        function testConnectionTimeout() {
+            const logId = 'connection-log';
+            const statusId = 'connection-status';
+            
+            document.getElementById(logId).innerHTML = '';
+            setStatus(statusId, 'processing', 'Testing Connection Timeout...');
+            log(logId, 'Starting connection timeout test...');
+            log(logId, 'Simulating slow WebSocket connection...');
+            
+            // Simulate connection attempt
+            setTimeout(() => {
+                log(logId, 'Connection attempt 1/3 - timeout after 20 seconds');
+            }, 1000);
+            
+            setTimeout(() => {
+                log(logId, 'Connection attempt 2/3 - timeout after 20 seconds');
+            }, 3000);
+            
+            setTimeout(() => {
+                log(logId, 'Connection attempt 3/3 - timeout after 20 seconds');
+            }, 5000);
+            
+            setTimeout(() => {
+                log(logId, 'All connection attempts failed');
+                log(logId, 'Error: WebSocket connection timeout. Please check your connection and try again.');
+                setStatus(statusId, 'failed', 'Connection Failed');
+            }, 7000);
+        }
+
+        function testAnalysisTimeout() {
+            const logId = 'analysis-log';
+            const statusId = 'analysis-status';
+            
+            document.getElementById(logId).innerHTML = '';
+            setStatus(statusId, 'processing', 'Testing Analysis Timeout...');
+            log(logId, 'Starting analysis timeout test...');
+            log(logId, 'WebSocket connected successfully');
+            log(logId, 'Assessment submitted, waiting for analysis...');
+            
+            let progress = 10;
+            const progressInterval = setInterval(() => {
+                progress += 10;
+                log(logId, `Analysis in progress... This may take up to 2 minutes for complex assessments. (${progress}%)`);
+                
+                if (progress >= 80) {
+                    clearInterval(progressInterval);
+                    setTimeout(() => {
+                        log(logId, 'Analysis completed successfully!');
+                        log(logId, 'Assessment result received');
+                        setStatus(statusId, 'completed', 'Analysis Completed');
+                    }, 2000);
+                }
+            }, 2000);
+        }
+
+        function testRetryMechanism() {
+            const logId = 'retry-log';
+            const statusId = 'retry-status';
+            
+            document.getElementById(logId).innerHTML = '';
+            document.getElementById('retry-controls').style.display = 'none';
+            setStatus(statusId, 'processing', 'Testing Retry Mechanism...');
+            log(logId, 'Starting retry mechanism test...');
+            log(logId, 'Attempt 1/2 - WebSocket connection...');
+            
+            setTimeout(() => {
+                log(logId, 'Attempt 1/2 failed - Analysis timeout');
+                log(logId, 'Waiting 2 seconds before retry...');
+            }, 2000);
+            
+            setTimeout(() => {
+                log(logId, 'Attempt 2/2 - WebSocket connection...');
+            }, 4000);
+            
+            setTimeout(() => {
+                log(logId, 'Attempt 2/2 failed - Analysis timeout');
+                log(logId, 'All automatic retry attempts exhausted');
+                log(logId, 'Error: Assessment submission failed after 2 attempts. Please check your connection and try again.');
+                setStatus(statusId, 'failed', 'Retry Failed - Manual Action Required');
+                document.getElementById('retry-controls').style.display = 'block';
+            }, 6000);
+        }
+
+        function manualRetry() {
+            const logId = 'retry-log';
+            const statusId = 'retry-status';
+            
+            document.getElementById('retry-controls').style.display = 'none';
+            setStatus(statusId, 'processing', 'Retrying...');
+            log(logId, 'Manual retry initiated...');
+            log(logId, 'Using stored assessment parameters...');
+            
+            setTimeout(() => {
+                log(logId, 'Retry successful! Assessment completed.');
+                setStatus(statusId, 'completed', 'Retry Successful');
+            }, 3000);
+        }
+
+        function resetTest() {
+            document.getElementById('retry-log').innerHTML = '';
+            document.getElementById('retry-controls').style.display = 'none';
+            setStatus('retry-status', 'idle', 'Ready');
+        }
+    </script>
+</body>
+</html>

@@ -60,21 +60,21 @@ export default function DashboardOceanDemo() {
         </div>
 
         {/* Demo Cards Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
           {/* Default Values (No Assessment Data) */}
-          <div className="space-y-4">
+          <div className="space-y-4 lg:space-y-6">
             <Card className="border-blue-200 bg-blue-50">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg text-blue-900">
+              <CardHeader className="pb-3 lg:pb-4">
+                <CardTitle className="text-lg lg:text-xl text-blue-900">
                   Default Values
                 </CardTitle>
-                <p className="text-sm text-blue-700">
+                <p className="text-sm lg:text-base text-blue-700">
                   Ketika tidak ada data assessment (oceanScores = undefined)
                 </p>
               </CardHeader>
             </Card>
-            
-            <div className="space-y-4">
+
+            <div className="space-y-4 lg:space-y-6">
               <VIAISCard />
               <OceanCard />
             </div>

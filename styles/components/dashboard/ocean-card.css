@@ -1,0 +1,57 @@
+/* OCEAN Card Component Styles */
+.ocean-card {
+  @apply bg-white;
+  border-color: #eaecf0;
+}
+
+.ocean-card__content {
+  @apply flex flex-col space-y-1.5 p-6;
+}
+
+.ocean-card__header {
+  @apply text-center mb-0;
+}
+
+.ocean-card__title {
+  @apply text-lg font-semibold text-left;
+  color: #1e1e1e;
+}
+
+.ocean-card__description {
+  @apply text-xs text-left;
+  color: #64707d;
+}
+
+.ocean-card__chart-container {
+  @apply flex items-center justify-center gap-2;
+}
+
+.ocean-card__bar-item {
+  @apply flex flex-col items-center gap-1 flex-1;
+}
+
+.ocean-card__percentage-container {
+  @apply h-6 flex items-center justify-center;
+}
+
+.ocean-card__percentage {
+  @apply text-xs font-semibold;
+  color: #1e1e1e;
+}
+
+.ocean-card__bar-background {
+  @apply relative w-full rounded-lg overflow-hidden;
+  height: 128px;
+  background-color: #f3f3f3;
+}
+
+.ocean-card__bar-fill {
+  @apply absolute bottom-0 w-full transition-all duration-300;
+  min-height: 20px;
+  /* Height and background-color will be set dynamically */
+}
+
+.ocean-card__trait-label {
+  @apply text-xs font-medium;
+  color: #1e1e1e;
+}

@@ -63,23 +63,29 @@ export function useAssessmentSubmission(options: UseAssessmentSubmissionOptions 
         throw new Error(`Please answer all questions. Missing: ${unansweredQuestions.join(', ')}`);
       }
 
+      console.log('useAssessmentSubmission: Starting submission process - ONLY saving to localStorage and redirecting (NO API call)');
+
       // Call submission start callback
       if (onSubmissionStart) {
         onSubmissionStart();
       }
 
       // Save answers and assessment name to localStorage for the loading page
+      console.log('useAssessmentSubmission: Saving answers to localStorage for loading page...');
       localStorage.setItem('assessment-answers', JSON.stringify(answers));
       localStorage.setItem('assessment-name', finalAssessmentName);
-      
+
       // Save submission timestamp
       localStorage.setItem('assessment-submission-time', new Date().toISOString());
+      console.log('useAssessmentSubmission: Data saved to localStorage successfully');
 
       if (autoRedirect) {
         // Redirect to loading page
+        console.log('useAssessmentSubmission: Redirecting to /assessment-loading...');
         router.push('/assessment-loading');
       }
 
+      console.log('useAssessmentSubmission: Submission process completed - NO API submission performed here');
       return true;
     } catch (error) {
       console.error('Assessment submission error:', error);

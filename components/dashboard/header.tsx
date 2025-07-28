@@ -13,6 +13,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar"
 import { User, LogOut, Settings } from "lucide-react"
 import { useAuth } from "../../contexts/AuthContext"
 import { useRouter } from "next/navigation"
+import "../../styles/components/dashboard/header.css"
 
 
 
@@ -53,57 +54,53 @@ export function Header({ title, description }: HeaderProps) {
   };
 
   return (
-    <div className="flex items-start justify-between">
-      <div className="flex items-center gap-4">
-        <div className="w-16 h-16 bg-[#6475e9] rounded-full flex items-center justify-center">
+    <div className="dashboard-header">
+      <div className="dashboard-header__left">
+        <div className="dashboard-header__logo-container">
           <img
             src="/placeholder-icon-logo.png"
             alt="Logo"
-            className="w-8 h-8 object-contain"
+            className="dashboard-header__logo"
           />
         </div>
-        <div>
-          <h1 className="text-2xl font-semibold text-[#1e1e1e]">{title}</h1>
-          <p className="text-[#64707d] text-sx mt-1">{description}</p>
+        <div className="dashboard-header__text-container">
+          <h1 className="dashboard-header__title">{title}</h1>
+          <p className="dashboard-header__description">{description}</p>
         </div>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="dashboard-header__right">
         {/* User Menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-              <Avatar className="h-10 w-10">
+            <Button variant="ghost" className="dashboard-header__user-button">
+              <Avatar className="dashboard-header__avatar">
                 <AvatarImage src={user?.avatar} alt={getUserDisplayName()} />
-                <AvatarFallback className="bg-[#6475e9] text-white">
+                <AvatarFallback className="dashboard-header__avatar-fallback">
                   {getUserInitials(user?.username, user?.name, user?.email)}
                 </AvatarFallback>
               </Avatar>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-56" align="end" forceMount>
+          <DropdownMenuContent className="dashboard-header__dropdown" align="end" forceMount>
             <DropdownMenuLabel className="font-normal">
-              <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium leading-none">
+              <div className="dashboard-header__user-info">
+                <p className="dashboard-header__username">
                   {getUserDisplayName()}
                 </p>
-                <p className="text-xs leading-none text-muted-foreground">
+                <p className="dashboard-header__email">
                   {user?.email}
                 </p>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => router.push('/profile')}>
-              <User className="mr-2 h-4 w-4" />
+            <DropdownMenuItem onClick={() => router.push('/profile')} className="dashboard-header__menu-item">
+              <User className="dashboard-header__menu-icon" />
               <span>Profile</span>
             </DropdownMenuItem>
-            <DropdownMenuItem>
-              <Settings className="mr-2 h-4 w-4" />
-              <span>Settings</span>
-            </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={logout} className="text-red-600">
-              <LogOut className="mr-2 h-4 w-4" />
+            <DropdownMenuItem onClick={logout} className="dashboard-header__menu-item dashboard-header__menu-item--danger">
+              <LogOut className="dashboard-header__menu-icon" />
               <span>Log out</span>
             </DropdownMenuItem>
           </DropdownMenuContent>

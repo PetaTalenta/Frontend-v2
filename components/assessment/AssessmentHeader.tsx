@@ -9,14 +9,15 @@ import { assessmentTypes } from '../../data/assessmentQuestions';
 import { validateAnswers } from '../../utils/assessment-calculations';
 import { submitAssessment, submitAssessmentFlexible } from '../../services/assessment-api';
 import { debugNavigate, navigationDebugger } from '../../utils/navigation-debug';
-import { validateTokensForAssessment, getTokenBalanceErrorMessage } from '../../utils/token-balance';
+import { getTokenBalanceErrorMessage } from '../../utils/token-balance';
 import {
-  showInsufficientTokensWarning,
   showAssessmentSubmissionStart,
   showAssessmentSubmissionResult,
   showTokenError
 } from '../../utils/token-notifications';
 import { useAssessmentSubmission } from '../../hooks/useAssessmentSubmission';
+import { addToAssessmentHistory } from '../../utils/assessment-history';
+import { withSubmissionGuard, hasRecentSubmission, markRecentSubmission } from '../../utils/submission-guard';
 
 interface AssessmentHeaderProps {
   currentQuestion?: number;
@@ -89,7 +90,7 @@ export default function AssessmentHeader({
 
           // Handle specific error types
           if (error.response?.status === 402) {
-            alert('Debug Error: Insufficient token balance. You need at least 2 tokens to submit an assessment.');
+            alert('Debug Error: Insufficient token balance. You need at least 1 token to submit an assessment.');
           } else if (error.message?.includes('token balance')) {
             alert('Debug Error: ' + error.message + ' The system will use local analysis instead.');
           } else {
@@ -115,7 +116,8 @@ export default function AssessmentHeader({
         // All questions answered - redirect to loading page for processing
         console.log('AssessmentHeader: All questions answered, redirecting to loading page...');
         await submitToLoadingPage(answers, 'AI-Driven Talent Mapping');
-        return;
+        console.log('AssessmentHeader: Successfully redirected to loading page, stopping execution to prevent double submission');
+        return; // CRITICAL: Stop execution here to prevent double submission
       } else if (validation.answeredQuestions >= validation.totalQuestions * 0.8) {
         // 80%+ completion - offer loading page option
         const completionRate = Math.round((validation.answeredQuestions / validation.totalQuestions) * 100);
@@ -129,36 +131,47 @@ export default function AssessmentHeader({
         if (useLoadingPage) {
           console.log('AssessmentHeader: User chose loading page for partial assessment...');
           await submitToLoadingPage(answers, 'AI-Driven Talent Mapping');
-          return;
+          console.log('AssessmentHeader: Successfully redirected to loading page, stopping execution to prevent double submission');
+          return; // CRITICAL: Stop execution here to prevent double submission
         }
         // If user chose not to use loading page, continue with original flow
+        console.log('AssessmentHeader: User chose direct submission, continuing with original flow...');
       }
 
       // Original flow for less than 80% completion or user preference
+      console.log('AssessmentHeader: Executing direct submission path (not using loading page)');
       if (validation.isValid) {
-        // Check token balance before submission
-        console.log('AssessmentHeader: Validating token balance...');
-        const tokenValidation = await validateTokensForAssessment();
-
-        if (!tokenValidation.canSubmit) {
-          showInsufficientTokensWarning(tokenValidation.tokenInfo.balance, 2);
-          setIsSaving(false);
+        // Check for recent submissions to prevent duplicates
+        if (hasRecentSubmission(answers)) {
+          console.warn('AssessmentHeader: Recent submission detected, preventing duplicate');
+          alert('Assessment sedang diproses. Mohon tunggu sebentar sebelum mencoba lagi.');
           return;
         }
 
-        console.log('AssessmentHeader: Token validation passed, submitting assessment...');
+        console.log('AssessmentHeader: Starting direct submission with submission guard...');
+        // Use submission guard to prevent duplicates
+        const result = await withSubmissionGuard(answers, async () => {
+          // Token validation is now handled by backend
+          console.log('AssessmentHeader: Inside submission guard - submitting assessment (token validation handled by backend)...');
 
-        // Show submission start notification
-        showAssessmentSubmissionStart();
+          // Show submission start notification
+          showAssessmentSubmissionStart();
 
-        // All questions answered - submit assessment and go to results
-        const { resultId, personaTitle } = await submitAssessment(answers, user?.id, refreshTokenBalance);
+          // Mark recent submission
+          markRecentSubmission(answers);
+
+          // All questions answered - submit assessment and go to results
+          console.log('AssessmentHeader: Calling submitAssessment API...');
+          return await submitAssessment(answers, user?.id, refreshTokenBalance);
+        });
+
+        const { resultId, personaTitle } = result;
 
         // Show success notification
         showAssessmentSubmissionResult(true, `Assessment completed successfully! Persona: ${personaTitle}`);
 
-        // Add assessment to dashboard history with "Selesai" status
-        const assessmentHistoryItem = {
+        // Add assessment to dashboard history with duplicate prevention
+        addToAssessmentHistory({
           id: Date.now(),
           nama: personaTitle || "Assessment Lengkap",
           tipe: "Personality Assessment",
@@ -169,12 +182,7 @@ export default function AssessmentHeader({
           }),
           status: "Selesai",
           resultId: resultId
-        };
-
-        // Save to localStorage for dashboard history
-        const existingHistory = JSON.parse(localStorage.getItem('assessment-history') || '[]');
-        existingHistory.unshift(assessmentHistoryItem);
-        localStorage.setItem('assessment-history', JSON.stringify(existingHistory));
+        });
 
         // Navigate to results page with enhanced debugging
         const resultsUrl = `/results/${resultId}`;
@@ -203,28 +211,36 @@ export default function AssessmentHeader({
         if (shouldSubmit && validation.answeredQuestions >= validation.totalQuestions * 0.5) {
           // User wants to submit with partial answers and has at least 50% completion
           try {
-            // Check token balance before submission
-            console.log('AssessmentHeader: Validating token balance for flexible submission...');
-            const tokenValidation = await validateTokensForAssessment();
-
-            if (!tokenValidation.canSubmit) {
-              showInsufficientTokensWarning(tokenValidation.tokenInfo.balance, 2);
-              setIsSaving(false);
+            // Check for recent submissions to prevent duplicates
+            if (hasRecentSubmission(answers)) {
+              console.warn('AssessmentHeader: Recent flexible submission detected, preventing duplicate');
+              alert('Assessment sedang diproses. Mohon tunggu sebentar sebelum mencoba lagi.');
               return;
             }
 
-            console.log('AssessmentHeader: Token validation passed, submitting flexible assessment...');
+            console.log('AssessmentHeader: Starting flexible submission with submission guard...');
+            // Use submission guard to prevent duplicates
+            const result = await withSubmissionGuard(answers, async () => {
+              // Token validation is now handled by backend
+              console.log('AssessmentHeader: Inside submission guard - submitting flexible assessment (token validation handled by backend)...');
 
-            // Show submission start notification
-            showAssessmentSubmissionStart();
+              // Show submission start notification
+              showAssessmentSubmissionStart();
 
-            const { resultId, personaTitle } = await submitAssessmentFlexible(answers, user?.id, refreshTokenBalance);
+              // Mark recent submission
+              markRecentSubmission(answers);
+
+              console.log('AssessmentHeader: Calling submitAssessmentFlexible API...');
+              return await submitAssessmentFlexible(answers, user?.id, refreshTokenBalance);
+            });
+
+            const { resultId, personaTitle } = result;
 
             // Show success notification
             showAssessmentSubmissionResult(true, `Partial assessment completed successfully! Persona: ${personaTitle}`);
 
-            // Add assessment to dashboard history with "Selesai" status
-            const assessmentHistoryItem = {
+            // Add assessment to dashboard history with duplicate prevention
+            addToAssessmentHistory({
               id: Date.now(),
               nama: personaTitle || "Assessment Lengkap",
               tipe: "Personality Assessment",
@@ -235,12 +251,7 @@ export default function AssessmentHeader({
               }),
               status: "Selesai",
               resultId: resultId
-            };
-
-            // Save to localStorage for dashboard history
-            const existingHistory = JSON.parse(localStorage.getItem('assessment-history') || '[]');
-            existingHistory.unshift(assessmentHistoryItem);
-            localStorage.setItem('assessment-history', JSON.stringify(existingHistory));
+            });
 
             // Navigate to results page with enhanced debugging
             const resultsUrl = `/results/${resultId}`;
@@ -272,7 +283,7 @@ export default function AssessmentHeader({
         }
 
         // Save progress and go to dashboard
-        const assessmentHistoryItem = {
+        addToAssessmentHistory({
           id: Date.now(),
           nama: "Assessment Belum Selesai",
           tipe: "Personality Assessment",
@@ -283,12 +294,7 @@ export default function AssessmentHeader({
           }),
           status: "Belum Selesai",
           resultId: null
-        };
-
-        // Save to localStorage for dashboard history
-        const existingHistory = JSON.parse(localStorage.getItem('assessment-history') || '[]');
-        existingHistory.unshift(assessmentHistoryItem);
-        localStorage.setItem('assessment-history', JSON.stringify(existingHistory));
+        });
 
         // Also save current progress
         localStorage.setItem('assessment-progress', JSON.stringify(answers));

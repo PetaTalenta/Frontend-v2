@@ -10,7 +10,12 @@
     "start:websocket": "node mock-websocket-server.js",
     "dev:full": "concurrently \"npm run dev\" \"npm run start:websocket\"",
     "test:websocket": "node scripts/test-websocket.js",
-    "test:websocket:api": "node scripts/test-websocket-api.js"
+    "test:websocket:api": "node scripts/test-websocket-api.js",
+    "test:token:quick": "node scripts/quick-token-test.js",
+    "test:token:concurrent": "node scripts/concurrent-assessment-test.js",
+    "test:setup-users": "node scripts/setup-test-users.js",
+    "test:high-load": "node scripts/run-concurrent-tests.js",
+    "test:summary": "node scripts/test-summary.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",

@@ -35,7 +35,6 @@ Halaman Result Assessment menampilkan hasil perhitungan dari tiga assessment psi
 ├── types/assessment-results.ts          # TypeScript interfaces
 ├── utils/assessment-calculations.ts     # Score calculation logic
 ├── services/assessment-api.ts           # API service functions
-├── data/mockAssessmentResults.ts        # Mock data for testing
 ├── components/results/
 │   ├── PersonaProfileCard.tsx           # Persona display
 │   ├── AssessmentScoresChart.tsx        # Scores visualization

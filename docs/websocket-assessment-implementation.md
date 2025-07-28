@@ -151,13 +151,13 @@ function AssessmentComponent() {
 }
 ```
 
-### Assessment Workflow with WebSocket
+### Assessment Workflow with WebSocket (Now Default)
 ```typescript
 import { useAssessmentWorkflow } from '../hooks/useAssessmentWorkflow';
 
 function AssessmentSubmission() {
   const workflow = useAssessmentWorkflow({
-    preferWebSocket: true, // Enable WebSocket by default
+    // WebSocket is now mandatory by default - no need to specify preferWebSocket
     onComplete: (result) => {
       router.push(`/results/${result.id}`);
     },

@@ -108,17 +108,27 @@ export async function submitAssessment(
   onTokenBalanceUpdate?: () => Promise<void>
 ): Promise<AssessmentSubmitResponse> {
 
+  console.log('🔥 Enhanced Assessment API: submitAssessment called - THIS CONSUMES 1 TOKEN');
+  console.log('🔥 Enhanced Assessment API: Assessment data keys:', Object.keys(assessmentData));
+  console.log('🔥 Enhanced Assessment API: Assessment name:', assessmentName);
+  console.log('🔥 Enhanced Assessment API: Call stack trace:', new Error().stack?.split('\n').slice(1, 5).join('\n'));
+
   // Create unique key for this submission
   const submissionKey = JSON.stringify({ assessmentData, assessmentName });
+  console.log('🔥 Enhanced Assessment API: Generated submission key hash:', submissionKey.substring(0, 50) + '...');
+  console.log('🔥 Enhanced Assessment API: Active submissions count before check:', activeSubmissions.size);
 
   // Check if this exact submission is already in progress
   if (activeSubmissions.has(submissionKey)) {
-    console.warn('Enhanced Assessment API: Duplicate submission detected, rejecting');
+    console.warn('🚨 Enhanced Assessment API: DUPLICATE SUBMISSION DETECTED - REJECTING (NO TOKEN CONSUMED)');
+    console.warn('🚨 Enhanced Assessment API: This would have caused double token consumption!');
     throw new Error('Assessment submission already in progress');
   }
 
   // Mark this submission as active
+  console.log('🔥 Enhanced Assessment API: Marking submission as active to prevent duplicates');
   activeSubmissions.add(submissionKey);
+  console.log('🔥 Enhanced Assessment API: Active submissions count after adding:', activeSubmissions.size);
 
   try {
     console.log('Enhanced Assessment API: Submitting assessment...');
@@ -167,11 +177,12 @@ export async function submitAssessment(
       `Queue position: ${result.data.queuePosition}, Estimated time: ${result.data.estimatedProcessingTime}`
     );
 
-    // Refresh token balance
+    // Token balance refresh is now handled by backend
+    // Frontend will get updated balance through WebSocket or polling
     if (onTokenBalanceUpdate) {
       try {
         await onTokenBalanceUpdate();
-        // Removed showTokenBalanceRefresh() notification
+        console.log('Enhanced Assessment API: Token balance refreshed');
       } catch (error) {
         console.error('Enhanced Assessment API: Error refreshing token balance:', error);
       }
@@ -191,7 +202,9 @@ export async function submitAssessment(
     throw new Error('Assessment submission failed');
   } finally {
     // Always remove from active submissions
+    console.log('Enhanced Assessment API: Cleaning up - removing submission from active submissions');
     activeSubmissions.delete(submissionKey);
+    console.log('Enhanced Assessment API: Active submissions count after cleanup:', activeSubmissions.size);
   }
 }
 
@@ -427,8 +440,35 @@ export async function cleanupIdempotencyCache(): Promise<{ success: boolean; rem
 }
 
 /**
- * Submit assessment with automatic polling
- * This is a convenience function that combines submission and polling
+ * Submit assessment with automatic WebSocket monitoring (preferred method)
+ * Falls back to polling only if WebSocket fails
+ */
+export async function submitAssessmentWithWebSocket(
+  assessmentData: AssessmentScores,
+  assessmentName: string = 'AI-Driven Talent Mapping',
+  onProgress?: (status: AssessmentStatusResponse) => void,
+  onTokenBalanceUpdate?: () => Promise<void>
+): Promise<AssessmentStatusResponse> {
+
+  console.log('Enhanced Assessment API: Submitting assessment with WebSocket monitoring - FIXED: Direct submission to prevent double token consumption');
+
+  // Submit assessment directly (FIXED: removed wrapper to prevent double token consumption)
+  const submitResponse = await submitAssessment(assessmentData, assessmentName, onTokenBalanceUpdate);
+  const jobId = submitResponse.data.jobId;
+
+  console.log('Enhanced Assessment API: Assessment submitted with jobId:', jobId, '- monitoring via WebSocket');
+
+  // Monitor via WebSocket with polling fallback
+  return monitorAssessmentWithWebSocket(
+    jobId,
+    onProgress,
+    onTokenBalanceUpdate
+  );
+}
+
+/**
+ * Submit assessment with automatic polling (FALLBACK ONLY)
+ * This should only be used when WebSocket is not available
  */
 export async function submitAssessmentWithPolling(
   assessmentData: AssessmentScores,
@@ -437,7 +477,7 @@ export async function submitAssessmentWithPolling(
   onTokenBalanceUpdate?: () => Promise<void>
 ): Promise<AssessmentStatusResponse> {
 
-  console.log('Enhanced Assessment API: Submitting assessment with automatic polling');
+  console.warn('Enhanced Assessment API: Using polling fallback - WebSocket preferred for better performance');
 
   // Submit assessment
   const submitResponse = await submitAssessment(assessmentData, assessmentName, onTokenBalanceUpdate);
@@ -452,25 +492,118 @@ export async function submitAssessmentWithPolling(
 }
 
 /**
- * Submit assessment with WebSocket support
- * Returns jobId for WebSocket subscription
+ * Monitor assessment using WebSocket with polling fallback
  */
-export async function submitAssessmentForWebSocket(
-  assessmentData: AssessmentScores,
-  assessmentName: string = 'AI-Driven Talent Mapping',
+export async function monitorAssessmentWithWebSocket(
+  jobId: string,
+  onProgress?: (status: AssessmentStatusResponse) => void,
   onTokenBalanceUpdate?: () => Promise<void>
-): Promise<{ jobId: string; queuePosition?: number }> {
+): Promise<AssessmentStatusResponse> {
 
-  console.log('Enhanced Assessment API: Submitting assessment for WebSocket monitoring');
+  const { getAssessmentWebSocketService, isWebSocketSupported } = await import('./websocket-assessment');
 
-  // Submit assessment (same as regular submission)
-  const submitResponse = await submitAssessment(assessmentData, assessmentName, onTokenBalanceUpdate);
+  if (!isWebSocketSupported()) {
+    console.warn('Enhanced Assessment API: WebSocket not supported, falling back to polling');
+    return pollAssessmentStatus(jobId, onProgress);
+  }
 
-  return {
-    jobId: submitResponse.data.jobId,
-    queuePosition: submitResponse.data.queuePosition,
-  };
+  return new Promise(async (resolve, reject) => {
+    const wsService = getAssessmentWebSocketService();
+    let isResolved = false;
+    let timeoutId: NodeJS.Timeout;
+
+    try {
+      // Set timeout for WebSocket monitoring
+      timeoutId = setTimeout(() => {
+        if (!isResolved) {
+          isResolved = true;
+          console.warn('Enhanced Assessment API: WebSocket timeout, falling back to polling');
+          // Fallback to polling on timeout
+          pollAssessmentStatus(jobId, onProgress)
+            .then(resolve)
+            .catch(reject);
+        }
+      }, 120000); // 2 minutes timeout
+
+      // Set up WebSocket callbacks
+      wsService.setCallbacks({
+        onAssessmentEvent: async (event) => {
+          if (event.jobId !== jobId || isResolved) return;
+
+          console.log('Enhanced Assessment API: WebSocket event', event);
+
+          if (event.type === 'analysis-complete' && event.resultId) {
+            clearTimeout(timeoutId);
+            isResolved = true;
+
+            try {
+              const finalStatus = await getAssessmentStatus(jobId);
+              resolve(finalStatus);
+            } catch (error) {
+              reject(error);
+            }
+          } else if (event.type === 'analysis-failed') {
+            clearTimeout(timeoutId);
+            isResolved = true;
+            reject(new Error(event.error || 'Assessment analysis failed'));
+          } else if (onProgress) {
+            // Convert WebSocket event to status response for progress callback
+            const progressStatus: AssessmentStatusResponse = {
+              success: true,
+              data: {
+                status: event.type === 'analysis-started' ? 'processing' : 'queued',
+                progress: event.type === 'analysis-started' ? 25 : 10,
+                message: event.message || 'Processing...',
+                jobId: event.jobId || jobId,
+                estimatedTimeRemaining: event.metadata?.estimatedProcessingTime
+              }
+            };
+            onProgress(progressStatus);
+          }
+        },
+        onError: (error) => {
+          if (!isResolved) {
+            clearTimeout(timeoutId);
+            isResolved = true;
+            console.warn('Enhanced Assessment API: WebSocket error, falling back to polling:', error);
+            // Fallback to polling on WebSocket error
+            pollAssessmentStatus(jobId, onProgress)
+              .then(resolve)
+              .catch(reject);
+          }
+        }
+      });
+
+      // Connect to WebSocket if not already connected
+      if (!wsService.isConnected()) {
+        const token = localStorage.getItem('token') || '';
+        if (!token) {
+          throw new Error('No authentication token for WebSocket');
+        }
+        await wsService.connect(token);
+      }
+
+      // Subscribe to job updates
+      wsService.subscribeToJob(jobId);
+      console.log(`Enhanced Assessment API: Monitoring job ${jobId} via WebSocket`);
+
+    } catch (error) {
+      clearTimeout(timeoutId);
+      if (!isResolved) {
+        isResolved = true;
+        console.warn('Enhanced Assessment API: WebSocket setup failed, falling back to polling:', error);
+        // Fallback to polling if WebSocket setup fails
+        pollAssessmentStatus(jobId, onProgress)
+          .then(resolve)
+          .catch(reject);
+      }
+    }
+  });
 }
+
+// REMOVED: submitAssessmentForWebSocket function - was causing double token consumption
+// This wrapper function was redundant and caused double API calls
+// All functionality moved to submitAssessmentWithWebSocket
 
 /**
  * Get estimated wait time based on queue status
