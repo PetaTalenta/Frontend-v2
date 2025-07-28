@@ -373,8 +373,8 @@ function DashboardContent() {
         <div className="max-w-[88rem] mx-auto space-y-6 w-full" style={{ transform: 'scale(1.2)', transformOrigin: 'center' }}>
           {/* Header */}
           <Header
-            title={`Welcome, ${getUserDisplayName()}!`}
-            description="Loading your personalized dashboard..."
+            title={`Selamat datang, ${getUserDisplayName()}!`}
+            description="Memuat dasbor pribadi Anda..."
           />
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -431,7 +431,7 @@ function DashboardContent() {
           {/* Header */}
           <Header
             title={`Welcome, ${getUserDisplayName()}!`}
-            description="Track your progress here, You almost reach your goal."
+            description="Lacak kemajuan Anda di sini, Anda hampir mencapai tujuan Anda."
           />
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

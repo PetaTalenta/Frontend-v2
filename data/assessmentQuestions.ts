@@ -315,13 +315,11 @@ export const assessmentTypes: AssessmentType[] = [
     name: 'Big Five Personality',
     description: 'Inventori Lima Besar (BFI-44): Penilaian Diri',
     totalQuestions: 44,
-    scaleType: '7-point',
+    scaleType: '5-point',
     scaleLabels: [
       'Sangat Tidak Setuju',
       'Tidak Setuju',
-      'Agak Tidak Setuju',
       'Netral',
-      'Agak Setuju',
       'Setuju',
       'Sangat Setuju'
     ],
@@ -332,13 +330,11 @@ export const assessmentTypes: AssessmentType[] = [
     name: 'RIASEC Holland Codes',
     description: 'Kode Holland RIASEC: Penilaian Diri',
     totalQuestions: 60,
-    scaleType: '7-point',
+    scaleType: '5-point',
     scaleLabels: [
       'Sangat Tidak Sesuai',
       'Tidak Sesuai',
-      'Agak Tidak Sesuai',
       'Netral',
-      'Agak Sesuai',
       'Sesuai',
       'Sangat Sesuai'
     ],
@@ -349,13 +345,11 @@ export const assessmentTypes: AssessmentType[] = [
     name: 'VIA Character Strengths',
     description: 'Kekuatan Karakter VIA: Penilaian Diri',
     totalQuestions: 96,
-    scaleType: '7-point',
+    scaleType: '5-point',
     scaleLabels: [
       'Sangat Tidak Sesuai',
       'Tidak Sesuai',
-      'Agak Tidak Sesuai',
       'Netral',
-      'Agak Sesuai',
       'Sesuai',
       'Sangat Sesuai'
     ],

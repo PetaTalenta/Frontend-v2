@@ -6,7 +6,7 @@ import { AssessmentScores, RiasecScores, OceanScores, ViaScores } from '../types
 
 /**
  * Calculate category score from raw answers
- * Converts 7-point scale (1-7) to 0-100 scale
+ * Converts 5-point scale (1-5) to 0-100 scale
  * Handles reverse scoring for Big Five questions
  */
 export function calculateCategoryScore(
@@ -26,7 +26,7 @@ export function calculateCategoryScore(
     const answer = answers[question.id];
     if (answer !== null && answer !== undefined) {
       // Handle reverse scoring for Big Five
-      const score = question.isReversed ? (8 - answer) : answer;
+      const score = question.isReversed ? (6 - answer) : answer;
       totalScore += score;
       questionCount++;
     }
@@ -34,11 +34,11 @@ export function calculateCategoryScore(
 
   if (questionCount === 0) return 0;
 
-  // Calculate average (1-7 scale)
+  // Calculate average (1-5 scale)
   const averageScore = totalScore / questionCount;
-  
-  // Convert to 0-100 scale: (average - 1) / 6 * 100
-  const finalScore = Math.round(((averageScore - 1) / 6) * 100);
+
+  // Convert to 0-100 scale: (average - 1) / 4 * 100
+  const finalScore = Math.round(((averageScore - 1) / 4) * 100);
   
   return Math.max(0, Math.min(100, finalScore));
 }

@@ -186,21 +186,21 @@ export default function AssessmentQuestionsList() {
   };
 
   return (
-    <div className="flex flex-col items-center w-full">
-      <div className="w-full mb-12">
-        {/* Section Header - matching card width */}
-        <div className="w-[1400px] mx-auto mb-8">
-          <div className="bg-white rounded-xl shadow p-6 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <span className="inline-block px-4 py-2 rounded-full bg-[#e7eaff] text-[#6475e9] text-sm font-semibold">
+    <div className="flex flex-col items-center w-full px-4 lg:px-0">
+      <div className="w-full mb-8 lg:mb-12">
+        {/* Section Header - responsive width */}
+        <div className="w-full max-w-[1400px] mx-auto mb-6 lg:mb-8">
+          <div className="bg-white rounded-xl shadow p-4 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-0">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
+              <span className="inline-block px-3 sm:px-4 py-1 sm:py-2 rounded-full bg-[#e7eaff] text-[#6475e9] text-xs sm:text-sm font-semibold">
                 {currentAssessment.name}
               </span>
-              <h2 className="font-bold text-2xl text-[#313131]">{category}</h2>
+              <h2 className="font-bold text-lg sm:text-xl lg:text-2xl text-[#313131]">{category}</h2>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-[#64707d]">Progress:</span>
-              <span className="font-semibold text-lg text-[#6475e9]">{answered}/{total}</span>
-              <div className="w-24 h-2 bg-[#eaecf0] rounded-full ml-2">
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
+              <span className="text-xs sm:text-sm text-[#64707d]">Progress:</span>
+              <span className="font-semibold text-base sm:text-lg text-[#6475e9]">{answered}/{total}</span>
+              <div className="w-16 sm:w-24 h-2 bg-[#eaecf0] rounded-full ml-2">
                 <div
                   className="h-2 bg-[#6475e9] rounded-full transition-all duration-300"
                   style={{ width: `${percent}%` }}
@@ -223,27 +223,27 @@ export default function AssessmentQuestionsList() {
                   onAnswer={value => handleAnswer(question.id, value)}
                   isLastQuestion={isLast}
                   navigationButtons={isLast ? (
-                    <div className={`flex items-center mt-2 px-2 ${
+                    <div className={`flex flex-col sm:flex-row items-center mt-2 px-2 gap-3 sm:gap-0 ${
                       currentAssessmentIndex === 0 && currentSectionIndex === 0
-                        ? 'justify-end'
-                        : 'justify-between'
+                        ? 'sm:justify-end'
+                        : 'sm:justify-between'
                     }`}>
                       {/* Hide Previous button at the very beginning (Phase 1, Openness to Experience) */}
                       {!(currentAssessmentIndex === 0 && currentSectionIndex === 0) && (
                         <button
                           onClick={isPhaseBeginning ? handlePrevPhase : handlePrevSection}
-                          className="px-6 py-2 rounded-lg border font-medium flex items-center gap-2 border-[#6475e9] text-[#6475e9] bg-white hover:bg-[#f2f4ff]"
+                          className="px-4 sm:px-6 py-2 rounded-lg border font-medium flex items-center gap-2 border-[#6475e9] text-[#6475e9] bg-white hover:bg-[#f2f4ff] w-full sm:w-auto justify-center sm:justify-start"
                         >
                           <span className="text-lg">&larr;</span>
-                          <span>{isPhaseBeginning ? 'Phase Sebelumnya' : 'Sebelumnya'}</span>
+                          <span className="text-sm sm:text-base">{isPhaseBeginning ? 'Phase Sebelumnya' : 'Sebelumnya'}</span>
                         </button>
                       )}
-                      <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto justify-center sm:justify-end">
                         {/* "Lewati" button removed from last question card */}
                         <button
                           onClick={isLastPhase && isLastSection && areAllViaQuestionsAnswered() ? handleFinishAssessment : handleNextSection}
                           disabled={(isLastPhase && isLastSection && !areAllViaQuestionsAnswered()) || isSubmitting}
-                          className={`px-6 py-2 rounded-lg border font-semibold flex items-center gap-2 ${
+                          className={`px-4 sm:px-6 py-2 rounded-lg border font-semibold flex items-center gap-2 w-full sm:w-auto justify-center text-sm sm:text-base ${
                             isLastPhase && isLastSection
                               ? areAllViaQuestionsAnswered()
                                 ? isSubmitting

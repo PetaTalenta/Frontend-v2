@@ -9,6 +9,7 @@ import { Skeleton } from '../../../components/ui/skeleton';
 import { toast } from '../../../components/ui/use-toast';
 import { AssessmentResult } from '../../../types/assessment-results';
 import { getAssessmentResult, exportResultAsPDF } from '../../../services/assessment-api';
+import { getAssessmentResultFromAPI } from '../../../services/user-stats';
 import PersonaProfileCard from '../../../components/results/PersonaProfileCard';
 import PersonaProfileSummary from '../../../components/results/PersonaProfileSummary';
 import AssessmentScoresChart from '../../../components/results/AssessmentScoresChart';
@@ -90,9 +91,87 @@ function FullResultsPage() {
     try {
       setLoading(true);
       setError(null);
-      const data = await getAssessmentResult(resultId);
-      console.log('FullResultsPage: Successfully loaded result:', data?.persona_profile?.title);
-      setResult(data);
+
+      // First try localStorage (for newly completed assessments)
+      try {
+        const data = await getAssessmentResult(resultId);
+        console.log('FullResultsPage: Successfully loaded result from localStorage:', data?.persona_profile?.title);
+        setResult(data);
+        return;
+      } catch (localStorageError) {
+        console.warn('FullResultsPage: localStorage failed, trying API:', localStorageError);
+      }
+
+      // Fallback to API if localStorage fails
+      try {
+        const apiData = await getAssessmentResultFromAPI(resultId);
+        console.log('FullResultsPage: Successfully loaded result from API:', apiData?.persona_profile?.title || apiData?.persona_profile?.archetype);
+
+        // Convert API data to AssessmentResult format
+        const formattedResult: AssessmentResult = {
+          id: apiData.id,
+          userId: apiData.user_id,
+          createdAt: apiData.created_at,
+          status: 'completed',
+          assessment_data: apiData.assessment_data || {
+            riasec: {
+              realistic: 0,
+              investigative: 0,
+              artistic: 0,
+              social: 0,
+              enterprising: 0,
+              conventional: 0
+            },
+            ocean: {
+              openness: 0,
+              conscientiousness: 0,
+              extraversion: 0,
+              agreeableness: 0,
+              neuroticism: 0
+            },
+            viaIs: {
+              creativity: 0,
+              curiosity: 0,
+              judgment: 0,
+              loveOfLearning: 0,
+              perspective: 0,
+              bravery: 0,
+              perseverance: 0,
+              honesty: 0,
+              zest: 0,
+              love: 0,
+              kindness: 0,
+              socialIntelligence: 0,
+              teamwork: 0,
+              fairness: 0,
+              leadership: 0,
+              forgiveness: 0,
+              humility: 0,
+              prudence: 0,
+              selfRegulation: 0,
+              appreciationOfBeauty: 0,
+              gratitude: 0,
+              hope: 0,
+              humor: 0,
+              spirituality: 0
+            }
+          },
+          persona_profile: apiData.persona_profile || {
+            title: 'Assessment Result',
+            description: 'No description available',
+            strengths: [],
+            recommendations: [],
+            careerRecommendation: [],
+            roleModel: []
+          }
+        };
+
+        setResult(formattedResult);
+        return;
+      } catch (apiError) {
+        console.error('FullResultsPage: Both localStorage and API failed:', apiError);
+        throw new Error('Data assessment tidak ditemukan. Pastikan assessment telah selesai diproses.');
+      }
     } catch (err) {
       console.error('FullResultsPage: Error fetching result:', err);
       setError(err instanceof Error ? err.message : 'Failed to load assessment result');

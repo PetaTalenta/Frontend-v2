@@ -13,17 +13,32 @@ interface PersonaProfileSummaryProps {
 }
 
 export default function PersonaProfileSummary({ profile, resultId }: PersonaProfileSummaryProps) {
+  // Ensure profile data exists to prevent errors
+  if (!profile) {
+    console.error('PersonaProfileSummary: Missing profile data');
+    return (
+      <Card className="bg-gradient-to-br from-[#6475e9] to-[#5a6bd8] text-white border-none shadow-lg">
+        <CardContent className="p-6">
+          <div className="text-center text-white/80">
+            <p>Data profil tidak tersedia</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   // Get first 2 sentences of description for summary
   const getShortDescription = (description: string) => {
+    if (!description) return 'Deskripsi tidak tersedia';
     const sentences = description.split('. ');
     return sentences.slice(0, 2).join('. ') + (sentences.length > 2 ? '.' : '');
   };
 
   // Get top 3 strengths
-  const topStrengths = profile.strengths.slice(0, 3);
+  const topStrengths = (profile.strengths || []).slice(0, 3);
 
   // Get top 2 career recommendations
-  const topCareers = profile.careerRecommendation.slice(0, 2);
+  const topCareers = (profile.careerRecommendation || []).slice(0, 2);
 
   return (
     <Card className="bg-gradient-to-br from-[#6475e9] to-[#5a6bd8] text-white border-none shadow-lg">

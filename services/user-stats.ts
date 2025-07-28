@@ -225,11 +225,28 @@ export async function fetchAssessmentHistoryFromAPI() {
 
     // Transform API data to match AssessmentData interface
     const assessmentHistory = allResults.map((result: any, index: number) => {
-      const personaTitle = result.persona_profile?.title || result.persona_profile?.archetype || result.assessment_name || 'Assessment Result';
+      let personaTitle = 'Assessment Result';
 
-      // Log for debugging persona title consistency
-      if (result.persona_profile) {
-        console.log(`Archive API: Assessment ${result.id} - Using persona title: "${personaTitle}" (from ${result.persona_profile?.title ? 'title' : result.persona_profile?.archetype ? 'archetype' : 'fallback'})`);
+      // First, try to get persona title from localStorage (most accurate for recent assessments)
+      if (typeof window !== 'undefined' && result.id) {
+        try {
+          const localResult = localStorage.getItem(`assessment-result-${result.id}`);
+          if (localResult) {
+            const parsedLocal = JSON.parse(localResult);
+            if (parsedLocal.persona_profile?.title) {
+              personaTitle = parsedLocal.persona_profile.title;
+              console.log(`Archive API: Assessment ${result.id} - Using localStorage persona title: "${personaTitle}"`);
+            }
+          }
+        } catch (error) {
+          console.warn(`Archive API: Error reading localStorage for ${result.id}:`, error);
+        }
+      }
+
+      // If not found in localStorage, use API data as fallback
+      if (personaTitle === 'Assessment Result') {
+        personaTitle = result.persona_profile?.title || result.persona_profile?.archetype || 'Assessment Result';
+        console.log(`Archive API: Assessment ${result.id} - Using API persona title: "${personaTitle}" (from ${result.persona_profile?.title ? 'title' : result.persona_profile?.archetype ? 'archetype' : 'fallback'})`);
       }
 
       return {
@@ -266,9 +283,10 @@ export async function getLatestAssessmentFromArchive() {
     // First get the list of assessments to find the latest completed one
     const response = await apiService.getResults({
       limit: 10, // Only need the most recent ones
+      status: 'completed', // Only get completed assessments
+      // @ts-ignore - sort and order are supported by the API but not in the type definition
       sort: 'created_at',
-      order: 'DESC',
-      status: 'completed' // Only get completed assessments
+      order: 'DESC'
     });
 
     if (!response.success || !response.data?.results || response.data.results.length === 0) {
@@ -295,6 +313,40 @@ export async function getLatestAssessmentFromArchive() {
 
   } catch (error) {
     console.error('Archive API: Failed to fetch latest assessment:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get assessment result from API (same source as assessment table)
+ * This ensures consistency between card profil kepribadian and table riwayat
+ */
+export async function getAssessmentResultFromAPI(resultId: string): Promise<any> {
+  try {
+    console.log(`API: Getting assessment result for ID: ${resultId}`);
+    const { apiService } = await import('./apiService');
+
+    const response = await apiService.getResults({
+      limit: 100,
+      page: 1,
+      status: 'completed',
+      // @ts-ignore - jobId is optional but required in type definition
+      jobId: ''
+    });
+
+    if (response.success && response.data?.results) {
+      // Find the specific result by ID
+      const result = response.data.results.find((r: any) => r.id === resultId);
+
+      if (result) {
+        console.log(`API: Found assessment result: ${result.persona_profile?.title || result.persona_profile?.archetype}`);
+        return result;
+      }
+    }
+
+    throw new Error(`Assessment result with ID ${resultId} not found in API`);
+  } catch (error) {
+    console.error(`API: Error fetching assessment result ${resultId}:`, error);
     throw error;
   }
 }

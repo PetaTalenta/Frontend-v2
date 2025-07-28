@@ -51,11 +51,11 @@ function calculateCategoryScore(answers, category) {
             questionCount++;
         }
     }
-    
+
     // Hitung rata-rata dan konversi ke skala 0-100
     if (questionCount > 0) {
         averageScore = totalScore / questionCount;        // 1.0 - 5.0
-        finalScore = Math.round(averageScore * 20);       // 0 - 100
+        finalScore = Math.round(((averageScore - 1) / 4) * 100);  // 0 - 100
         return finalScore;
     }
     
@@ -303,7 +303,8 @@ const calculateScores = () => {
     
     // Calculate final score (0-100 scale)
     if (questionCount > 0) {
-      scores[categoryKey] = Math.round((totalScore / questionCount) * 20);
+      const averageScore = totalScore / questionCount;
+      scores[categoryKey] = Math.round(((averageScore - 1) / 4) * 100);
     }
   });
   
@@ -374,7 +375,8 @@ const calculateScores = () => {
 
     // Calculate average score (0-100 scale)
     if (questionCount > 0) {
-      scores[categoryKey] = Math.round((totalScore / questionCount) * 20);
+      const averageScore = totalScore / questionCount;
+      scores[categoryKey] = Math.round(((averageScore - 1) / 4) * 100);
     }
   });
 

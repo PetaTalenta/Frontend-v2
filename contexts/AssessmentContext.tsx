@@ -56,7 +56,7 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
 
     assessmentTypes.forEach((assessment) => {
       assessment.questions.forEach((question) => {
-        const maxValue = assessment.scaleType === '7-point' ? 7 : 5;
+        const maxValue = 5; // All assessments now use 5-point scale
         const randomValue = Math.floor(Math.random() * maxValue) + 1;
         newAnswers[question.id] = randomValue;
       });
@@ -70,7 +70,7 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
     const newAnswers = { ...answers };
 
     currentAssessment.questions.forEach((question: any) => {
-      const maxValue = currentAssessment.scaleType === '7-point' ? 7 : 5;
+      const maxValue = 5; // All assessments now use 5-point scale
       const randomValue = Math.floor(Math.random() * maxValue) + 1;
       newAnswers[question.id] = randomValue;
     });

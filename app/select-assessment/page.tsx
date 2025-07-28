@@ -26,7 +26,7 @@ export default function SelectAssessmentPage() {
       </div>
       {/* Header */}
       <div className="flex flex-col gap-1 items-center w-full text-center mb-12 sm:mb-20 lg:mb-28 px-4">
-        <div className="font-bold text-[#40474F] text-2xl sm:text-4xl lg:text-[64px] tracking-[-1.5px] leading-[1.4] font-['Plus Jakarta Sans',sans-serif]">
+        <div className="font-bold text-[#40474F] text-2xl sm:text-4xl lg:text-[64px] tracking-[-1.5px] leading-[1.4] font-['Plus Jakarta Sans',sans-serif] mb-4">
           Kenali Dirimu, Maksimalkan Potensimu
         </div>
         <div className="font-normal text-[#64707D] text-sm sm:text-lg lg:text-[20px] tracking-[-0.25px] leading-[1.6] font-['Plus Jakarta Sans',sans-serif] max-w-4xl">

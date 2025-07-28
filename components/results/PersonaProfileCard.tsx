@@ -11,6 +11,20 @@ interface PersonaProfileCardProps {
 }
 
 export default function PersonaProfileCard({ profile }: PersonaProfileCardProps) {
+  // Ensure profile data exists to prevent errors
+  if (!profile) {
+    console.error('PersonaProfileCard: Missing profile data');
+    return (
+      <Card className="bg-gradient-to-br from-[#6475e9] to-[#5a6bd8] text-white border-none shadow-lg">
+        <CardContent className="p-6">
+          <div className="text-center text-white/80">
+            <p>Data profil tidak tersedia</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className="bg-gradient-to-br from-[#6475e9] to-[#5a6bd8] text-white border-none shadow-lg">
       <CardHeader className="pb-4">
@@ -20,7 +34,7 @@ export default function PersonaProfileCard({ profile }: PersonaProfileCardProps)
           </div>
           <div>
             <CardTitle className="text-2xl font-bold text-white">
-              {profile.title}
+              {profile.title || 'Profil Tidak Tersedia'}
             </CardTitle>
             <p className="text-white/80 text-sm">Profil Kepribadian Anda</p>
           </div>
@@ -31,7 +45,7 @@ export default function PersonaProfileCard({ profile }: PersonaProfileCardProps)
         {/* Description */}
         <div className="bg-white/10 rounded-lg p-4">
           <p className="text-white/90 leading-relaxed">
-            {profile.description}
+            {profile.description || 'Deskripsi tidak tersedia'}
           </p>
         </div>
 
@@ -42,12 +56,15 @@ export default function PersonaProfileCard({ profile }: PersonaProfileCardProps)
             <h3 className="font-semibold text-white">Kekuatan Utama</h3>
           </div>
           <div className="grid grid-cols-1 gap-2">
-            {profile.strengths.map((strength, index) => (
+            {(profile.strengths || []).map((strength, index) => (
               <div key={index} className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-yellow-300 rounded-full flex-shrink-0" />
                 <span className="text-white/90 text-sm">{strength}</span>
               </div>
             ))}
+            {(!profile.strengths || profile.strengths.length === 0) && (
+              <p className="text-white/70 text-sm">Tidak ada data kekuatan</p>
+            )}
           </div>
         </div>
 
@@ -58,12 +75,15 @@ export default function PersonaProfileCard({ profile }: PersonaProfileCardProps)
             <h3 className="font-semibold text-white">Rekomendasi Pengembangan</h3>
           </div>
           <div className="grid grid-cols-1 gap-2">
-            {profile.recommendations.map((recommendation, index) => (
+            {(profile.recommendations || []).map((recommendation, index) => (
               <div key={index} className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-green-300 rounded-full flex-shrink-0" />
                 <span className="text-white/90 text-sm">{recommendation}</span>
               </div>
             ))}
+            {(!profile.recommendations || profile.recommendations.length === 0) && (
+              <p className="text-white/70 text-sm">Tidak ada rekomendasi</p>
+            )}
           </div>
         </div>
 
@@ -74,15 +94,18 @@ export default function PersonaProfileCard({ profile }: PersonaProfileCardProps)
             <h3 className="font-semibold text-white">Role Model</h3>
           </div>
           <div className="flex flex-wrap gap-2">
-            {profile.roleModel.map((model, index) => (
-              <Badge 
-                key={index} 
-                variant="secondary" 
+            {(profile.roleModel || []).map((model, index) => (
+              <Badge
+                key={index}
+                variant="secondary"
                 className="bg-white/20 text-white border-white/30 hover:bg-white/30"
               >
                 {model}
               </Badge>
             ))}
+            {(!profile.roleModel || profile.roleModel.length === 0) && (
+              <p className="text-white/70 text-sm">Tidak ada role model</p>
+            )}
           </div>
         </div>
       </CardContent>

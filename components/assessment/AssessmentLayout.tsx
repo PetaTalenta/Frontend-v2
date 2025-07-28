@@ -40,14 +40,14 @@ function AssessmentContent() {
   };
 
   return (
-    <div className="flex flex-row-reverse h-screen bg-[#f5f7fb]">
-      {/* Fixed Sidebar */}
-      <div className="fixed right-0 top-0 h-screen z-10">
+    <div className="flex flex-col lg:flex-row-reverse min-h-screen bg-[#f5f7fb]">
+      {/* Responsive Sidebar */}
+      <div className="lg:fixed lg:right-0 lg:top-0 lg:h-screen lg:z-10 w-full lg:w-[280px]">
         <AssessmentSidebar />
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col mr-[280px]">
+      <div className="flex-1 flex flex-col lg:mr-[280px]">
         <AssessmentHeader
           currentQuestion={currentSectionIndex + 1}
           totalQuestions={currentAssessment.totalQuestions}
@@ -55,9 +55,9 @@ function AssessmentContent() {
           phase={`Phase ${getPhaseNumber()}`}
         />
         <AssessmentProgressBar />
-        <div className="flex-1 flex flex-col items-center justify-start overflow-y-auto py-8">
+        <div className="flex-1 flex flex-col items-center justify-start overflow-y-auto py-4 lg:py-8">
           {/* Token Warning */}
-          <div className="w-full max-w-4xl px-8 mb-4">
+          <div className="w-full max-w-4xl px-4 lg:px-8 mb-4">
             <TokenWarning />
           </div>
 

@@ -12,9 +12,23 @@ interface ResultSummaryStatsProps {
 }
 
 export default function ResultSummaryStats({ scores, createdAt }: ResultSummaryStatsProps) {
+  // Ensure scores data exists to prevent errors
+  if (!scores || !scores.riasec || !scores.ocean || !scores.viaIs) {
+    console.error('ResultSummaryStats: Missing required scores data');
+    return (
+      <Card className="bg-white border-gray-200 shadow-sm">
+        <CardContent className="p-6">
+          <div className="text-center text-gray-500">
+            <p>Data skor tidak tersedia</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   const dominantRiasec = getDominantRiasecType(scores.riasec);
   const topStrengths = getTopViaStrengths(scores.viaIs, 3);
-  
+
   // Calculate overall scores
   const riasecAverage = Math.round(
     Object.values(scores.riasec).reduce((sum, score) => sum + score, 0) / 6

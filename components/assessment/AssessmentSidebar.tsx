@@ -1,9 +1,11 @@
 'use client';
 
+import { useState } from 'react';
 import { useAssessment } from '../../contexts/AssessmentContext';
 import { assessmentTypes } from '../../data/assessmentQuestions';
 
 export default function AssessmentSidebar() {
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const {
     currentAssessmentIndex,
     currentSectionIndex,
@@ -93,8 +95,31 @@ export default function AssessmentSidebar() {
   };
 
   return (
-    <aside className="w-[280px] h-screen bg-white border-r border-[#eaecf0] p-6 flex flex-col gap-4 overflow-y-auto">
-      <h2 className="font-bold text-xl mb-4 text-center">Assessment Progress</h2>
+    <aside className="w-full lg:w-[280px] lg:h-screen bg-white border-b lg:border-b-0 lg:border-r border-[#eaecf0] p-4 lg:p-6 flex flex-col gap-4 overflow-y-auto">
+      {/* Mobile Toggle Button */}
+      <div className="lg:hidden flex items-center justify-between mb-4">
+        <h2 className="font-bold text-lg">Assessment Progress</h2>
+        <button
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors"
+          aria-label="Toggle progress details"
+        >
+          <svg
+            className={`w-4 h-4 transition-transform ${isCollapsed ? 'rotate-180' : ''}`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+      </div>
+
+      {/* Desktop Title */}
+      <h2 className="hidden lg:block font-bold text-xl mb-4 text-center">Assessment Progress</h2>
+
+      {/* Collapsible Content */}
+      <div className={`flex flex-col gap-4 ${isCollapsed ? 'hidden lg:flex' : 'flex'}`}>
 
       {/* Phase 1 - Big Five */}
       <div className={`rounded-xl p-4 mb-2 border cursor-pointer transition-all ${
@@ -299,6 +324,7 @@ export default function AssessmentSidebar() {
             })}
           </div>
         )}
+      </div>
       </div>
 
       {/* Total Progress */}

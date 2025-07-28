@@ -49,14 +49,14 @@ Halaman Result Assessment menampilkan hasil perhitungan dari tiga assessment psi
 ### Calculation Logic
 Berdasarkan `docs/assessment-calculation.md`:
 
-1. **Scale Conversion**: 7-point scale (1-7) → 0-100 scale
+1. **Scale Conversion**: 5-point scale (1-5) → 0-100 scale
    ```javascript
-   finalScore = Math.round(((averageScore - 1) / 6) * 100)
+   finalScore = Math.round(((averageScore - 1) / 4) * 100)
    ```
 
 2. **Reverse Scoring**: Untuk pertanyaan Big Five yang ditandai `isReversed: true`
    ```javascript
-   score = question.isReversed ? (8 - answer) : answer
+   score = question.isReversed ? (6 - answer) : answer
    ```
 
 3. **Category Grouping**: Pertanyaan dikelompokkan berdasarkan category/subcategory

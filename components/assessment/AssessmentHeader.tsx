@@ -324,42 +324,46 @@ export default function AssessmentHeader({
   };
 
   return (
-    <div className="flex items-center justify-between px-8 py-6 bg-transparent">
-      <div className="flex items-center gap-2">
+    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 lg:px-8 py-4 lg:py-6 bg-transparent gap-4 sm:gap-2">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full sm:w-auto">
         <button
           onClick={handleBackToDashboard}
-          className="flex items-center gap-2 px-4 py-2 rounded-full border border-[#E5E7EB] bg-white text-[#64707D] text-[16px] font-medium shadow-sm hover:bg-[#f5f7fb] transition"
+          className="flex items-center gap-2 px-3 lg:px-4 py-2 rounded-full border border-[#E5E7EB] bg-white text-[#64707D] text-sm lg:text-[16px] font-medium shadow-sm hover:bg-[#f5f7fb] transition"
           type="button"
         >
           <img src="/icons/CaretLeft.svg" alt="Back" className="w-4 h-4" />
-          Kembali ke Dashboard
+          <span className="hidden sm:inline">Kembali ke Dashboard</span>
+          <span className="sm:hidden">Dashboard</span>
         </button>
-        <span className="font-semibold text-lg ml-4">{phase}: {assessmentName}</span>
+        <span className="font-semibold text-base lg:text-lg sm:ml-4 mt-2 sm:mt-0">{phase}: {assessmentName}</span>
       </div>
-      <div className="flex items-center gap-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-6 w-full sm:w-auto">
         {/* Debug Buttons - Only show in development */}
         {process.env.NODE_ENV === 'development' && (
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-1 sm:gap-2">
             <button
               onClick={handleDebugFillCurrent}
-              className="px-3 py-1 rounded-md bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold transition"
+              className="px-2 sm:px-3 py-1 rounded-md bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold transition"
               title="Debug: Isi assessment saat ini"
             >
-              🐛 Fill Current
+              <span className="hidden sm:inline">🐛 Fill Current</span>
+              <span className="sm:hidden">🐛 Current</span>
             </button>
             <button
               onClick={handleDebugFillAll}
-              className="px-3 py-1 rounded-md bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold transition"
+              className="px-2 sm:px-3 py-1 rounded-md bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold transition"
               title="Debug: Isi semua assessment"
             >
-              🐛 Fill All
+              <span className="hidden sm:inline">🐛 Fill All</span>
+              <span className="sm:hidden">🐛 All</span>
             </button>
             <button
               onClick={handleDebugFinishAssessment}
-              className="px-3 py-1 rounded-md bg-green-500 hover:bg-green-600 text-white text-xs font-semibold transition"
+              className="px-2 sm:px-3 py-1 rounded-md bg-green-500 hover:bg-green-600 text-white text-xs font-semibold transition"
               title="Debug: Selesaikan assessment dan ke results"
             >
-              🐛 Finish & Go to Results
+              <span className="hidden sm:inline">🐛 Finish & Go to Results</span>
+              <span className="sm:hidden">🐛 Finish</span>
             </button>
           </div>
         )}
