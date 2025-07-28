@@ -39,7 +39,7 @@ class ErrorBoundary extends React.Component<
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen bg-[#f5f7fb] p-6 flex items-center justify-center">
+        <div className="dashboard-full-height flex items-center justify-center">
           <div className="max-w-md mx-auto text-center">
             <div className="bg-white rounded-lg p-8 shadow-sm">
               <div className="text-red-500 text-6xl mb-4">⚠️</div>
@@ -321,7 +321,7 @@ function DashboardContent() {
   if (authLoading) {
     console.log('Dashboard: Auth loading...');
     return (
-      <div className="min-h-screen bg-[#f5f7fb] p-6 flex items-center justify-center">
+      <div className="dashboard-full-height flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#6475e9] mx-auto mb-4"></div>
           <p className="text-gray-600">Checking authentication...</p>
@@ -334,7 +334,7 @@ function DashboardContent() {
   if (error) {
     console.log('Dashboard: Error state:', error);
     return (
-      <div className="min-h-screen bg-[#f5f7fb] p-6 flex items-center justify-center">
+      <div className="dashboard-full-height flex items-center justify-center">
         <div className="max-w-md mx-auto text-center">
           <div className="bg-white rounded-lg p-8 shadow-sm">
             <div className="text-red-500 text-6xl mb-4">❌</div>
@@ -369,19 +369,19 @@ function DashboardContent() {
   if (isLoading) {
     console.log('Dashboard: Data loading...');
     return (
-      <div className="min-h-screen bg-[#f5f7fb] p-6 flex items-center justify-center">
-        <div className="max-w-[88rem] mx-auto space-y-6 w-full" style={{ transform: 'scale(1.2)', transformOrigin: 'center' }}>
+      <div className="dashboard-full-height flex justify-center">
+        <div className="dashboard-responsive-container space-y-6">
           {/* Header */}
           <Header
             title={`Selamat datang, ${getUserDisplayName()}!`}
             description="Memuat dasbor pribadi Anda..."
           />
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="dashboard-main-grid">
             {/* Main Content */}
-            <div className="lg:col-span-2 space-y-6">
+            <div className="space-y-6">
               {/* Stats Cards Loading */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="dashboard-stats-grid">
                 {[1, 2, 3, 4].map((i) => (
                   <div key={i} className="bg-white rounded-lg p-4 animate-pulse">
                     <div className="h-4 bg-gray-200 rounded mb-2"></div>
@@ -402,7 +402,7 @@ function DashboardContent() {
             </div>
 
             {/* Right Sidebar Loading */}
-            <div className="space-y-6">
+            <div className="dashboard-sidebar">
               <div className="bg-white rounded-lg p-6 animate-pulse">
                 <div className="h-6 bg-gray-200 rounded mb-4"></div>
                 <div className="h-32 bg-gray-200 rounded"></div>
@@ -426,19 +426,19 @@ function DashboardContent() {
   // Fallback simple dashboard if components fail to load
   try {
     return (
-      <div className="min-h-screen bg-[#f5f7fb] p-6 flex items-center justify-center">
-        <div className="max-w-[88rem] mx-auto space-y-6 w-full" style={{ transform: 'scale(1.2)', transformOrigin: 'center' }}>
+      <div className="dashboard-full-height flex justify-center">
+        <div className="dashboard-responsive-container space-y-6">
           {/* Header */}
           <Header
             title={`Welcome, ${getUserDisplayName()}!`}
             description="Lacak kemajuan Anda di sini, Anda hampir mencapai tujuan Anda."
           />
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="dashboard-main-grid">
             {/* Main Content */}
-            <div className="lg:col-span-2 space-y-6">
+            <div className="space-y-6">
               {/* Stats Cards */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="dashboard-stats-grid">
                 {statsData.map((stat) => (
                   <StatsCard key={stat.id} stat={stat} />
                 ))}
@@ -452,7 +452,7 @@ function DashboardContent() {
             </div>
 
             {/* Right Sidebar */}
-            <div className="space-y-4">
+            <div className="dashboard-sidebar">
               <VIAISCard
                 viaScores={viaScores}
               />
@@ -533,7 +533,7 @@ export default function Dashboard() {
 
     // Ultimate fallback
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+      <div className="dashboard-full-height flex items-center justify-center" style={{ backgroundColor: '#f3f4f6' }}>
         <div className="max-w-md mx-auto text-center">
           <div className="bg-white rounded-lg p-8 shadow-sm">
             <h1 className="text-2xl font-bold text-gray-900 mb-4">Dashboard</h1>

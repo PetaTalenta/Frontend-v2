@@ -87,7 +87,7 @@ export default function SelectAssessmentPage() {
           </div>
         </div>
         {/* Hint */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-center w-full rounded-3xl mt-6 px-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-start justify-top w-full rounded-3xl mt-6 px-4">
           <div className="font-bold text-[#2d3339] text-base sm:text-[18px] mb-2 sm:mb-0 sm:mr-2 flex-shrink-0">Hint:</div>
           <div className="font-normal text-[#64707d] text-sm sm:text-[18px] text-left sm:text-justify leading-relaxed">Kamu akan mengikuti 200 pertanyaan gabungan dari VIA-IS, OCEAN, dan RIASEC. Jawab dengan jujur dan santai—setiap jawaban akan membantumu menemukan kekuatan, kepribadian, dan minat terbaikmu. Yuk mulai perjalanan pengembangan dirimu sekarang!</div>
         </div>

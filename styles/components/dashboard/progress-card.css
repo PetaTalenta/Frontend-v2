@@ -48,3 +48,113 @@
 .progress-card__progress-bar {
   --progress-background: #6475e9;
 }
+
+/* Responsive adjustments for progress card */
+/* Mobile: Compact progress bars */
+@media (max-width: 640px) {
+  .progress-card__content {
+    @apply p-3;
+  }
+
+  .progress-card__title {
+    @apply text-base font-semibold;
+  }
+
+  .progress-card__description {
+    @apply text-xs mb-2;
+  }
+
+  .progress-card__items {
+    @apply space-y-2;
+  }
+
+  .progress-card__item {
+    @apply space-y-1;
+  }
+
+  .progress-card__item-header {
+    @apply text-sm;
+  }
+
+  .progress-card__item-label {
+    @apply text-xs;
+  }
+
+  .progress-card__item-value {
+    @apply text-xs font-bold;
+  }
+
+  .progress-card__progress-bar {
+    @apply h-1.5;
+  }
+}
+
+/* Tablet: Medium optimization */
+@media (min-width: 641px) and (max-width: 1023px) {
+  .progress-card__content {
+    @apply p-4;
+  }
+
+  .progress-card__title {
+    @apply text-lg font-semibold;
+  }
+
+  .progress-card__description {
+    @apply text-sm mb-3;
+  }
+
+  .progress-card__items {
+    @apply space-y-3;
+  }
+
+  .progress-card__item-header {
+    @apply text-sm;
+  }
+
+  .progress-card__progress-bar {
+    @apply h-2;
+  }
+}
+
+/* Desktop: Preserve original layout */
+@media (min-width: 1024px) {
+  .progress-card__content {
+    @apply p-6;
+  }
+
+  .progress-card__title {
+    @apply font-semibold;
+    color: #1e1e1e;
+  }
+
+  .progress-card__description {
+    @apply text-xs mb-2;
+    color: #64707d;
+  }
+
+  .progress-card__items {
+    @apply space-y-4;
+  }
+
+  .progress-card__item {
+    @apply space-y-2;
+  }
+
+  .progress-card__item-header {
+    @apply flex justify-between text-sm;
+  }
+
+  .progress-card__item-label {
+    color: #64707d;
+  }
+
+  .progress-card__item-value {
+    @apply font-medium;
+    color: #1e1e1e;
+  }
+
+  .progress-card__progress-bar {
+    @apply h-2;
+    background-color: #eaecf0;
+  }
+}

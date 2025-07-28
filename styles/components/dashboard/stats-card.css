@@ -34,3 +34,90 @@
 .stats-card__icon {
   @apply w-6 h-6;
 }
+
+/* Responsive adjustments for stats cards */
+/* Mobile: Optimize for small screens */
+@media (max-width: 640px) {
+  .stats-card {
+    @apply min-h-[80px];
+  }
+
+  .stats-card__content {
+    @apply p-2;
+  }
+
+  .stats-card__container {
+    @apply flex-col items-center text-center gap-2;
+  }
+
+  .stats-card__value {
+    @apply text-xl font-bold;
+  }
+
+  .stats-card__label {
+    @apply text-xs;
+    line-height: 1.1;
+  }
+
+  .stats-card__icon-container {
+    @apply w-6 h-6;
+  }
+
+  .stats-card__icon {
+    @apply w-4 h-4;
+  }
+}
+
+/* Tablet: Medium optimization */
+@media (min-width: 641px) and (max-width: 1023px) {
+  .stats-card {
+    @apply min-h-[90px];
+  }
+
+  .stats-card__content {
+    @apply p-3;
+  }
+
+  .stats-card__value {
+    @apply text-2xl;
+  }
+
+  .stats-card__label {
+    @apply text-sm;
+  }
+
+  .stats-card__icon-container {
+    @apply w-8 h-8;
+  }
+
+  .stats-card__icon {
+    @apply w-5 h-5;
+  }
+}
+
+/* Desktop: Preserve original sizes */
+@media (min-width: 1024px) {
+  .stats-card__content {
+    @apply p-4;
+  }
+
+  .stats-card__container {
+    @apply flex items-center justify-between;
+  }
+
+  .stats-card__value {
+    @apply text-3xl font-bold;
+  }
+
+  .stats-card__label {
+    @apply text-xs;
+  }
+
+  .stats-card__icon-container {
+    @apply w-10 h-10;
+  }
+
+  .stats-card__icon {
+    @apply w-6 h-6;
+  }
+}

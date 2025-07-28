@@ -55,3 +55,116 @@
   @apply text-xs font-medium;
   color: #1e1e1e;
 }
+
+/* Responsive adjustments for OCEAN card */
+/* Mobile: Compact chart with better readability */
+@media (max-width: 640px) {
+  .ocean-card__content {
+    @apply p-3 space-y-2;
+  }
+
+  .ocean-card__title {
+    @apply text-base font-semibold;
+  }
+
+  .ocean-card__description {
+    @apply text-xs mb-2;
+  }
+
+  .ocean-card__chart-container {
+    @apply gap-1;
+  }
+
+  .ocean-card__bar-item {
+    @apply gap-1;
+  }
+
+  .ocean-card__percentage-container {
+    @apply h-4;
+  }
+
+  .ocean-card__percentage {
+    @apply text-xs font-bold;
+  }
+
+  .ocean-card__bar-background {
+    height: 60px;
+    @apply rounded-md;
+  }
+
+  .ocean-card__trait-label {
+    @apply text-xs font-medium;
+  }
+}
+
+/* Tablet: Medium optimization */
+@media (min-width: 641px) and (max-width: 1023px) {
+  .ocean-card__content {
+    @apply p-4 space-y-3;
+  }
+
+  .ocean-card__title {
+    @apply text-lg;
+  }
+
+  .ocean-card__description {
+    @apply text-sm;
+  }
+
+  .ocean-card__chart-container {
+    @apply gap-2;
+  }
+
+  .ocean-card__percentage {
+    @apply text-sm;
+  }
+
+  .ocean-card__bar-background {
+    height: 90px;
+  }
+
+  .ocean-card__trait-label {
+    @apply text-sm;
+  }
+}
+
+/* Desktop: Preserve original layout */
+@media (min-width: 1024px) {
+  .ocean-card__content {
+    @apply flex flex-col space-y-1.5 p-6;
+  }
+
+  .ocean-card__title {
+    @apply text-lg font-semibold text-left;
+  }
+
+  .ocean-card__description {
+    @apply text-xs text-left;
+  }
+
+  .ocean-card__chart-container {
+    @apply flex items-center justify-center gap-2;
+  }
+
+  .ocean-card__bar-item {
+    @apply flex flex-col items-center gap-1 flex-1;
+  }
+
+  .ocean-card__percentage-container {
+    @apply h-6 flex items-center justify-center;
+  }
+
+  .ocean-card__percentage {
+    @apply text-xs font-semibold;
+  }
+
+  .ocean-card__bar-background {
+    @apply relative w-full rounded-lg overflow-hidden;
+    height: 128px;
+    background-color: #f3f3f3;
+  }
+
+  .ocean-card__trait-label {
+    @apply text-xs font-medium;
+  }
+}

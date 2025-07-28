@@ -40,3 +40,102 @@
   @apply text-sm font-semibold;
   color: #1e1e1e;
 }
+
+/* Responsive adjustments for VIAIS card */
+/* Mobile: Compact layout for better readability */
+@media (max-width: 640px) {
+  .viais-card__content {
+    @apply p-3 space-y-2;
+  }
+
+  .viais-card__title {
+    @apply text-base font-semibold;
+  }
+
+  .viais-card__description {
+    @apply text-xs mb-2;
+  }
+
+  .viais-card__strengths-grid {
+    @apply grid grid-cols-1 gap-1;
+  }
+
+  .viais-card__strength-item {
+    @apply p-2 rounded-md;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .viais-card__strength-name {
+    @apply text-xs font-medium;
+    flex: 1;
+  }
+
+  .viais-card__strength-score {
+    @apply text-sm font-bold;
+    margin-left: auto;
+  }
+}
+
+/* Tablet: Balanced layout */
+@media (min-width: 641px) and (max-width: 1023px) {
+  .viais-card__content {
+    @apply p-3 space-y-2;
+  }
+
+  .viais-card__title {
+    @apply text-lg;
+  }
+
+  .viais-card__description {
+    @apply text-xs mb-3;
+  }
+
+  .viais-card__strengths-grid {
+    @apply grid grid-cols-2 gap-2;
+  }
+
+  .viais-card__strength-item {
+    @apply p-2;
+  }
+
+  .viais-card__strength-name {
+    @apply text-xs;
+  }
+
+  .viais-card__strength-score {
+    @apply text-sm;
+  }
+}
+
+/* Desktop: Preserve original layout */
+@media (min-width: 1024px) {
+  .viais-card__content {
+    @apply flex flex-col space-y-1 p-4;
+  }
+
+  .viais-card__title {
+    @apply text-xl font-semibold text-left;
+  }
+
+  .viais-card__description {
+    @apply text-xs text-left mb-4;
+  }
+
+  .viais-card__strengths-grid {
+    @apply grid grid-cols-2 gap-2;
+  }
+
+  .viais-card__strength-item {
+    @apply rounded-lg p-2;
+  }
+
+  .viais-card__strength-name {
+    @apply text-xs font-medium truncate;
+  }
+
+  .viais-card__strength-score {
+    @apply text-sm font-semibold;
+  }
+}

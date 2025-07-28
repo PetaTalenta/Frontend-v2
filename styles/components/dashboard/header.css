@@ -1,6 +1,7 @@
 /* Dashboard Header Component Styles */
 .dashboard-header {
-  @apply flex items-start justify-between;
+  @apply flex items-start justify-between w-full;
+  margin-bottom: 1rem;
 }
 
 .dashboard-header__left {
@@ -23,11 +24,13 @@
 .dashboard-header__title {
   @apply text-2xl font-semibold;
   color: #1e1e1e;
+  line-height: 1.2;
 }
 
 .dashboard-header__description {
   @apply text-sm mt-1;
   color: #64707d;
+  line-height: 1.4;
 }
 
 .dashboard-header__right {
@@ -73,4 +76,92 @@
 
 .dashboard-header__menu-icon {
   @apply mr-2 h-4 w-4;
+}
+
+/* Responsive adjustments for header */
+@media (max-width: 640px) {
+  .dashboard-header {
+    @apply flex-col items-start gap-3 w-full;
+  }
+
+  .dashboard-header__left {
+    @apply gap-3 w-full;
+  }
+
+  .dashboard-header__logo-container {
+    @apply w-12 h-12;
+  }
+
+  .dashboard-header__logo {
+    @apply w-6 h-6;
+  }
+
+  .dashboard-header__text-container {
+    @apply flex-1;
+  }
+
+  .dashboard-header__title {
+    @apply text-xl font-semibold;
+    color: #1e1e1e;
+    margin: 0;
+  }
+
+  .dashboard-header__description {
+    @apply text-sm mt-1;
+    color: #64707d;
+    margin: 0;
+  }
+
+  .dashboard-header__right {
+    @apply w-full justify-end;
+  }
+}
+
+@media (min-width: 641px) and (max-width: 1023px) {
+  .dashboard-header {
+    @apply flex-row items-start justify-between w-full;
+  }
+
+  .dashboard-header__title {
+    @apply text-xl font-semibold;
+    color: #1e1e1e;
+  }
+
+  .dashboard-header__description {
+    @apply text-sm mt-1;
+    color: #64707d;
+  }
+
+  .dashboard-header__logo-container {
+    @apply w-14 h-14;
+  }
+
+  .dashboard-header__logo {
+    @apply w-7 h-7;
+  }
+}
+
+/* Preserve desktop layout */
+@media (min-width: 1024px) {
+  .dashboard-header {
+    @apply flex-row items-start justify-between w-full;
+  }
+
+  .dashboard-header__title {
+    @apply text-2xl font-semibold;
+    color: #1e1e1e;
+  }
+
+  .dashboard-header__description {
+    @apply text-sm mt-1;
+    color: #64707d;
+  }
+
+  .dashboard-header__logo-container {
+    @apply w-16 h-16;
+  }
+
+  .dashboard-header__logo {
+    @apply w-8 h-8;
+  }
 }

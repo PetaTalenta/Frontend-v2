@@ -1,5 +1,25 @@
 /* Dashboard Components CSS - Main Import File */
 
+/* Ensure full height background */
+html, body {
+  @apply min-h-screen w-full m-0 p-0;
+  background-color: #f5f7fb;
+}
+
+#__next {
+  @apply min-h-screen w-full;
+}
+
+/* Remove any default margins/padding that might cause gaps */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+}
+
 /* Import all dashboard component styles */
 @import './stats-card.css';
 @import './header.css';
@@ -9,6 +29,7 @@
 @import './viais-card.css';
 @import './world-map-card.css';
 @import './assessment-table.css';
+@import './responsive.css';
 
 /* Dashboard Global Variables */
 :root {
@@ -131,13 +152,86 @@
 }
 
 /* Responsive Design Helpers */
-@media (max-width: 768px) {
+/* Mobile First Approach - Preserve desktop sizes, optimize for mobile */
+
+/* Mobile devices (up to 640px) */
+@media (max-width: 640px) {
+  .dashboard-grid {
+    @apply gap-3;
+  }
+
+  .dashboard-container {
+    @apply px-3;
+  }
+
+  /* Mobile-specific dashboard layout */
+  .dashboard-mobile-stack {
+    @apply flex flex-col space-y-4;
+  }
+
+  /* Ensure cards maintain minimum readable size on mobile */
+  .dashboard-card {
+    @apply min-h-[120px];
+  }
+
+  /* Mobile stats cards - stack in 1 column for very small screens */
+  .dashboard-stats-mobile {
+    @apply grid grid-cols-1 gap-3;
+  }
+
+  /* Mobile stats cards - 2 columns for slightly larger mobile screens */
+  .dashboard-stats-mobile-2col {
+    @apply grid grid-cols-2 gap-3;
+  }
+}
+
+/* Tablet devices (641px to 768px) */
+@media (min-width: 641px) and (max-width: 768px) {
   .dashboard-grid {
     @apply gap-4;
   }
-  
+
   .dashboard-container {
-    @apply px-2;
+    @apply px-4;
+  }
+
+  /* Tablet layout - single column with proper spacing */
+  .dashboard-tablet-layout {
+    @apply grid grid-cols-1 gap-6;
+  }
+
+  /* Stats cards for tablet - maintain 2x2 or 4x1 layout */
+  .dashboard-stats-tablet {
+    @apply grid grid-cols-2 sm:grid-cols-4 gap-4;
+  }
+}
+
+/* Large tablets and small desktops (769px to 1023px) */
+@media (min-width: 769px) and (max-width: 1023px) {
+  .dashboard-container {
+    @apply px-6;
+  }
+
+  /* Maintain desktop-like layout but with adjusted spacing */
+  .dashboard-medium-layout {
+    @apply grid grid-cols-1 lg:grid-cols-3 gap-5;
+  }
+}
+
+/* Desktop and larger (1024px+) - Preserve original sizes */
+@media (min-width: 1024px) {
+  .dashboard-container {
+    @apply px-8;
+  }
+
+  /* Original desktop layout preserved */
+  .dashboard-desktop-layout {
+    @apply grid grid-cols-1 lg:grid-cols-3 gap-6;
+  }
+
+  /* Desktop stats cards maintain original 4-column layout */
+  .dashboard-stats-desktop {
+    @apply grid grid-cols-2 md:grid-cols-4 gap-4;
   }
 }
 
@@ -154,4 +248,114 @@
 .dashboard-focus {
   @apply focus:outline-none focus:ring-2 focus:ring-offset-2;
   --tw-ring-color: var(--dashboard-primary-blue);
+}
+
+/* Responsive Layout Classes */
+.dashboard-responsive-container {
+  @apply w-full max-w-[88rem] mx-auto;
+  padding: 0.5rem;
+  min-height: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (min-width: 480px) {
+  .dashboard-responsive-container {
+    padding: 0.75rem;
+  }
+}
+
+@media (min-width: 641px) and (max-width: 1023px) {
+  .dashboard-responsive-container {
+    padding: 1rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .dashboard-responsive-container {
+    padding: 1.5rem;
+  }
+}
+
+/* Ensure content visibility */
+.dashboard-responsive-container > * {
+  width: 100%;
+  flex-shrink: 0;
+}
+
+/* Responsive Grid Layouts */
+.dashboard-main-grid {
+  @apply grid gap-3;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 641px) and (max-width: 1023px) {
+  .dashboard-main-grid {
+    @apply gap-4;
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 1024px) {
+  .dashboard-main-grid {
+    @apply gap-6;
+    grid-template-columns: 2fr 1fr;
+  }
+}
+
+/* Stats Cards Responsive Grid */
+.dashboard-stats-grid {
+  @apply grid gap-2;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 480px) {
+  .dashboard-stats-grid {
+    @apply gap-3;
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 641px) and (max-width: 1023px) {
+  .dashboard-stats-grid {
+    @apply gap-3;
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .dashboard-stats-grid {
+    @apply gap-4;
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* Sidebar Responsive Layout */
+.dashboard-sidebar {
+  @apply space-y-3;
+}
+
+@media (min-width: 641px) and (max-width: 1023px) {
+  .dashboard-sidebar {
+    @apply space-y-3;
+  }
+}
+
+@media (min-width: 1024px) {
+  .dashboard-sidebar {
+    @apply space-y-4;
+  }
+}
+
+/* Card Responsive Adjustments */
+.dashboard-card-responsive {
+  @apply bg-white rounded-lg border shadow-sm;
+  border-color: var(--dashboard-border);
+  min-height: 120px;
+}
+
+@media (min-width: 768px) {
+  .dashboard-card-responsive {
+    min-height: auto;
+  }
 }

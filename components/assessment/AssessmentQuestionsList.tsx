@@ -8,6 +8,7 @@ import { useAssessment } from '../../contexts/AssessmentContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { submitAssessmentFlexible } from '../../services/assessment-api';
 import { useAssessmentSubmission } from '../../hooks/useAssessmentSubmission';
+import { validateAnswers } from '../../utils/assessment-calculations';
 
 export default function AssessmentQuestionsList() {
   const router = useRouter();
@@ -163,26 +164,27 @@ export default function AssessmentQuestionsList() {
   // Check if we're at the beginning of Phase 2 or Phase 3
   const isPhaseBeginning = currentSectionIndex === 0 && currentAssessmentIndex > 0;
 
-  // Function to check if all VIA Character Strengths questions are answered
-  const areAllViaQuestionsAnswered = () => {
-    if (currentAssessmentIndex !== 2) return true; // Not on VIA phase, so this check doesn't apply
-
-    const viaAssessment = assessmentTypes[2]; // VIA Character Strengths is at index 2
-    const allViaQuestionIds = viaAssessment.questions.map(q => q.id);
-
-    // Check if all VIA questions have non-null answers
-    return allViaQuestionIds.every(questionId => answers[questionId] != null);
+  // Function to check if ALL questions from ALL assessments are answered
+  const areAllQuestionsAnswered = () => {
+    // Use the comprehensive validation function that checks all assessments
+    const validation = validateAnswers(answers);
+    return validation.isValid;
   };
 
-  // Get remaining questions count for VIA assessment
+  // Get remaining questions count for all assessments
+  const getRemainingQuestions = () => {
+    const validation = validateAnswers(answers);
+    return validation.totalQuestions - validation.answeredQuestions;
+  };
+
+  // Legacy function for backward compatibility (now checks all questions)
+  const areAllViaQuestionsAnswered = () => {
+    return areAllQuestionsAnswered();
+  };
+
+  // Legacy function for backward compatibility (now returns total remaining)
   const getRemainingViaQuestions = () => {
-    if (currentAssessmentIndex !== 2) return 0;
-
-    const viaAssessment = assessmentTypes[2];
-    const allViaQuestionIds = viaAssessment.questions.map(q => q.id);
-    const answeredCount = allViaQuestionIds.filter(questionId => answers[questionId] != null).length;
-
-    return allViaQuestionIds.length - answeredCount;
+    return getRemainingQuestions();
   };
 
   return (
@@ -241,11 +243,11 @@ export default function AssessmentQuestionsList() {
                       <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto justify-center sm:justify-end">
                         {/* "Lewati" button removed from last question card */}
                         <button
-                          onClick={isLastPhase && isLastSection && areAllViaQuestionsAnswered() ? handleFinishAssessment : handleNextSection}
-                          disabled={(isLastPhase && isLastSection && !areAllViaQuestionsAnswered()) || isSubmitting}
+                          onClick={isLastPhase && isLastSection && areAllQuestionsAnswered() ? handleFinishAssessment : handleNextSection}
+                          disabled={(isLastPhase && isLastSection && !areAllQuestionsAnswered()) || isSubmitting}
                           className={`px-4 sm:px-6 py-2 rounded-lg border font-semibold flex items-center gap-2 w-full sm:w-auto justify-center text-sm sm:text-base ${
                             isLastPhase && isLastSection
-                              ? areAllViaQuestionsAnswered()
+                              ? areAllQuestionsAnswered()
                                 ? isSubmitting
                                   ? 'border-[#ff5555] text-white bg-[#df4545] cursor-not-allowed'
                                   : 'border-[#ff5555] text-white bg-[#fd6661] hover:bg-[#df4545]'
@@ -259,11 +261,11 @@ export default function AssessmentQuestionsList() {
                         >
                           <span>
                             {isLastPhase && isLastSection
-                              ? areAllViaQuestionsAnswered()
+                              ? areAllQuestionsAnswered()
                                 ? isSubmitting
                                   ? 'Memproses...'
                                   : 'Akhiri Test'
-                                : `Lengkapi ${getRemainingViaQuestions()} soal lagi`
+                                : `Lengkapi ${getRemainingQuestions()} soal dari semua kategori`
                               : isPhaseTransition
                               ? 'Phase Selanjutnya'
                               : 'Selanjutnya'
