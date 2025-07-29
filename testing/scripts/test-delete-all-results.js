@@ -2,7 +2,7 @@
 
 /**
  * Test script untuk memverifikasi delete-all-results.js
- * Usage: node scripts/test-delete-all-results.js [token]
+ * Usage: node testing/scripts/test-delete-all-results.js [token]
  * 
  * Script ini akan:
  * 1. Test validasi token

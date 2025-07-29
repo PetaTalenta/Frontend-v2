@@ -50,7 +50,7 @@ export default function PersonaProfileSummary({ profile, resultId }: PersonaProf
             </div>
             <div>
               <CardTitle className="text-2xl font-bold text-white">
-                {profile.title}
+                {profile.archetype}
               </CardTitle>
               <p className="text-white/80 text-sm">Profil Kepribadian Anda</p>
             </div>
@@ -62,7 +62,7 @@ export default function PersonaProfileSummary({ profile, resultId }: PersonaProf
         {/* Short Description */}
         <div className="bg-white/10 rounded-lg p-4">
           <p className="text-white/90 leading-relaxed text-sm">
-            {getShortDescription(profile.description)}
+            {getShortDescription(profile.shortSummary)}
           </p>
         </div>
 

@@ -128,9 +128,9 @@ function displayUsageExamples() {
   console.log('');
   
   console.log('🧪 Testing:');
-  console.log('   node scripts/quick-token-test.js');
-  console.log('   node scripts/concurrent-assessment-test.js');
-  console.log('   node scripts/test-delete-all-results.js <token>');
+  console.log('   node testing/scripts/quick-token-test.js');
+  console.log('   node testing/scripts/concurrent-assessment-test.js');
+  console.log('   node testing/scripts/test-delete-all-results.js <token>');
   console.log('');
   
   console.log('🗑️  Data Management:');

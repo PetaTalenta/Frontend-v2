@@ -30,4 +30,4 @@ echo "Press Ctrl+C to stop the server"
 echo
 
 # Start the mock server
-node mock-websocket-server.js
+node testing/mock-servers/mock-websocket-server.js

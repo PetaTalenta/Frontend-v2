@@ -44,9 +44,7 @@ export async function submitAssessment(
     persona_profile: aiAnalysis
   };
 
-  console.log(`AssessmentAPI: Saving assessment result ${resultId} for user ${userId || 'anonymous'}`);
-
-  localStorage.setItem(`assessment-result-${resultId}`, JSON.stringify(result));
+  console.log(`AssessmentAPI: Assessment result ${resultId} created for user ${userId || 'anonymous'} - will be saved via API`);
 
   // Refresh token balance after successful submission
   if (onTokenBalanceUpdate) {
@@ -103,9 +101,7 @@ export async function submitAssessmentFlexible(
     persona_profile: aiAnalysis
   };
 
-  console.log(`AssessmentAPI: Saving flexible assessment result ${resultId} for user ${userId || 'anonymous'}`);
-
-  localStorage.setItem(`assessment-result-${resultId}`, JSON.stringify(result));
+  console.log(`AssessmentAPI: Flexible assessment result ${resultId} created for user ${userId || 'anonymous'} - will be saved via API`);
 
   // Refresh token balance after successful submission
   if (onTokenBalanceUpdate) {
@@ -125,103 +121,82 @@ export async function submitAssessmentFlexible(
 }
 
 /**
- * Get assessment result by ID
+ * Get assessment result by ID (now redirects to Archive API)
+ * @deprecated Use getAssessmentResultFromArchiveAPI instead
  */
 export async function getAssessmentResult(resultId: string): Promise<AssessmentResult> {
-  console.log(`getAssessmentResult: Fetching result for ID: ${resultId}`);
-
-  // Simulate API call delay
-  await delay(500);
-
-  // Try to get from localStorage first (for submitted assessments)
-  // Only access localStorage on client-side
-  if (typeof window !== 'undefined') {
-    // Debug: List all assessment results in localStorage
-    const allKeys = Object.keys(localStorage).filter(key => key.startsWith('assessment-result-'));
-    console.log(`getAssessmentResult: All stored assessment results:`, allKeys);
-
-    const storedResult = localStorage.getItem(`assessment-result-${resultId}`);
-    console.log(`getAssessmentResult: localStorage result found: ${!!storedResult}`);
-
-    if (storedResult) {
-      const parsedResult = JSON.parse(storedResult);
-      console.log(`getAssessmentResult: Returning localStorage result: ${parsedResult.persona_profile?.title}`);
-      return parsedResult;
-    }
-
-    // If not found with exact ID, try to find the most recent result
-    // This helps with ID mismatch issues
-    if (allKeys.length > 0) {
-      console.log(`getAssessmentResult: Exact ID not found, checking most recent result...`);
-
-      // Get all results and find the most recent one
-      const allResults = allKeys.map(key => {
-        try {
-          const result = JSON.parse(localStorage.getItem(key) || '{}');
-          return { key, result, createdAt: new Date(result.createdAt || 0) };
-        } catch {
-          return null;
-        }
-      }).filter(Boolean);
-
-      if (allResults.length > 0) {
-        // Sort by creation date and get the most recent
-        allResults.sort((a, b) => b!.createdAt.getTime() - a!.createdAt.getTime());
-        const mostRecent = allResults[0]!.result;
-
-        console.log(`getAssessmentResult: Found most recent result with ID: ${mostRecent.id}, created: ${mostRecent.createdAt}`);
-        console.log(`getAssessmentResult: Returning most recent result as fallback: ${mostRecent.persona_profile?.title}`);
-        return mostRecent;
-      }
-    }
-  } else {
-    console.log(`getAssessmentResult: Running on server-side, skipping localStorage check`);
-  }
-
-  // If not found, throw error
-  console.error(`getAssessmentResult: Result not found for ID: ${resultId}`);
-  throw new Error(`Assessment result with ID ${resultId} not found`);
+  console.log(`getAssessmentResult: Redirecting to Archive API for ID: ${resultId}`);
+  return getAssessmentResultFromArchiveAPI(resultId);
 }
 
 /**
- * Get all assessment results for a user
+ * Get all assessment results for a user (now uses Archive API)
+ * @deprecated This function should use the Archive API /api/archive/results endpoint
  */
 export async function getUserAssessmentResults(userId?: string): Promise<AssessmentResult[]> {
-  // Simulate API call delay
-  await delay(800);
+  console.log(`getUserAssessmentResults: This function should be replaced with Archive API call`);
 
-  const results: AssessmentResult[] = [];
-
-  console.log(`AssessmentAPI: Getting results for user: ${userId || 'anonymous'}`);
-
-  // Only access localStorage on client-side
-  if (typeof window !== 'undefined') {
-    // Get results from localStorage
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.startsWith('assessment-result-')) {
-        try {
-          const result = JSON.parse(localStorage.getItem(key)!);
-          // Only include results for the specific user (or all if no userId specified)
-          if (!userId || result.userId === userId) {
-            results.push(result);
-            console.log(`AssessmentAPI: Found result ${result.id} for user ${result.userId}`);
-          }
-        } catch (error) {
-          console.error(`AssessmentAPI: Error parsing result from key ${key}:`, error);
-        }
-      }
+  try {
+    // Get auth token
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    if (!token) {
+      console.warn('getUserAssessmentResults: No auth token found, returning empty array');
+      return [];
     }
-  } else {
-    console.log('AssessmentAPI: Running on server-side, skipping localStorage access');
+
+    // Call the proxy API endpoint for all results
+    const response = await fetch('/api/proxy/archive/results', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('getUserAssessmentResults: API request failed with status', response.status, errorText);
+      return [];
+    }
+
+    const apiResponse = await response.json();
+    console.log('getUserAssessmentResults: Raw API response:', JSON.stringify(apiResponse, null, 2));
+
+    if (!apiResponse.success || !apiResponse.data || !apiResponse.data.results) {
+      console.error('getUserAssessmentResults: Invalid API response format', apiResponse);
+      return [];
+    }
+
+    // Check if results is an array
+    if (!Array.isArray(apiResponse.data.results)) {
+      console.error('getUserAssessmentResults: API response data.results is not an array', typeof apiResponse.data.results);
+      return [];
+    }
+
+    // Transform API response to AssessmentResult format
+    const results: AssessmentResult[] = apiResponse.data.results.map((item: any) => ({
+      id: item.id,
+      userId: item.user_id,
+      createdAt: item.created_at,
+      status: item.status,
+      assessment_data: item.assessment_data,
+      persona_profile: item.persona_profile
+    }));
+
+    console.log(`getUserAssessmentResults: Returning ${results.length} results from Archive API`);
+    return results;
+
+  } catch (error) {
+    console.error('getUserAssessmentResults: Error fetching from Archive API:', error);
+
+    // Log additional error details
+    if (error instanceof Error) {
+      console.error('getUserAssessmentResults: Error message:', error.message);
+      console.error('getUserAssessmentResults: Error stack:', error.stack);
+    }
+
+    return [];
   }
-
-  console.log(`AssessmentAPI: Returning ${results.length} results for user ${userId || 'anonymous'}`);
-
-  // Return only real user results, sorted by creation date (newest first)
-  return results.sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  );
 }
 
 /**
@@ -273,13 +248,98 @@ export async function getLatestAssessmentResult(userId?: string): Promise<Assess
 
 /**
  * Delete assessment result
+ * @deprecated This function should use the Archive API DELETE endpoint when available
  */
 export async function deleteAssessmentResult(resultId: string): Promise<void> {
-  // Simulate API call delay
-  await delay(500);
+  console.log(`deleteAssessmentResult: Delete functionality should be implemented via Archive API for ID: ${resultId}`);
+  // Note: Archive API DELETE endpoint not yet implemented
+  throw new Error('Delete functionality not yet implemented for Archive API');
+}
 
-  // Remove from localStorage
-  localStorage.removeItem(`assessment-result-${resultId}`);
+/**
+ * Get assessment result directly from API (Archive Service) with retry mechanism
+ * This replaces localStorage-based retrieval for real-time data
+ */
+export async function getAssessmentResultFromArchiveAPI(resultId: string, maxRetries: number = 3): Promise<AssessmentResult> {
+  console.log(`getAssessmentResultFromArchiveAPI: Fetching result ${resultId} from Archive API (max retries: ${maxRetries})`);
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      // Get auth token
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+      if (!token) {
+        throw new Error('Authentication token not found');
+      }
+
+      console.log(`getAssessmentResultFromArchiveAPI: Attempt ${attempt}/${maxRetries} for result ${resultId}`);
+
+      // Call the proxy API endpoint
+      const response = await fetch(`/api/proxy/archive/results/${resultId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`getAssessmentResultFromArchiveAPI: API request failed with status ${response.status}:`, errorText);
+
+        // If it's a 404 and we have retries left, wait and try again
+        if (response.status === 404 && attempt < maxRetries) {
+          console.log(`getAssessmentResultFromArchiveAPI: Result not found, waiting 3 seconds before retry ${attempt + 1}/${maxRetries}`);
+          await new Promise(resolve => setTimeout(resolve, 3000));
+          continue;
+        }
+
+        throw new Error(`API request failed with status ${response.status}: ${errorText}`);
+      }
+
+      const apiResponse = await response.json();
+      console.log('getAssessmentResultFromArchiveAPI: Raw API response:', JSON.stringify(apiResponse, null, 2));
+
+      if (!apiResponse.success || !apiResponse.data) {
+        console.error('getAssessmentResultFromArchiveAPI: Invalid API response format:', apiResponse);
+        throw new Error('Invalid API response format');
+      }
+
+      const data = apiResponse.data;
+
+      // Transform API response to AssessmentResult format
+      const result: AssessmentResult = {
+        id: data.id,
+        userId: data.user_id,
+        createdAt: data.created_at,
+        status: data.status,
+        assessment_data: data.assessment_data,
+        persona_profile: data.persona_profile
+      };
+
+      console.log(`getAssessmentResultFromArchiveAPI: Successfully fetched result ${resultId} on attempt ${attempt}`);
+      return result;
+
+    } catch (error) {
+      console.error(`getAssessmentResultFromArchiveAPI: Attempt ${attempt}/${maxRetries} failed for result ${resultId}:`, error);
+
+      // If this was the last attempt, throw the error
+      if (attempt === maxRetries) {
+        throw error;
+      }
+
+      // Otherwise, wait before next retry (except for auth errors)
+      if (error instanceof Error && !error.message.includes('Authentication token not found')) {
+        console.log(`getAssessmentResultFromArchiveAPI: Waiting 2 seconds before retry ${attempt + 1}/${maxRetries}`);
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      } else {
+        // Auth errors shouldn't be retried
+        throw error;
+      }
+    }
+  }
+
+  // This should never be reached, but just in case
+  throw new Error(`Failed to fetch result ${resultId} after ${maxRetries} attempts`);
 }
 
 /**

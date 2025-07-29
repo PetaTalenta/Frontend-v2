@@ -34,7 +34,7 @@ export default function PersonaProfileCard({ profile }: PersonaProfileCardProps)
           </div>
           <div>
             <CardTitle className="text-2xl font-bold text-white">
-              {profile.title || 'Profil Tidak Tersedia'}
+              {profile.archetype || 'Profil Tidak Tersedia'}
             </CardTitle>
             <p className="text-white/80 text-sm">Profil Kepribadian Anda</p>
           </div>
@@ -45,7 +45,7 @@ export default function PersonaProfileCard({ profile }: PersonaProfileCardProps)
         {/* Description */}
         <div className="bg-white/10 rounded-lg p-4">
           <p className="text-white/90 leading-relaxed">
-            {profile.description || 'Deskripsi tidak tersedia'}
+            {profile.shortSummary || 'Deskripsi tidak tersedia'}
           </p>
         </div>
 
@@ -68,21 +68,21 @@ export default function PersonaProfileCard({ profile }: PersonaProfileCardProps)
           </div>
         </div>
 
-        {/* Recommendations */}
+        {/* Insights */}
         <div>
           <div className="flex items-center gap-2 mb-3">
             <Target className="w-5 h-5 text-green-300" />
-            <h3 className="font-semibold text-white">Rekomendasi Pengembangan</h3>
+            <h3 className="font-semibold text-white">Insights Utama</h3>
           </div>
           <div className="grid grid-cols-1 gap-2">
-            {(profile.recommendations || []).map((recommendation, index) => (
-              <div key={index} className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-green-300 rounded-full flex-shrink-0" />
-                <span className="text-white/90 text-sm">{recommendation}</span>
+            {(profile.insights || []).slice(0, 3).map((insight, index) => (
+              <div key={index} className="flex items-start gap-2">
+                <div className="w-2 h-2 bg-green-300 rounded-full flex-shrink-0 mt-2" />
+                <span className="text-white/90 text-sm leading-relaxed">{insight}</span>
               </div>
             ))}
-            {(!profile.recommendations || profile.recommendations.length === 0) && (
-              <p className="text-white/70 text-sm">Tidak ada rekomendasi</p>
+            {(!profile.insights || profile.insights.length === 0) && (
+              <p className="text-white/70 text-sm">Tidak ada insights</p>
             )}
           </div>
         </div>

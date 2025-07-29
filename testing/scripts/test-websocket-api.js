@@ -1,7 +1,7 @@
 /**
  * Test script for WebSocket connection following API documentation
  * Tests connection to https://api.chhrone.web.id with proper event handling
- * Run with: node scripts/test-websocket-api.js
+ * Run with: node testing/scripts/test-websocket-api.js
  */
 
 const { io } = require('socket.io-client');

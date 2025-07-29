@@ -9,6 +9,6 @@ echo - Reduced connection timeouts
 echo - Better error handling
 echo.
 
-node mock-websocket-server.js
+node testing/mock-servers/mock-websocket-server.js
 
 pause

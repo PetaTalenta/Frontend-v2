@@ -40,10 +40,10 @@ function Test-Node {
 # Function to check if required files exist
 function Test-RequiredFiles {
     $files = @(
-        "scripts/quick-token-test.js",
-        "scripts/setup-test-users.js", 
-        "scripts/concurrent-assessment-test.js",
-        "scripts/run-concurrent-tests.js"
+        "testing/scripts/quick-token-test.js",
+        "testing/scripts/setup-test-users.js",
+        "testing/scripts/concurrent-assessment-test.js",
+        "testing/scripts/run-concurrent-tests.js"
     )
     
     foreach ($file in $files) {

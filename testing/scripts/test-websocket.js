@@ -1,6 +1,6 @@
 /**
  * Test script for WebSocket connection
- * Run with: node scripts/test-websocket.js
+ * Run with: node testing/scripts/test-websocket.js
  */
 
 const { io } = require('socket.io-client');

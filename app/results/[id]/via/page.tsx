@@ -10,7 +10,7 @@ import { Badge } from '../../../../components/ui/badge';
 import { Skeleton } from '../../../../components/ui/skeleton';
 import { toast } from '../../../../components/ui/use-toast';
 import { AssessmentResult, getScoreInterpretation, VIA_CATEGORIES } from '../../../../types/assessment-results';
-import { getAssessmentResult } from '../../../../services/assessment-api';
+import { getAssessmentResultFromArchiveAPI } from '../../../../services/assessment-api';
 import { getTopViaStrengths } from '../../../../utils/assessment-calculations';
 import { ArrowLeft, Palette, Lightbulb, Search, Heart, Shield, Scale, Flower } from 'lucide-react';
 import ViaRadarChart from '../../../../components/results/ViaRadarChart';
@@ -30,7 +30,7 @@ export default function ViaDetailPage() {
 
       try {
         setLoading(true);
-        const data = await getAssessmentResult(resultId);
+        const data = await getAssessmentResultFromArchiveAPI(resultId);
         setResult(data);
       } catch (err) {
         console.error('Error fetching assessment result:', err);

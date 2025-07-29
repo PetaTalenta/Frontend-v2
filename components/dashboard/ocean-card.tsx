@@ -29,7 +29,7 @@ export function OceanCard({ oceanScores }: OceanCardProps) {
     {
       trait: 'CONS',
       score: scores.conscientiousness,
-      color: '#6475e9', // Blue
+      color: '#a2acf2', // Blue
     },
     {
       trait: 'EXTN',
@@ -39,12 +39,12 @@ export function OceanCard({ oceanScores }: OceanCardProps) {
     {
       trait: 'AGRS',
       score: scores.agreeableness,
-      color: '#6475e9', // Blue
+      color: '#a2acf2', // Blue
     },
     {
       trait: 'NESM',
       score: scores.neuroticism,
-      color: '#a2acf2', // Light blue for neuroticism (as in original)
+      color: '#6475e9', // Light blue for neuroticism (as in original)
     },
   ]
 

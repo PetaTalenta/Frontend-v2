@@ -8,8 +8,7 @@ import { Card, CardContent } from '../../../components/ui/card';
 import { Skeleton } from '../../../components/ui/skeleton';
 import { toast } from '../../../components/ui/use-toast';
 import { AssessmentResult } from '../../../types/assessment-results';
-import { getAssessmentResult, exportResultAsPDF } from '../../../services/assessment-api';
-import { getAssessmentResultFromAPI } from '../../../services/user-stats';
+import { getAssessmentResultFromArchiveAPI, exportResultAsPDF } from '../../../services/assessment-api';
 import PersonaProfileCard from '../../../components/results/PersonaProfileCard';
 import PersonaProfileSummary from '../../../components/results/PersonaProfileSummary';
 import AssessmentScoresChart from '../../../components/results/AssessmentScoresChart';
@@ -64,7 +63,8 @@ import {
   Share2,
   RefreshCw,
   AlertCircle,
-  MessageCircle
+  MessageCircle,
+  Loader2
 } from 'lucide-react';
 
 function FullResultsPage() {
@@ -92,92 +92,30 @@ function FullResultsPage() {
       setLoading(true);
       setError(null);
 
-      // First try localStorage (for newly completed assessments)
-      try {
-        const data = await getAssessmentResult(resultId);
-        console.log('FullResultsPage: Successfully loaded result from localStorage:', data?.persona_profile?.title);
-        setResult(data);
-        return;
-      } catch (localStorageError) {
-        console.warn('FullResultsPage: localStorage failed, trying API:', localStorageError);
-      }
+      console.log('FullResultsPage: Fetching result from Archive API with retry mechanism...');
 
-      // Fallback to API if localStorage fails
-      try {
-        const apiData = await getAssessmentResultFromAPI(resultId);
-        console.log('FullResultsPage: Successfully loaded result from API:', apiData?.persona_profile?.title || apiData?.persona_profile?.archetype);
+      // Fetch directly from Archive API with retry mechanism (max 5 retries)
+      const data = await getAssessmentResultFromArchiveAPI(resultId, 5);
+      console.log('FullResultsPage: Successfully loaded result from Archive API:', data?.persona_profile?.archetype);
 
-        // Convert API data to AssessmentResult format
-        const formattedResult: AssessmentResult = {
-          id: apiData.id,
-          userId: apiData.user_id,
-          createdAt: apiData.created_at,
-          status: 'completed',
-          assessment_data: apiData.assessment_data || {
-            riasec: {
-              realistic: 0,
-              investigative: 0,
-              artistic: 0,
-              social: 0,
-              enterprising: 0,
-              conventional: 0
-            },
-            ocean: {
-              openness: 0,
-              conscientiousness: 0,
-              extraversion: 0,
-              agreeableness: 0,
-              neuroticism: 0
-            },
-            viaIs: {
-              creativity: 0,
-              curiosity: 0,
-              judgment: 0,
-              loveOfLearning: 0,
-              perspective: 0,
-              bravery: 0,
-              perseverance: 0,
-              honesty: 0,
-              zest: 0,
-              love: 0,
-              kindness: 0,
-              socialIntelligence: 0,
-              teamwork: 0,
-              fairness: 0,
-              leadership: 0,
-              forgiveness: 0,
-              humility: 0,
-              prudence: 0,
-              selfRegulation: 0,
-              appreciationOfBeauty: 0,
-              gratitude: 0,
-              hope: 0,
-              humor: 0,
-              spirituality: 0
-            }
-          },
-          persona_profile: apiData.persona_profile || {
-            title: 'Assessment Result',
-            description: 'No description available',
-            strengths: [],
-            recommendations: [],
-            careerRecommendation: [],
-            roleModel: []
-          }
-        };
-
-        setResult(formattedResult);
-        return;
-      } catch (apiError) {
-        console.error('FullResultsPage: Both localStorage and API failed:', apiError);
-        throw new Error('Data assessment tidak ditemukan. Pastikan assessment telah selesai diproses.');
-      }
+      setResult(data);
     } catch (err) {
-      console.error('FullResultsPage: Error fetching result:', err);
+      console.error('FullResultsPage: Error fetching result from Archive API:', err);
+
+      // More specific error messages
+      let errorMessage = 'Gagal memuat hasil assessment.';
+      if (err instanceof Error) {
+        if (err.message.includes('404')) {
+          errorMessage = 'Hasil assessment tidak ditemukan. Data mungkin masih diproses atau belum tersedia.';
+        } else if (err.message.includes('Authentication')) {
+          errorMessage = 'Sesi Anda telah berakhir. Silakan login kembali.';
+        }
+      }
+
       setError(err instanceof Error ? err.message : 'Failed to load assessment result');
       toast({
         title: 'Error',
-        description: 'Gagal memuat hasil assessment. Silakan coba lagi.',
+        description: errorMessage,
         variant: 'destructive'
       });
     } finally {
@@ -240,6 +178,20 @@ function FullResultsPage() {
     return (
       <div className="min-h-screen bg-[#f8fafc] p-6">
         <div className="max-w-7xl mx-auto space-y-6">
+          {/* Loading Message */}
+          <div className="flex flex-col items-center justify-center py-12">
+            <div className="flex items-center gap-3 mb-4">
+              <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+              <h2 className="text-xl font-semibold text-[#1e1e1e]">
+                Memuat Hasil Assessment
+              </h2>
+            </div>
+            <p className="text-[#64707d] text-center max-w-md">
+              Sedang mengambil data hasil assessment Anda dari server.
+              Proses ini mungkin memerlukan beberapa detik jika data baru saja diproses.
+            </p>
+          </div>
+
           {/* Header Skeleton */}
           <div className="flex items-center justify-between">
             <Skeleton className="h-8 w-48" />
@@ -248,14 +200,14 @@ function FullResultsPage() {
               <Skeleton className="h-10 w-24" />
             </div>
           </div>
-          
+
           {/* Stats Skeleton */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {[...Array(4)].map((_, i) => (
               <Skeleton key={i} className="h-24" />
             ))}
           </div>
-          
+
           {/* Main Content Skeleton */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <Skeleton className="h-96 lg:col-span-1" />

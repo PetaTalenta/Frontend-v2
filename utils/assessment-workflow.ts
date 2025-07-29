@@ -440,9 +440,25 @@ export class AssessmentWorkflow {
               message: event.message || 'Analysis completed successfully!',
               webSocketConnected: true,
             });
-            this.handleAssessmentCompletion(event.resultId, scores)
-              .then(resolve)
-              .catch(reject);
+
+            // Redirect directly to result page instead of handling completion
+            console.log(`Assessment Workflow: Redirecting to result page with ID: ${event.resultId}`);
+            // Don't await this to avoid blocking the resolve
+            this.redirectToResultPage(event.resultId).catch(error => {
+              console.error('Assessment Workflow: Error during redirect:', error);
+            });
+
+            // Create minimal result object for callback
+            const result = {
+              id: event.resultId,
+              userId: 'current-user',
+              createdAt: new Date().toISOString(),
+              status: 'completed' as const,
+              assessment_data: scores,
+              persona_profile: null // Will be fetched from API on result page
+            };
+
+            resolve(result);
           } else if (event.type === 'analysis-failed') {
             isResolved = true;
             this.currentJobId = null; // Clear job on failure
@@ -799,11 +815,7 @@ export class AssessmentWorkflow {
       persona_profile: aiAnalysis, // Include AI analysis for consistency
     };
 
-    // Save to localStorage
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(`assessment-result-${result.id}`, JSON.stringify(result));
-      console.log(`Assessment Workflow: Saved WebSocket result to localStorage with ID: ${result.id}`);
-    }
+    // Note: No longer saving to localStorage - data will be fetched from API
 
     this.updateState({ result });
 
@@ -817,6 +829,23 @@ export class AssessmentWorkflow {
     }
 
     return result;
+  }
+
+  /**
+   * Redirect to result page when analysis is complete
+   * Added delay to ensure data is properly saved in database
+   */
+  private async redirectToResultPage(resultId: string): Promise<void> {
+    if (typeof window !== 'undefined') {
+      console.log(`Assessment Workflow: Waiting 5 seconds before redirecting to /results/${resultId}`);
+
+      // Wait 5 seconds to ensure API has processed and saved the data
+      await new Promise(resolve => setTimeout(resolve, 5000));
+
+      console.log(`Assessment Workflow: Now redirecting to /results/${resultId}`);
+      // Use window.location for immediate redirect
+      window.location.href = `/results/${resultId}`;
+    }
   }
 
   /**
@@ -912,11 +941,7 @@ export class AssessmentWorkflow {
       persona_profile: aiAnalysis,
     };
 
-    // Save to localStorage
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(`assessment-result-${result.id}`, JSON.stringify(result));
-      console.log(`Assessment Workflow: Saved fallback result to localStorage with ID: ${result.id}`);
-    }
+    // Note: No longer saving to localStorage - data will be fetched from API
 
     this.updateState({
       status: 'completed',
@@ -999,11 +1024,7 @@ export class AssessmentWorkflow {
 
     const result = await this.convertApiResponseToResult(statusResponse, scores);
 
-    // Save to localStorage
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(`assessment-result-${result.id}`, JSON.stringify(result));
-      console.log(`Assessment Workflow: Saved result to localStorage with ID: ${result.id}`);
-    }
+    // Note: No longer saving to localStorage - data will be fetched from API
 
     // Update state with result
     this.updateState({ result });

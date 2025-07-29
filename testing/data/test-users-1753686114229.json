@@ -1,0 +1,51 @@
+{
+  "createdAt": "2025-07-28T07:01:54.229Z",
+  "userCount": 5,
+  "users": [
+    {
+      "userNumber": 1,
+      "userId": "d2cc34b1-f08c-4bee-a705-1c228a3cf4fa",
+      "email": "test.concurrent.1@example.com",
+      "password": "TestPassword123!",
+      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImQyY2MzNGIxLWYwOGMtNGJlZS1hNzA1LTFjMjI4YTNjZjRmYSIsImVtYWlsIjoidGVzdC5jb25jdXJyZW50LjFAZXhhbXBsZS5jb20iLCJ0b2tlbkJhbGFuY2UiOjMsInR5cGUiOiJ1c2VyIiwiaWF0IjoxNzUzNjg2MTEwLCJleHAiOjE3NTQyOTA5MTAsImF1ZCI6ImF0bWEtc2VydmljZXMiLCJpc3MiOiJhdG1hLWF1dGgtc2VydmljZSJ9.Hn64YmNX394jEedONQ7CpXRmFhzRkwf9PtPfDLsQDS0",
+      "tokenBalance": 0,
+      "createdAt": "2025-07-28T07:01:51.105Z"
+    },
+    {
+      "userNumber": 2,
+      "userId": "6ab6a971-18fd-4e79-b386-9e3878d9d6dd",
+      "email": "test.concurrent.2@example.com",
+      "password": "TestPassword123!",
+      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhYjZhOTcxLTE4ZmQtNGU3OS1iMzg2LTllMzg3OGQ5ZDZkZCIsImVtYWlsIjoidGVzdC5jb25jdXJyZW50LjJAZXhhbXBsZS5jb20iLCJ0b2tlbkJhbGFuY2UiOjMsInR5cGUiOiJ1c2VyIiwiaWF0IjoxNzUzNjg2MTExLCJleHAiOjE3NTQyOTA5MTEsImF1ZCI6ImF0bWEtc2VydmljZXMiLCJpc3MiOiJhdG1hLWF1dGgtc2VydmljZSJ9.dJPg2Gv0VSR88LaoGHxUpWEaYgOrKiMCSiFqukD09ho",
+      "tokenBalance": 0,
+      "createdAt": "2025-07-28T07:01:51.879Z"
+    },
+    {
+      "userNumber": 3,
+      "userId": "f6015c4e-151a-459e-8ee0-12d0cad5cb3d",
+      "email": "test.concurrent.3@example.com",
+      "password": "TestPassword123!",
+      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImY2MDE1YzRlLTE1MWEtNDU5ZS04ZWUwLTEyZDBjYWQ1Y2IzZCIsImVtYWlsIjoidGVzdC5jb25jdXJyZW50LjNAZXhhbXBsZS5jb20iLCJ0b2tlbkJhbGFuY2UiOjMsInR5cGUiOiJ1c2VyIiwiaWF0IjoxNzUzNjg2MTEyLCJleHAiOjE3NTQyOTA5MTIsImF1ZCI6ImF0bWEtc2VydmljZXMiLCJpc3MiOiJhdG1hLWF1dGgtc2VydmljZSJ9.QlTkeyX6iboeZ1IQ0phriznufOWE1VlZAKrdyZ0qCmc",
+      "tokenBalance": 0,
+      "createdAt": "2025-07-28T07:01:52.674Z"
+    },
+    {
+      "userNumber": 4,
+      "userId": "89d249fe-c71f-4717-a09c-eee5c84e6b44",
+      "email": "test.concurrent.4@example.com",
+      "password": "TestPassword123!",
+      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Ijg5ZDI0OWZlLWM3MWYtNDcxNy1hMDljLWVlZTVjODRlNmI0NCIsImVtYWlsIjoidGVzdC5jb25jdXJyZW50LjRAZXhhbXBsZS5jb20iLCJ0b2tlbkJhbGFuY2UiOjMsInR5cGUiOiJ1c2VyIiwiaWF0IjoxNzUzNjg2MTEyLCJleHAiOjE3NTQyOTA5MTIsImF1ZCI6ImF0bWEtc2VydmljZXMiLCJpc3MiOiJhdG1hLWF1dGgtc2VydmljZSJ9.6WCQ5fOyQE3Ry1IRhdBW-QNDsrwgtemUE9vTgYkrSvM",
+      "tokenBalance": 0,
+      "createdAt": "2025-07-28T07:01:53.469Z"
+    },
+    {
+      "userNumber": 5,
+      "userId": "74c146b1-eab7-4e4a-9b61-b2c2bb3f3d2f",
+      "email": "test.concurrent.5@example.com",
+      "password": "TestPassword123!",
+      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Ijc0YzE0NmIxLWVhYjctNGU0YS05YjYxLWIyYzJiYjNmM2QyZiIsImVtYWlsIjoidGVzdC5jb25jdXJyZW50LjVAZXhhbXBsZS5jb20iLCJ0b2tlbkJhbGFuY2UiOjMsInR5cGUiOiJ1c2VyIiwiaWF0IjoxNzUzNjg2MTEzLCJleHAiOjE3NTQyOTA5MTMsImF1ZCI6ImF0bWEtc2VydmljZXMiLCJpc3MiOiJhdG1hLWF1dGgtc2VydmljZSJ9.236rjZF3-P0ICQEEW8lt6VUTMFve_jgY26yLhZKJ-jA",
+      "tokenBalance": 0,
+      "createdAt": "2025-07-28T07:01:54.227Z"
+    }
+  ]
+}
