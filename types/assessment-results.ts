@@ -56,10 +56,38 @@ export interface ViaScores {
   spirituality: number;
 }
 
+export interface IndustryScores {
+  teknologi: number;
+  kesehatan: number;
+  keuangan: number;
+  pendidikan: number;
+  rekayasa: number;
+  pemasaran: number;
+  hukum: number;
+  kreatif: number;
+  media: number;
+  penjualan: number;
+  sains: number;
+  manufaktur: number;
+  agrikultur: number;
+  pemerintahan: number;
+  konsultasi: number;
+  pariwisata: number;
+  logistik: number;
+  energi: number;
+  sosial: number;
+  olahraga: number;
+  properti: number;
+  kuliner: number;
+  perdagangan: number;
+  telekomunikasi: number;
+}
+
 export interface AssessmentScores {
   riasec: RiasecScores;
   ocean: OceanScores;
   viaIs: ViaScores;
+  industryScore?: IndustryScores;
 }
 
 export type CareerProspectLevel = 'super high' | 'high' | 'moderate' | 'low' | 'super low';

@@ -641,7 +641,33 @@ export async function updateAssessmentStatus(resultId: string, status: 'complete
           agreeableness: Math.floor(Math.random() * 100),
           neuroticism: Math.floor(Math.random() * 100)
         },
-        viaIs: {} // Simplified for demo
+        viaIs: {}, // Simplified for demo
+        industryScore: {
+          teknologi: Math.floor(Math.random() * 30) + 60, // 60-90
+          kesehatan: Math.floor(Math.random() * 30) + 60,
+          keuangan: Math.floor(Math.random() * 30) + 60,
+          pendidikan: Math.floor(Math.random() * 30) + 60,
+          rekayasa: Math.floor(Math.random() * 30) + 60,
+          pemasaran: Math.floor(Math.random() * 30) + 60,
+          hukum: Math.floor(Math.random() * 30) + 60,
+          kreatif: Math.floor(Math.random() * 30) + 60,
+          media: Math.floor(Math.random() * 30) + 60,
+          penjualan: Math.floor(Math.random() * 30) + 60,
+          sains: Math.floor(Math.random() * 30) + 60,
+          manufaktur: Math.floor(Math.random() * 30) + 60,
+          agrikultur: Math.floor(Math.random() * 30) + 60,
+          pemerintahan: Math.floor(Math.random() * 30) + 60,
+          konsultasi: Math.floor(Math.random() * 30) + 60,
+          pariwisata: Math.floor(Math.random() * 30) + 60,
+          logistik: Math.floor(Math.random() * 30) + 60,
+          energi: Math.floor(Math.random() * 30) + 60,
+          sosial: Math.floor(Math.random() * 30) + 60,
+          olahraga: Math.floor(Math.random() * 30) + 60,
+          properti: Math.floor(Math.random() * 30) + 60,
+          kuliner: Math.floor(Math.random() * 30) + 60,
+          perdagangan: Math.floor(Math.random() * 30) + 60,
+          telekomunikasi: Math.floor(Math.random() * 30) + 60
+        }
       };
       
       result.persona_profile = {

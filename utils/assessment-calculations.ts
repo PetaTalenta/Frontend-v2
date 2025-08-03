@@ -3,6 +3,7 @@
 
 import { assessmentTypes, Question } from '../data/assessmentQuestions';
 import { AssessmentScores, RiasecScores, OceanScores, ViaScores } from '../types/assessment-results';
+import { calculateIndustryScores } from './industry-scoring';
 
 /**
  * Calculate category score from raw answers
@@ -126,10 +127,18 @@ export function calculateViaScores(answers: Record<number, number | null>): ViaS
  * Calculate all assessment scores from raw answers
  */
 export function calculateAllScores(answers: Record<number, number | null>): AssessmentScores {
-  return {
+  const baseScores = {
     riasec: calculateRiasecScores(answers),
     ocean: calculateOceanScores(answers),
     viaIs: calculateViaScores(answers)
+  };
+
+  // Calculate industry scores based on personality scores
+  const industryScore = calculateIndustryScores(baseScores);
+
+  return {
+    ...baseScores,
+    industryScore
   };
 }
 

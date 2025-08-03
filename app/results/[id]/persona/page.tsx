@@ -11,6 +11,8 @@ import { toast } from '../../../../components/ui/use-toast';
 import { AssessmentResult } from '../../../../types/assessment-results';
 import { getAssessmentResultFromArchiveAPI } from '../../../../services/assessment-api';
 import { ArrowLeft, User, Star, Target, Users, Briefcase, TrendingUp, BookOpen, Lightbulb, GraduationCap, AlertTriangle, Building, Shield, Zap, Brain, Heart } from 'lucide-react';
+import IndustryCompatibilityCard from '../../../../components/results/IndustryCompatibilityCard';
+import { calculateIndustryScores } from '../../../../utils/industry-scoring';
 
 export default function PersonaDetailPage() {
   const params = useParams();
@@ -47,8 +49,8 @@ export default function PersonaDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 py-8">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="min-h-screen bg-[#f8fafc] p-6">
+        <div className="max-w-7xl mx-auto space-y-6">
           <Skeleton className="h-8 w-64 mb-6" />
           <div className="space-y-6">
             {[1, 2, 3, 4].map((i) => (
@@ -62,8 +64,8 @@ export default function PersonaDetailPage() {
 
   if (error || !result) {
     return (
-      <div className="min-h-screen bg-gray-50 py-8">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="min-h-screen bg-[#f8fafc] p-6">
+        <div className="max-w-7xl mx-auto space-y-6">
           <div className="text-center">
             <h1 className="text-2xl font-bold text-gray-900 mb-4">Error</h1>
             <p className="text-gray-600 mb-6">{error || 'Assessment result not found'}</p>
@@ -77,10 +79,10 @@ export default function PersonaDetailPage() {
   const profile = result.persona_profile;
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[#f8fafc] p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
-        <div className="mb-8">
+        <div>
           <div className="flex items-center gap-4 mb-4">
             <Link href={`/results/${resultId}`}>
               <Button variant="outline" size="sm">
@@ -119,7 +121,7 @@ export default function PersonaDetailPage() {
         </div>
 
         {/* Detailed Description */}
-        <Card className="bg-white border-gray-200 shadow-sm mb-6">
+        <Card className="bg-white border-gray-200 shadow-sm">
           <CardHeader>
             <CardTitle className="text-xl font-semibold text-gray-900 flex items-center gap-2">
               <User className="w-6 h-6 text-[#6475e9]" />
@@ -127,16 +129,41 @@ export default function PersonaDetailPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="bg-gray-50 rounded-lg p-6">
+            <div className="bg-gray-50 rounded-lg p-6 mb-6">
               <p className="text-gray-700 leading-relaxed text-lg">
                 {profile.shortSummary}
               </p>
             </div>
+
+            {/* Toleransi Risiko */}
+            {profile.riskTolerance && (
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2 mb-3">
+                  <Shield className="w-5 h-5 text-green-500" />
+                  Toleransi Risiko
+                </h3>
+                <div className="flex items-center gap-3">
+                  <div className={`px-4 py-2 rounded-full text-sm font-medium ${
+                    profile.riskTolerance === 'high' ? 'bg-red-100 text-red-700' :
+                    profile.riskTolerance === 'moderate' ? 'bg-yellow-100 text-yellow-700' :
+                    'bg-green-100 text-green-700'
+                  }`}>
+                    {profile.riskTolerance === 'high' ? 'Tinggi' :
+                     profile.riskTolerance === 'moderate' ? 'Sedang' : 'Rendah'}
+                  </div>
+                  <span className="text-gray-600 text-sm">
+                    {profile.riskTolerance === 'high' ? 'Nyaman dengan risiko tinggi dan perubahan cepat' :
+                     profile.riskTolerance === 'moderate' ? 'Menerima risiko yang terukur dan terkendali' :
+                     'Lebih menyukai stabilitas dan prediktabilitas'}
+                  </span>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
         {/* Strengths */}
-        <Card className="bg-white border-gray-200 shadow-sm mb-6">
+        <Card className="bg-white border-gray-200 shadow-sm">
           <CardHeader>
             <CardTitle className="text-xl font-semibold text-gray-900 flex items-center gap-2">
               <Star className="w-6 h-6 text-yellow-500" />
@@ -198,6 +225,19 @@ export default function PersonaDetailPage() {
             </Card>
           )}
         </div>
+
+        {/* Industry Compatibility */}
+        {(() => {
+          // Calculate industry scores if not available from API
+          const industryScores = result.assessment_data.industryScore ||
+            calculateIndustryScores(result.assessment_data);
+
+          return (
+            <div className="mb-6">
+              <IndustryCompatibilityCard industryScores={industryScores} />
+            </div>
+          );
+        })()}
 
         {/* Learning Style & Core Motivators */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
@@ -404,38 +444,8 @@ export default function PersonaDetailPage() {
           )}
         </div>
 
-        {/* Risk Tolerance & Possible Pitfalls */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          {/* Risk Tolerance */}
-          {profile.riskTolerance && (
-            <Card className="bg-white border-gray-200 shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-xl font-semibold text-gray-900 flex items-center gap-2">
-                  <Shield className="w-6 h-6 text-green-500" />
-                  Toleransi Risiko
-                </CardTitle>
-                <p className="text-gray-600">Tingkat kenyamanan Anda terhadap risiko dan ketidakpastian</p>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-3">
-                  <div className={`px-4 py-2 rounded-full text-sm font-medium ${
-                    profile.riskTolerance === 'high' ? 'bg-red-100 text-red-700' :
-                    profile.riskTolerance === 'moderate' ? 'bg-yellow-100 text-yellow-700' :
-                    'bg-green-100 text-green-700'
-                  }`}>
-                    {profile.riskTolerance === 'high' ? 'Tinggi' :
-                     profile.riskTolerance === 'moderate' ? 'Sedang' : 'Rendah'}
-                  </div>
-                  <span className="text-gray-600 text-sm">
-                    {profile.riskTolerance === 'high' ? 'Nyaman dengan risiko tinggi dan perubahan cepat' :
-                     profile.riskTolerance === 'moderate' ? 'Menerima risiko yang terukur dan terkendali' :
-                     'Lebih menyukai stabilitas dan prediktabilitas'}
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
+        {/* Possible Pitfalls */}
+        <div className="mb-8">
           {/* Possible Pitfalls */}
           {profile.possiblePitfalls && profile.possiblePitfalls.length > 0 && (
             <Card className="bg-white border-gray-200 shadow-sm">

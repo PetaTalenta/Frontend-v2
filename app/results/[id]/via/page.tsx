@@ -320,14 +320,22 @@ export default function ViaDetailPage() {
                   <h2 className="text-2xl font-bold text-gray-900">{category}</h2>
                 </div>
                 
-                <div className="grid grid-cols-1 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {categoryStrengths.map((strength, index) => {
                     const details = viaStrengthsDetails[strength.strength];
                     const interpretation = getScoreInterpretation(strength.score);
                     const overallRank = topStrengths.findIndex(s => s.strength === strength.strength) + 1;
-                    
+
+                    // Check if this is the last card and the total number is odd
+                    const isLastCard = index === categoryStrengths.length - 1;
+                    const isOddTotal = categoryStrengths.length % 2 === 1;
+                    const shouldSpanTwoColumns = isLastCard && isOddTotal;
+
                     return (
-                      <Card key={strength.strength} className="bg-white border-gray-200 shadow-sm">
+                      <Card
+                        key={strength.strength}
+                        className={`bg-white border-gray-200 shadow-sm ${shouldSpanTwoColumns ? 'md:col-span-2' : ''}`}
+                      >
                         <CardContent className="p-6">
                           <div className="flex items-start justify-between mb-4">
                             <div className="flex items-center gap-3">
