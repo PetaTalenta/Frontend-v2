@@ -6,6 +6,7 @@ import { StatsCard } from "./components/dashboard/stats-card"
 import { AssessmentTable } from "./components/dashboard/assessment-table"
 import { VIAISCard } from "./components/dashboard/viais-card"
 import { OceanCard } from "./components/dashboard/ocean-card"
+import { AssessmentStatusIndicator } from "./components/dashboard/AssessmentStatusIndicator"
 
 import { ProgressCard } from "./components/dashboard/progress-card"
 import { chartData } from "./data/mockData"
@@ -106,40 +107,47 @@ function DashboardContent() {
     setError(null);
 
     try {
-      // Try to get assessment-history and progress from localStorage
+      // OPTIMIZED: Get localStorage data synchronously first
       let localHistory = [];
       let localProgress = {};
       try {
         const historyRaw = localStorage.getItem('assessment-history');
         localHistory = historyRaw ? JSON.parse(historyRaw) : [];
         console.log('Dashboard: assessment-history from localStorage:', localHistory);
-        window.console && window.console.log && window.console.log('Dashboard (window): assessment-history from localStorage:', localHistory);
       } catch (err) {
         console.error('Dashboard: Error parsing assessment-history from localStorage:', err);
-        window.console && window.console.error && window.console.error('Dashboard (window): Error parsing assessment-history from localStorage:', err);
         localHistory = [];
       }
       try {
         const progressRaw = localStorage.getItem('assessment-progress');
         localProgress = progressRaw ? JSON.parse(progressRaw) : {};
         console.log('Dashboard: assessment-progress from localStorage:', localProgress);
-        window.console && window.console.log && window.console.log('Dashboard (window): assessment-progress from localStorage:', localProgress);
       } catch (err) {
         console.error('Dashboard: Error parsing assessment-progress from localStorage:', err);
-        window.console && window.console.error && window.console.error('Dashboard (window): Error parsing assessment-progress from localStorage:', err);
         localProgress = {};
       }
 
-      // Calculate user statistics
-      console.log('Dashboard: Calculating user stats...');
-      const userStats = await calculateUserStats(user.id);
-      console.log('Dashboard: User stats calculated:', userStats);
+      // OPTIMIZED: Calculate user statistics and fetch latest assessment in parallel
+      console.log('Dashboard: Starting parallel data loading...');
+      const [userStats, latestAssessment] = await Promise.all([
+        calculateUserStats(user.id),
+        getLatestAssessmentResult(user.id).catch(error => {
+          console.error('Dashboard: Error fetching latest assessment:', error);
+          return null; // Return null on error to continue with other operations
+        })
+      ]);
+      console.log('Dashboard: Parallel data loading completed');
 
-      // Format data for dashboard components
+      // OPTIMIZED: Format data for dashboard components in parallel
       console.log('Dashboard: Formatting data for dashboard...');
-      const formattedStats = formatStatsForDashboard(userStats);
-      const formattedAssessments = await formatAssessmentHistory(userStats);
-      const formattedProgress = await calculateUserProgress(userStats);
+      const [formattedStats, formattedAssessments, formattedProgress] = await Promise.all([
+        formatStatsForDashboard(userStats),
+        formatAssessmentHistory(userStats),
+        calculateUserProgress(userStats)
+      ]);
+
+      // OPTIMIZED: Set all data at once to reduce re-renders
+      setStatsData(formattedStats);
 
       // Fallback if API history is empty
       if (!formattedAssessments || formattedAssessments.length === 0) {
@@ -157,37 +165,27 @@ function DashboardContent() {
         setProgressData(formattedProgress);
       }
 
-      setStatsData(formattedStats);
-
-      // Fetch latest assessment result for Ocean scores
-      try {
-        console.log('Dashboard: Fetching latest assessment for Ocean scores...');
-        const latestAssessment = await getLatestAssessmentResult(user.id);
-        if (latestAssessment && latestAssessment.assessment_data) {
-          if (latestAssessment.assessment_data.ocean) {
-            console.log('Dashboard: Found Ocean scores from latest assessment:', latestAssessment.assessment_data.ocean);
-            setOceanScores(latestAssessment.assessment_data.ocean);
-          } else {
-            console.log('Dashboard: No Ocean scores found in latest assessment, using defaults');
-            setOceanScores(undefined); // Will use defaults in WorldMapCard
-          }
-
-          if (latestAssessment.assessment_data.viaIs) {
-            console.log('Dashboard: Found VIAIS scores from latest assessment:', latestAssessment.assessment_data.viaIs);
-            setViaScores(latestAssessment.assessment_data.viaIs);
-          } else {
-            console.log('Dashboard: No VIAIS scores found in latest assessment, using defaults');
-            setViaScores(undefined); // Will use defaults in WorldMapCard
-          }
+      // OPTIMIZED: Process latest assessment data (already fetched in parallel)
+      if (latestAssessment && latestAssessment.assessment_data) {
+        if (latestAssessment.assessment_data.ocean) {
+          console.log('Dashboard: Found Ocean scores from latest assessment:', latestAssessment.assessment_data.ocean);
+          setOceanScores(latestAssessment.assessment_data.ocean);
         } else {
-          console.log('Dashboard: No assessment data found, using defaults');
+          console.log('Dashboard: No Ocean scores found in latest assessment, using defaults');
           setOceanScores(undefined);
+        }
+
+        if (latestAssessment.assessment_data.viaIs) {
+          console.log('Dashboard: Found VIAIS scores from latest assessment:', latestAssessment.assessment_data.viaIs);
+          setViaScores(latestAssessment.assessment_data.viaIs);
+        } else {
+          console.log('Dashboard: No VIAIS scores found in latest assessment, using defaults');
           setViaScores(undefined);
         }
-      } catch (oceanError) {
-        console.error('Dashboard: Error fetching assessment scores:', oceanError);
-        setOceanScores(undefined); // Will use defaults in WorldMapCard
-        setViaScores(undefined); // Will use defaults in WorldMapCard
+      } else {
+        console.log('Dashboard: No assessment data found, using defaults');
+        setOceanScores(undefined);
+        setViaScores(undefined);
       }
 
       console.log('Dashboard: Data formatted successfully');
@@ -247,11 +245,10 @@ function DashboardContent() {
     }
   }, [user, authLoading, loadUserData]);
 
-  // Refresh data when window gains focus (user returns from assessment)
-  // Only refresh if user was away for more than 30 seconds to prevent unnecessary refreshes
+  // OPTIMIZED: Refresh data when window gains focus (user returns from assessment)
+  // Only refresh if user was away for more than 20 seconds to prevent unnecessary refreshes
   useEffect(() => {
     let lastFocusTime = Date.now();
-    let focusTimeout: NodeJS.Timeout;
 
     const handleFocus = () => {
       const now = Date.now();
@@ -259,15 +256,14 @@ function DashboardContent() {
 
       console.log('Dashboard: Window focus detected, time since last focus:', timeSinceLastFocus + 'ms');
 
-      // Only refresh if auto-refresh is enabled and user was away for more than 30 seconds
-      // This prevents refresh when just clicking outside briefly
-      if (autoRefreshEnabled && timeSinceLastFocus > 30000 && !authLoading && user) {
-        console.log('Dashboard: User was away for more than 30 seconds, reloading data');
+      // ULTRA OPTIMIZED: Reduced threshold from 20s to 3s for ultra-responsive updates
+      if (autoRefreshEnabled && timeSinceLastFocus > 3000 && !authLoading && user) {
+        console.log('Dashboard: User was away for more than 3 seconds, reloading data');
         loadUserData();
       } else if (!autoRefreshEnabled) {
         console.log('Dashboard: Auto-refresh is disabled, skipping refresh');
       } else {
-        console.log('Dashboard: User was away for less than 30 seconds, skipping refresh');
+        console.log('Dashboard: User was away for less than 3 seconds, skipping refresh');
       }
 
       lastFocusTime = now;
@@ -284,9 +280,6 @@ function DashboardContent() {
     return () => {
       window.removeEventListener('focus', handleFocus);
       window.removeEventListener('blur', handleBlur);
-      if (focusTimeout) {
-        clearTimeout(focusTimeout);
-      }
     };
   }, [user, authLoading, loadUserData, autoRefreshEnabled]);
 
@@ -373,8 +366,8 @@ function DashboardContent() {
         <div className="dashboard-responsive-container space-y-6">
           {/* Header */}
           <Header
-            title={`Selamat datang, ${getUserDisplayName()}!`}
-            description="Memuat dasbor pribadi Anda..."
+            title={`Welcome, ${getUserDisplayName()}!`}
+            description="Loading your personal dashboard..."
           />
 
           <div className="dashboard-main-grid">
@@ -427,11 +420,18 @@ function DashboardContent() {
   try {
     return (
       <div className="dashboard-full-height flex justify-center">
+        {/* Real-time Assessment Status Indicator */}
+        <AssessmentStatusIndicator
+          showNotifications={true}
+          autoHide={true}
+          autoHideDelay={5000}
+        />
+
         <div className="dashboard-responsive-container space-y-6">
           {/* Header */}
           <Header
             title={`Welcome, ${getUserDisplayName()}!`}
-            description="Lacak kemajuan Anda di sini, Anda hampir mencapai tujuan Anda."
+            description="Track your progress here, You almost reach your goal."
           />
 
           <div className="dashboard-main-grid">

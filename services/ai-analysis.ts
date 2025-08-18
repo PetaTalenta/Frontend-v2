@@ -500,12 +500,15 @@ export async function generateLocalAnalysis(scores: AssessmentScores): Promise<P
   const roleModels = generateRoleModels(analysis);
 
   return {
-    title: persona.title,
-    description: persona.description,
+    archetype: persona.title,
+    shortSummary: persona.description,
     strengths,
     recommendations,
     careerRecommendation: careerRecommendations,
-    roleModel: roleModels
+    roleModel: roleModels,
+    // Legacy properties for backward compatibility
+    title: persona.title,
+    description: persona.description
   };
 }
 

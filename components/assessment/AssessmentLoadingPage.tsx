@@ -43,41 +43,42 @@ interface LoadingStep {
   estimatedTime: number; // in seconds
 }
 
+// OPTIMIZED: More realistic time estimates for better user experience
 const LOADING_STEPS: LoadingStep[] = [
   {
     id: 'validating',
     title: 'Memvalidasi Jawaban',
     description: 'Memeriksa kelengkapan dan konsistensi jawaban Anda',
     icon: CheckCircle,
-    estimatedTime: 2
+    estimatedTime: 1 // Reduced from 2s
   },
   {
     id: 'submitting',
     title: 'Mengirim Data',
     description: 'Mengirim data assessment ke sistem AI',
     icon: Activity,
-    estimatedTime: 3
+    estimatedTime: 2 // Reduced from 3s
   },
   {
     id: 'queued',
     title: 'Dalam Antrian',
     description: 'Menunggu giliran untuk diproses oleh AI',
     icon: Users,
-    estimatedTime: 10
+    estimatedTime: 5 // Reduced from 10s
   },
   {
     id: 'processing',
     title: 'Analisis AI',
     description: 'AI sedang menganalisis kepribadian dan bakat Anda',
     icon: Brain,
-    estimatedTime: 30
+    estimatedTime: 20 // Reduced from 30s
   },
   {
     id: 'generating',
     title: 'Membuat Profil',
     description: 'Menyusun profil talenta dan rekomendasi karir',
     icon: Sparkles,
-    estimatedTime: 15
+    estimatedTime: 10 // Reduced from 15s
   }
 ];
 

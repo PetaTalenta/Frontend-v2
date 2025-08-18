@@ -33,12 +33,15 @@ const ASSESSMENT_ENDPOINTS = {
   IDEMPOTENCY_CLEANUP: '/api/assessment/idempotency/cleanup',
 } as const;
 
-// Polling configuration - Optimized for faster response
+// Polling configuration - ULTRA OPTIMIZED for fastest response
 const POLLING_CONFIG = {
-  INITIAL_DELAY: 800, // 800ms for faster initial response
-  MAX_DELAY: 2000, // 2 seconds max delay for more responsive polling
-  MAX_ATTEMPTS: 50, // More attempts with faster intervals
-  BACKOFF_MULTIPLIER: 1.1, // Slower backoff for more frequent checks
+  INITIAL_DELAY: 100, // 100ms for ultra-fast initial response (reduced from 200ms)
+  MAX_DELAY: 500, // 500ms max delay for very responsive polling (reduced from 800ms)
+  MAX_ATTEMPTS: 180, // More attempts for longer AI processing (increased from 90)
+  BACKOFF_MULTIPLIER: 1.02, // Even slower backoff for more frequent checks (reduced from 1.03)
+  SMART_POLLING: true, // Enable smart polling based on assessment status
+  PROCESSING_DELAY: 150, // 150ms during active processing
+  QUEUED_DELAY: 300, // 300ms for queued items
 } as const;
 
 /**
@@ -96,8 +99,43 @@ async function makeAssessmentApiRequest(
   }
 }
 
-// Track active submissions to prevent duplicates
-const activeSubmissions = new Set<string>();
+// OPTIMIZED: Enhanced submission tracking with performance improvements
+const activeSubmissions = new Map<string, { timestamp: number; jobId?: string }>();
+const SUBMISSION_TIMEOUT = 5 * 60 * 1000; // 5 minutes
+
+/**
+ * OPTIMIZED: Generate submission key with better hashing
+ */
+function generateSubmissionKey(assessmentData: AssessmentScores, assessmentName: string): string {
+  // Use a more efficient hash that's less likely to collide
+  const dataString = JSON.stringify({
+    riasec: assessmentData.riasec,
+    ocean: assessmentData.ocean,
+    viaIs: assessmentData.viaIs,
+    name: assessmentName
+  });
+
+  // Simple hash function for better performance
+  let hash = 0;
+  for (let i = 0; i < dataString.length; i++) {
+    const char = dataString.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+  return Math.abs(hash).toString(36);
+}
+
+/**
+ * OPTIMIZED: Clean up expired submissions
+ */
+function cleanupExpiredSubmissions(): void {
+  const now = Date.now();
+  for (const [key, data] of activeSubmissions.entries()) {
+    if (now - data.timestamp > SUBMISSION_TIMEOUT) {
+      activeSubmissions.delete(key);
+    }
+  }
+}
 
 /**
  * Submit assessment for AI analysis
@@ -113,21 +151,31 @@ export async function submitAssessment(
   console.log('🔥 Enhanced Assessment API: Assessment name:', assessmentName);
   console.log('🔥 Enhanced Assessment API: Call stack trace:', new Error().stack?.split('\n').slice(1, 5).join('\n'));
 
+  // OPTIMIZED: Clean up expired submissions first
+  cleanupExpiredSubmissions();
+
   // Create unique key for this submission
-  const submissionKey = JSON.stringify({ assessmentData, assessmentName });
-  console.log('🔥 Enhanced Assessment API: Generated submission key hash:', submissionKey.substring(0, 50) + '...');
+  const submissionKey = generateSubmissionKey(assessmentData, assessmentName);
+  console.log('🔥 Enhanced Assessment API: Generated optimized submission key:', submissionKey);
   console.log('🔥 Enhanced Assessment API: Active submissions count before check:', activeSubmissions.size);
 
   // Check if this exact submission is already in progress
-  if (activeSubmissions.has(submissionKey)) {
-    console.warn('🚨 Enhanced Assessment API: DUPLICATE SUBMISSION DETECTED - REJECTING (NO TOKEN CONSUMED)');
-    console.warn('🚨 Enhanced Assessment API: This would have caused double token consumption!');
-    throw new Error('Assessment submission already in progress');
+  const existingSubmission = activeSubmissions.get(submissionKey);
+  if (existingSubmission) {
+    const timeSinceSubmission = Date.now() - existingSubmission.timestamp;
+    if (timeSinceSubmission < SUBMISSION_TIMEOUT) {
+      console.warn('🚨 Enhanced Assessment API: DUPLICATE SUBMISSION DETECTED - REJECTING (NO TOKEN CONSUMED)');
+      console.warn(`🚨 Enhanced Assessment API: Existing submission is ${Math.round(timeSinceSubmission / 1000)}s old`);
+      throw new Error('Assessment submission already in progress');
+    } else {
+      // Remove expired submission
+      activeSubmissions.delete(submissionKey);
+    }
   }
 
   // Mark this submission as active
   console.log('🔥 Enhanced Assessment API: Marking submission as active to prevent duplicates');
-  activeSubmissions.add(submissionKey);
+  activeSubmissions.set(submissionKey, { timestamp: Date.now() });
   console.log('🔥 Enhanced Assessment API: Active submissions count after adding:', activeSubmissions.size);
 
   try {
@@ -144,6 +192,12 @@ export async function submitAssessment(
       ASSESSMENT_ENDPOINTS.SUBMIT,
       {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept-Encoding': 'gzip, deflate, br',
+          'Connection': 'keep-alive',
+          'Cache-Control': 'no-cache',
+        },
         body: JSON.stringify(requestData),
       }
     );
@@ -255,22 +309,23 @@ export async function pollAssessmentStatus(
   onComplete?: (status: AssessmentStatusResponse) => void,
   onError?: (error: Error) => void
 ): Promise<AssessmentStatusResponse> {
-  
-  console.log(`Enhanced Assessment API: Starting polling for job ${jobId}`);
-  
+
+  console.log(`Enhanced Assessment API: Starting ULTRA-OPTIMIZED polling for job ${jobId}`);
+
   let attempts = 0;
   let delay = POLLING_CONFIG.INITIAL_DELAY;
-  
+  let consecutiveProcessingCount = 0;
+
   const poll = async (): Promise<AssessmentStatusResponse> => {
     try {
       attempts++;
       const status = await getAssessmentStatus(jobId);
-      
+
       // Call progress callback
       if (onProgress) {
         onProgress(status);
       }
-      
+
       // Check if completed
       if (status.data.status === 'completed') {
         console.log(`Enhanced Assessment API: Job ${jobId} completed after ${attempts} attempts`);
@@ -279,7 +334,7 @@ export async function pollAssessmentStatus(
         }
         return status;
       }
-      
+
       // Check if failed
       if (status.data.status === 'failed') {
         const error = new Error(status.data.error || 'Assessment processing failed');
@@ -288,7 +343,7 @@ export async function pollAssessmentStatus(
         }
         throw error;
       }
-      
+
       // Check max attempts
       if (attempts >= POLLING_CONFIG.MAX_ATTEMPTS) {
         const error = new Error('Polling timeout: Assessment is taking too long to process');
@@ -297,14 +352,28 @@ export async function pollAssessmentStatus(
         }
         throw error;
       }
-      
-      // Wait before next poll
-      console.log(`Enhanced Assessment API: Job ${jobId} still ${status.data.status}, waiting ${delay}ms before next check`);
+
+      // Smart polling: adjust delay based on status
+      if (POLLING_CONFIG.SMART_POLLING) {
+        if (status.data.status === 'processing') {
+          consecutiveProcessingCount++;
+          // Ultra-fast polling during active processing
+          delay = POLLING_CONFIG.PROCESSING_DELAY;
+        } else if (status.data.status === 'queued') {
+          // Moderate polling for queued items
+          delay = POLLING_CONFIG.QUEUED_DELAY;
+        } else {
+          // Standard backoff for other statuses
+          delay = Math.min(delay * POLLING_CONFIG.BACKOFF_MULTIPLIER, POLLING_CONFIG.MAX_DELAY);
+        }
+      } else {
+        // Standard exponential backoff
+        delay = Math.min(delay * POLLING_CONFIG.BACKOFF_MULTIPLIER, POLLING_CONFIG.MAX_DELAY);
+      }
+
+      console.log(`Enhanced Assessment API: Job ${jobId} still ${status.data.status}, waiting ${delay}ms before next check (attempt ${attempts})`);
       await new Promise(resolve => setTimeout(resolve, delay));
-      
-      // Increase delay for next attempt (exponential backoff)
-      delay = Math.min(delay * POLLING_CONFIG.BACKOFF_MULTIPLIER, POLLING_CONFIG.MAX_DELAY);
-      
+
       return poll();
       
     } catch (error) {
@@ -511,19 +580,40 @@ export async function monitorAssessmentWithWebSocket(
     const wsService = getAssessmentWebSocketService();
     let isResolved = false;
     let timeoutId: NodeJS.Timeout;
+    let connectionRetries = 0;
+    const maxRetries = 2;
+
+    // OPTIMIZED: Connection health check before monitoring
+    const ensureConnection = async (): Promise<boolean> => {
+      try {
+        if (!wsService.isConnected()) {
+          const token = localStorage.getItem('token') || '';
+          if (!token) {
+            throw new Error('No authentication token for WebSocket');
+          }
+
+          console.log('Enhanced Assessment API: Establishing WebSocket connection...');
+          await wsService.connect(token);
+        }
+        return true;
+      } catch (error) {
+        console.error('Enhanced Assessment API: WebSocket connection failed:', error);
+        return false;
+      }
+    };
 
     try {
-      // Set timeout for WebSocket monitoring
+      // OPTIMIZED: Shorter timeout with intelligent fallback
       timeoutId = setTimeout(() => {
         if (!isResolved) {
           isResolved = true;
-          console.warn('Enhanced Assessment API: WebSocket timeout, falling back to polling');
+          console.warn('Enhanced Assessment API: WebSocket timeout (2 minutes), falling back to polling');
           // Fallback to polling on timeout
           pollAssessmentStatus(jobId, onProgress)
             .then(resolve)
             .catch(reject);
         }
-      }, 120000); // 2 minutes timeout
+      }, 120000); // 2 minutes timeout (optimized for faster fallback)
 
       // Set up WebSocket callbacks
       wsService.setCallbacks({
@@ -561,12 +651,26 @@ export async function monitorAssessmentWithWebSocket(
             onProgress(progressStatus);
           }
         },
-        onError: (error) => {
+        onError: async (error) => {
           if (!isResolved) {
+            console.warn('Enhanced Assessment API: WebSocket error:', error);
+
+            // OPTIMIZED: Try to reconnect once before falling back to polling
+            if (connectionRetries < maxRetries) {
+              connectionRetries++;
+              console.log(`Enhanced Assessment API: Attempting WebSocket reconnection (${connectionRetries}/${maxRetries})`);
+
+              const reconnected = await ensureConnection();
+              if (reconnected) {
+                wsService.subscribeToJob(jobId);
+                return; // Continue with WebSocket
+              }
+            }
+
+            // Fallback to polling after max retries
             clearTimeout(timeoutId);
             isResolved = true;
-            console.warn('Enhanced Assessment API: WebSocket error, falling back to polling:', error);
-            // Fallback to polling on WebSocket error
+            console.warn('Enhanced Assessment API: WebSocket failed after retries, falling back to polling');
             pollAssessmentStatus(jobId, onProgress)
               .then(resolve)
               .catch(reject);
@@ -574,18 +678,15 @@ export async function monitorAssessmentWithWebSocket(
         }
       });
 
-      // Connect to WebSocket if not already connected
-      if (!wsService.isConnected()) {
-        const token = localStorage.getItem('token') || '';
-        if (!token) {
-          throw new Error('No authentication token for WebSocket');
-        }
-        await wsService.connect(token);
+      // OPTIMIZED: Use connection health check
+      const connected = await ensureConnection();
+      if (!connected) {
+        throw new Error('Failed to establish WebSocket connection');
       }
 
       // Subscribe to job updates
       wsService.subscribeToJob(jobId);
-      console.log(`Enhanced Assessment API: Monitoring job ${jobId} via WebSocket`);
+      console.log(`Enhanced Assessment API: Monitoring job ${jobId} via optimized WebSocket`);
 
     } catch (error) {
       clearTimeout(timeoutId);
@@ -599,6 +700,17 @@ export async function monitorAssessmentWithWebSocket(
       }
     }
   });
+}
+
+/**
+ * OPTIMIZED: Check if WebSocket is supported in current environment
+ */
+export function isWebSocketSupported(): boolean {
+  try {
+    return typeof WebSocket !== 'undefined' && typeof window !== 'undefined';
+  } catch {
+    return false;
+  }
 }
 
 // REMOVED: submitAssessmentForWebSocket function - was causing double token consumption

@@ -16,6 +16,19 @@ type RadarType = 'riasec' | 'ocean' | 'viais';
 export default function AssessmentRadarChart({ scores }: AssessmentRadarChartProps) {
   const [activeRadar, setActiveRadar] = useState<RadarType>('riasec');
 
+  // Early return if scores data is not available
+  if (!scores || !scores.riasec || !scores.ocean || !scores.viaIs) {
+    return (
+      <Card className="bg-white border-gray-200 shadow-sm">
+        <CardContent className="p-6">
+          <div className="text-center text-gray-500">
+            <p>Data radar chart tidak tersedia</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   // RIASEC radar data
   const riasecData = [
     {

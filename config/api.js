@@ -1,4 +1,4 @@
-// API Configuration
+// API Configuration - OPTIMIZED for faster response
 export const API_CONFIG = {
   // API Gateway URL - Always use real API
   BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.chhrone.web.id',
@@ -6,12 +6,12 @@ export const API_CONFIG = {
   // WebSocket/Notification URL
   NOTIFICATION_URL: process.env.NEXT_PUBLIC_NOTIFICATION_URL || 'https://api.chhrone.web.id',
 
-  // Request timeout
-  TIMEOUT: 30000,
+  // Request timeout - OPTIMIZED for faster failure detection
+  TIMEOUT: 15000, // 15 seconds (reduced from 30s)
 
-  // Retry configuration
+  // Retry configuration - OPTIMIZED
   RETRY_ATTEMPTS: 3,
-  RETRY_DELAY: 1000,
+  RETRY_DELAY: 500, // 0.5 seconds (reduced from 1s)
 
   // Development flags - Mock API removed
   USE_MOCK_API: false,

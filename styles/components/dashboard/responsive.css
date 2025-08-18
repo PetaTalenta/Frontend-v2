@@ -208,21 +208,21 @@
 /* Chart and visualization responsive adjustments */
 @media (max-width: 640px) {
   .dashboard-chart-mobile {
-    height: 80px;
+    height: 100px;
   }
-  
+
   .dashboard-chart-mobile .chart-bar {
-    min-height: 15px;
+    min-height: 18px;
   }
 }
 
 @media (min-width: 641px) and (max-width: 768px) {
   .dashboard-chart-tablet {
-    height: 100px;
+    height: 120px;
   }
-  
+
   .dashboard-chart-tablet .chart-bar {
-    min-height: 18px;
+    min-height: 20px;
   }
 }
 
@@ -230,7 +230,7 @@
   .dashboard-chart-desktop {
     height: 128px;
   }
-  
+
   .dashboard-chart-desktop .chart-bar {
     min-height: 20px;
   }

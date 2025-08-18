@@ -1,46 +1,29 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
-import { Skeleton } from '../../components/ui/skeleton';
 import { AssessmentResult } from '../../types/assessment-results';
-import { getUserAssessmentResults } from '../../services/assessment-api';
+import { useUserAssessmentResults } from '../../hooks/useAssessmentData';
+import { AssessmentListLoading } from '../../components/ui/loading-states';
+import { DataFetchError } from '../../components/ui/error-states';
 import { formatDate } from '../../utils/formatters';
-import { 
-  Eye, 
-  Calendar, 
-  User, 
+import {
+  Eye,
+  Calendar,
+  User,
   TrendingUp,
   AlertCircle,
   RefreshCw,
-  ArrowLeft
+  ArrowLeft,
+  Plus
 } from 'lucide-react';
 
 export default function MyResultsPage() {
   const router = useRouter();
-  const [results, setResults] = useState<AssessmentResult[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetchResults();
-  }, []);
-
-  const fetchResults = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await getUserAssessmentResults();
-      setResults(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load results');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { results, isLoading, error, refetch } = useUserAssessmentResults();
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -62,16 +45,23 @@ export default function MyResultsPage() {
     }
   };
 
-  if (loading) {
+  if (isLoading) {
+    return <AssessmentListLoading />;
+  }
+
+  if (error) {
     return (
       <div className="min-h-screen bg-[#f8fafc] p-6">
         <div className="max-w-6xl mx-auto space-y-6">
-          <Skeleton className="h-8 w-64" />
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[...Array(6)].map((_, i) => (
-              <Skeleton key={i} className="h-48" />
-            ))}
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-bold text-[#1e1e1e]">Hasil Assessment Saya</h1>
           </div>
+          <DataFetchError
+            error={error}
+            onRetry={refetch}
+            title="Gagal Memuat Hasil Assessment"
+            description="Terjadi kesalahan saat memuat daftar hasil assessment Anda."
+          />
         </div>
       </div>
     );
@@ -102,8 +92,8 @@ export default function MyResultsPage() {
             </div>
           </div>
           
-          <Button 
-            onClick={fetchResults}
+          <Button
+            onClick={refetch}
             variant="outline"
             size="sm"
             className="border-[#eaecf0]"
@@ -113,33 +103,9 @@ export default function MyResultsPage() {
           </Button>
         </div>
 
-        {/* Error State */}
-        {error && (
-          <Card className="bg-white border-red-200">
-            <CardContent className="p-6 text-center">
-              <div className="flex flex-col items-center gap-4">
-                <div className="p-3 bg-red-100 rounded-full">
-                  <AlertCircle className="w-6 h-6 text-red-600" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-[#1e1e1e] mb-2">
-                    Gagal Memuat Data
-                  </h3>
-                  <p className="text-[#64707d] mb-4">{error}</p>
-                  <Button onClick={fetchResults}>
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                    Coba Lagi
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
         {/* Results Grid */}
-        {!error && (
-          <>
-            {results.length === 0 ? (
+        <>
+          {results && results.length === 0 ? (
               <Card className="bg-white border-[#eaecf0]">
                 <CardContent className="p-8 text-center">
                   <div className="flex flex-col items-center gap-4">
@@ -171,7 +137,7 @@ export default function MyResultsPage() {
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <CardTitle className="text-lg font-semibold text-[#1e1e1e] mb-1">
-                            {result.persona_profile.title}
+                            {result.persona_profile.archetype || result.persona_profile.title || 'Assessment Result'}
                           </CardTitle>
                           <div className="flex items-center gap-2 text-xs text-[#64707d]">
                             <Calendar className="w-3 h-3" />
@@ -189,7 +155,7 @@ export default function MyResultsPage() {
                     
                     <CardContent className="space-y-4">
                       <p className="text-sm text-[#64707d] line-clamp-3">
-                        {result.persona_profile.description}
+                        {result.persona_profile.shortSummary || result.persona_profile.description || 'Deskripsi tidak tersedia'}
                       </p>
                       
                       {/* Quick Stats */}
@@ -222,8 +188,7 @@ export default function MyResultsPage() {
                 ))}
               </div>
             )}
-          </>
-        )}
+        </>
 
         {/* Demo Links */}
         <Card className="bg-[#f8fafc] border-[#e2e8f0]">

@@ -16,6 +16,19 @@ interface AssessmentScoresSummaryProps {
 }
 
 export default function AssessmentScoresSummary({ scores, resultId }: AssessmentScoresSummaryProps) {
+  // Early return if scores data is not available
+  if (!scores || !scores.riasec || !scores.ocean || !scores.viaIs) {
+    return (
+      <Card className="bg-white border-gray-200 shadow-sm">
+        <CardContent className="p-6">
+          <div className="text-center text-gray-500">
+            <p>Data ringkasan skor tidak tersedia</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   // Get dominant RIASEC type
   const dominantRiasec = getDominantRiasecType(scores.riasec);
   const dominantRiasecScore = scores.riasec[dominantRiasec.primary as keyof typeof scores.riasec];

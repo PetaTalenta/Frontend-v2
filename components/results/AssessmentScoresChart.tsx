@@ -17,7 +17,22 @@ interface AssessmentScoresChartProps {
 }
 
 export default function AssessmentScoresChart({ scores }: AssessmentScoresChartProps) {
-  const ScoreBar = ({ 
+  // Early return if scores data is not available
+  if (!scores || !scores.riasec || !scores.ocean || !scores.viaIs) {
+    return (
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Card className="bg-white border-gray-200 shadow-sm">
+          <CardContent className="p-6">
+            <div className="text-center text-gray-500">
+              <p>Data skor assessment tidak tersedia</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const ScoreBar = ({
     label, 
     score, 
     description 

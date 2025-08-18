@@ -245,8 +245,8 @@ export async function fetchAssessmentHistoryFromAPI() {
 
       // If not found in localStorage, use API data as fallback
       if (personaTitle === 'Assessment Result') {
-        personaTitle = result.persona_profile?.title || result.persona_profile?.archetype || 'Assessment Result';
-        console.log(`Archive API: Assessment ${result.id} - Using API persona title: "${personaTitle}" (from ${result.persona_profile?.title ? 'title' : result.persona_profile?.archetype ? 'archetype' : 'fallback'})`);
+        personaTitle = result.persona_profile?.archetype || result.persona_profile?.title || 'Assessment Result';
+        console.log(`Archive API: Assessment ${result.id} - Using API persona title: "${personaTitle}" (from ${result.persona_profile?.archetype ? 'archetype' : result.persona_profile?.title ? 'title' : 'fallback'})`);
       }
 
       return {
@@ -387,11 +387,12 @@ export async function formatAssessmentHistory(userStats: UserStats) {
     if (item.resultId && item.status === "Selesai") {
       // Try to get the assessment result to extract persona profile title
       const assessmentResult = JSON.parse(localStorage.getItem(`assessment-result-${item.resultId}`) || '{}');
-      if (assessmentResult.persona_profile?.title) {
-        console.log(`LocalStorage: Assessment ${item.resultId} - Updated nama from "${item.nama}" to "${assessmentResult.persona_profile.title}"`);
+      const personaTitle = assessmentResult.persona_profile?.archetype || assessmentResult.persona_profile?.title;
+      if (personaTitle) {
+        console.log(`LocalStorage: Assessment ${item.resultId} - Updated nama from "${item.nama}" to "${personaTitle}"`);
         return {
           ...item,
-          nama: assessmentResult.persona_profile.title
+          nama: personaTitle
         };
       } else {
         console.log(`LocalStorage: Assessment ${item.resultId} - No persona profile title found, keeping original nama: "${item.nama}"`);
@@ -595,6 +596,7 @@ export async function simulateNewAssessment(userId?: string): Promise<string> {
     createdAt: new Date().toISOString(),
     status: 'processing',
     assessment_data: {
+      assessmentName: 'AI-Driven Talent Mapping',
       riasec: { realistic: 0, investigative: 0, artistic: 0, social: 0, enterprising: 0, conventional: 0 },
       ocean: { openness: 0, conscientiousness: 0, extraversion: 0, agreeableness: 0, neuroticism: 0 },
       viaIs: {} // Empty for processing status
@@ -626,6 +628,7 @@ export async function updateAssessmentStatus(resultId: string, status: 'complete
     if (status === 'completed') {
       // Add some mock data for completed assessment
       result.assessment_data = {
+        assessmentName: 'AI-Driven Talent Mapping',
         riasec: {
           realistic: Math.floor(Math.random() * 100),
           investigative: Math.floor(Math.random() * 100),
@@ -671,8 +674,8 @@ export async function updateAssessmentStatus(resultId: string, status: 'complete
       };
       
       result.persona_profile = {
-        title: 'The Dynamic Achiever',
-        description: 'A well-rounded individual with strong potential for growth.',
+        archetype: 'The Dynamic Achiever',
+        shortSummary: 'A well-rounded individual with strong potential for growth.',
         strengths: ['Adaptability', 'Problem Solving', 'Communication'],
         recommendations: ['Explore leadership roles', 'Develop technical skills'],
         careerRecommendation: [{
@@ -686,7 +689,10 @@ export async function updateAssessmentStatus(resultId: string, status: 'complete
           },
           matchPercentage: 85
         }],
-        roleModel: ['Steve Jobs', 'Oprah Winfrey']
+        roleModel: ['Steve Jobs', 'Oprah Winfrey'],
+        // Legacy properties for backward compatibility
+        title: 'The Dynamic Achiever',
+        description: 'A well-rounded individual with strong potential for growth.'
       };
     }
     

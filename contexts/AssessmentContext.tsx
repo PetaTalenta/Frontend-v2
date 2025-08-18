@@ -1,15 +1,24 @@
 'use client';
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { assessmentTypes } from '../data/assessmentQuestions';
+import {
+  saveFlaggedQuestions,
+  loadFlaggedQuestions,
+  migrateFlaggedQuestionsToEncrypted
+} from '../utils/flagged-questions-storage';
 
 interface AssessmentContextType {
   currentAssessmentIndex: number;
   currentSectionIndex: number;
   answers: Record<number, number | null>;
+  flaggedQuestions: Record<number, boolean>;
   setCurrentAssessmentIndex: (index: number) => void;
   setCurrentSectionIndex: (index: number) => void;
   setAnswer: (questionId: number, value: number) => void;
+  toggleFlag: (questionId: number) => void;
+  getFlaggedQuestions: () => number[];
+  isFlagged: (questionId: number) => boolean;
   getCurrentAssessment: () => any;
   getCurrentSection: () => string;
   debugFillAllAssessments: () => void;
@@ -31,9 +40,45 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
   const [currentAssessmentIndex, setCurrentAssessmentIndex] = useState(0);
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<number, number | null>>({});
+  const [flaggedQuestions, setFlaggedQuestions] = useState<Record<number, boolean>>({});
+
+  // Load flagged questions from storage on mount
+  useEffect(() => {
+    const loadedFlags = loadFlaggedQuestions();
+    setFlaggedQuestions(loadedFlags);
+
+    // Migrate unencrypted data if needed
+    migrateFlaggedQuestionsToEncrypted();
+  }, []);
 
   const setAnswer = (questionId: number, value: number) => {
     setAnswers(prev => ({ ...prev, [questionId]: value }));
+  };
+
+  // Toggle flag for a question
+  const toggleFlag = (questionId: number) => {
+    setFlaggedQuestions(prev => {
+      const newFlags = { ...prev };
+      newFlags[questionId] = !newFlags[questionId];
+
+      // Auto-save to encrypted storage
+      saveFlaggedQuestions(newFlags);
+
+      console.log(`Question ${questionId} ${newFlags[questionId] ? 'flagged' : 'unflagged'}`);
+      return newFlags;
+    });
+  };
+
+  // Get list of flagged question IDs
+  const getFlaggedQuestions = (): number[] => {
+    return Object.entries(flaggedQuestions)
+      .filter(([_, isFlagged]) => isFlagged)
+      .map(([questionId, _]) => parseInt(questionId, 10));
+  };
+
+  // Check if a question is flagged
+  const isFlagged = (questionId: number): boolean => {
+    return !!flaggedQuestions[questionId];
   };
 
   const getCurrentAssessment = () => {
@@ -112,9 +157,13 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
       currentAssessmentIndex,
       currentSectionIndex,
       answers,
+      flaggedQuestions,
       setCurrentAssessmentIndex,
       setCurrentSectionIndex,
       setAnswer,
+      toggleFlag,
+      getFlaggedQuestions,
+      isFlagged,
       getCurrentAssessment,
       getCurrentSection,
       debugFillAllAssessments,

@@ -3,7 +3,7 @@
  * Provides state management and callbacks for assessment submission and monitoring
  */
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import {
   AssessmentWorkflow,
   WorkflowState,
@@ -12,6 +12,7 @@ import {
 } from '../utils/assessment-workflow';
 import { AssessmentResult, AssessmentScores } from '../types/assessment-results';
 import { useAuth } from '../contexts/AuthContext';
+import { clearSessionSubmissionTracking } from '../utils/submission-guard';
 
 export interface UseAssessmentWorkflowOptions {
   onComplete?: (result: AssessmentResult) => void;
@@ -42,6 +43,7 @@ export interface UseAssessmentWorkflowReturn {
   ) => Promise<AssessmentResult | null>;
   cancel: () => void;
   reset: () => void;
+  forceResetSubmission: () => void;
   retry: () => Promise<AssessmentResult | null>;
 
   // Utilities
@@ -51,7 +53,7 @@ export interface UseAssessmentWorkflowReturn {
 }
 
 /**
- * Hook for managing assessment workflow
+ * Optimized hook for managing assessment workflow
  */
 export function useAssessmentWorkflow(
   options: UseAssessmentWorkflowOptions = {}
@@ -66,147 +68,189 @@ export function useAssessmentWorkflow(
 
   const workflowRef = useRef<AssessmentWorkflow | null>(null);
   const optionsRef = useRef(options);
+  const callbacksRef = useRef<WorkflowCallbacks | null>(null);
 
-  // Update options ref when options change
+  // Update options ref when options change (memoized)
   useEffect(() => {
     optionsRef.current = options;
   }, [options]);
 
-  // Create workflow callbacks
-  const createCallbacks = useCallback((): WorkflowCallbacks => ({
-    onStatusChange: (newState: WorkflowState) => {
-      // Ensure state is never undefined
-      if (newState && newState.status) {
-        setState(newState);
-      }
-    },
-    onProgress: (newState: WorkflowState) => {
-      // Ensure state is never undefined
-      if (newState && newState.status) {
-        setState(newState);
-      }
-    },
-    onComplete: (result: AssessmentResult) => {
-      // Update local state to completed with result
-      setState(prevState => ({
-        ...prevState,
-        status: 'completed',
-        progress: 100,
-        message: 'Assessment completed successfully',
-        result: result
-      }));
+  // Create stable callbacks (memoized to prevent unnecessary re-renders)
+  const createCallbacks = useCallback((): WorkflowCallbacks => {
+    if (callbacksRef.current) {
+      return callbacksRef.current;
+    }
 
-      if (optionsRef.current.onComplete) {
-        optionsRef.current.onComplete(result);
-      }
+    const callbacks: WorkflowCallbacks = {
+      onStatusChange: (newState: WorkflowState) => {
+        // Optimized state update - only update if state actually changed
+        setState(prevState => {
+          if (prevState.status === newState.status &&
+              prevState.progress === newState.progress &&
+              prevState.message === newState.message) {
+            return prevState; // No change, prevent re-render
+          }
+          return { ...prevState, ...newState };
+        });
+      },
+      onProgress: (newState: WorkflowState) => {
+        // Optimized progress update - batch with status change
+        setState(prevState => ({
+          ...prevState,
+          progress: newState.progress,
+          message: newState.message || prevState.message
+        }));
+      },
+      onComplete: (result: AssessmentResult) => {
+        // Single atomic state update for completion
+        setState(prevState => ({
+          ...prevState,
+          status: 'completed',
+          progress: 100,
+          message: 'Assessment completed successfully',
+          result: result
+        }));
 
-      // Auto reset if enabled
-      if (optionsRef.current.autoReset) {
-        setTimeout(() => {
-          reset();
-        }, 3000); // Reset after 3 seconds
-      }
-    },
-    onError: (error: Error, errorState: WorkflowState) => {
-      console.error('Assessment Workflow Hook: Error occurred', error);
+        // Clear session tracking asynchronously to avoid blocking
+        clearSessionSubmissionTracking().catch(error => {
+          console.error('Error clearing session tracking:', error);
+        });
 
-      // Update local state to failed
-      setState(prevState => ({
-        ...prevState,
-        status: 'failed',
-        message: error.message || 'Assessment failed',
-        error: error.message,
-        canRetry: true
-      }));
+        // Call user callback
+        if (optionsRef.current.onComplete) {
+          optionsRef.current.onComplete(result);
+        }
 
-      if (optionsRef.current.onError) {
-        optionsRef.current.onError(error);
-      }
-    },
-    onTokenBalanceUpdate: optionsRef.current.onTokenBalanceUpdate,
-    preferWebSocket: optionsRef.current.preferWebSocket,
-  }), []);
+        // Auto reset if enabled (non-blocking)
+        if (optionsRef.current.autoReset) {
+          setTimeout(() => {
+            reset();
+          }, 3000);
+        }
+      },
+      onError: (error: Error, errorState: WorkflowState) => {
+        console.error('Assessment Workflow Hook: Error occurred', error);
 
-  // Initialize workflow
-  const initializeWorkflow = useCallback(() => {
+        // Single atomic state update for error
+        setState(prevState => ({
+          ...prevState,
+          status: 'failed',
+          message: error.message || 'Assessment failed',
+          error: error.message,
+          canRetry: true
+        }));
+
+        // Call user callback
+        if (optionsRef.current.onError) {
+          optionsRef.current.onError(error);
+        }
+      },
+      onTokenBalanceUpdate: optionsRef.current.onTokenBalanceUpdate,
+      preferWebSocket: optionsRef.current.preferWebSocket,
+    };
+
+    callbacksRef.current = callbacks;
+    return callbacks;
+  }, []);
+
+  // Optimized workflow initialization (lazy initialization)
+  const getWorkflow = useCallback(() => {
     if (!workflowRef.current) {
       workflowRef.current = new AssessmentWorkflow(createCallbacks());
+      console.log('Assessment Workflow Hook: Initialized new workflow instance');
     }
     return workflowRef.current;
   }, [createCallbacks]);
 
-  // Note: WebSocket connection is now handled in submit methods to ensure proper timing
-
-  // Cleanup WebSocket connection on unmount
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (workflowRef.current) {
-        console.log('Assessment Workflow Hook: Cleaning up WebSocket connection...');
+        console.log('Assessment Workflow Hook: Cleaning up workflow...');
         workflowRef.current.disconnectWebSocket();
+        workflowRef.current = null;
+        callbacksRef.current = null;
       }
     };
   }, []);
 
-  // Submit assessment from answers
+  // Optimized submission from answers
   const submitFromAnswers = useCallback(async (
     answers: Record<number, number | null>,
     assessmentName: string = 'AI-Driven Talent Mapping'
   ): Promise<AssessmentResult | null> => {
     try {
-      const workflow = initializeWorkflow();
+      const workflow = getWorkflow();
 
-      // Always ensure WebSocket connection for real-time monitoring
+      // Ensure WebSocket connection if token is available
       if (token) {
-        console.log('Assessment Workflow Hook: Ensuring WebSocket connection before submission...');
+        console.log('Assessment Workflow Hook: Ensuring WebSocket connection...');
         await workflow.ensureWebSocketConnection(token);
-      } else {
-        console.warn('Assessment Workflow Hook: No token available for WebSocket connection');
       }
 
-      const result = await workflow.submitFromAnswers(answers, assessmentName);
-      return result;
+      return await workflow.submitFromAnswers(answers, assessmentName);
     } catch (error) {
       console.error('Assessment submission failed:', error);
-      return null;
+      // Don't return null, let the error propagate to be handled by the workflow
+      throw error;
     }
-  }, [initializeWorkflow, token]);
+  }, [getWorkflow, token]);
 
-  // Submit assessment from scores
+  // Optimized submission from scores
   const submitFromScores = useCallback(async (
     scores: AssessmentScores,
     assessmentName: string = 'AI-Driven Talent Mapping'
   ): Promise<AssessmentResult | null> => {
     try {
-      const workflow = initializeWorkflow();
+      const workflow = getWorkflow();
 
-      // Always ensure WebSocket connection for real-time monitoring
+      // Ensure WebSocket connection if token is available
       if (token) {
-        console.log('Assessment Workflow Hook: Ensuring WebSocket connection before submission...');
         await workflow.ensureWebSocketConnection(token);
-      } else {
-        console.warn('Assessment Workflow Hook: No token available for WebSocket connection');
       }
 
-      const result = await workflow.submitFromScores(scores, assessmentName);
-      return result;
+      return await workflow.submitFromScores(scores, assessmentName);
     } catch (error) {
       console.error('Assessment submission failed:', error);
-      return null;
+      throw error; // Let error propagate for proper handling
     }
-  }, [initializeWorkflow, token]);
+  }, [getWorkflow, token]);
 
-  // Cancel current workflow
+  // Optimized cancel method
   const cancel = useCallback(() => {
-    if (workflowRef.current) {
-      workflowRef.current.cancel();
+    const workflow = workflowRef.current;
+    if (workflow) {
+      workflow.cancel();
+      console.log('Assessment Workflow Hook: Cancelled current workflow');
     }
   }, []);
 
-  // Reset workflow
+  // Optimized reset method
   const reset = useCallback(() => {
-    if (workflowRef.current) {
-      workflowRef.current.reset();
+    const workflow = workflowRef.current;
+    if (workflow) {
+      workflow.reset();
     }
+
+    // Reset local state atomically
+    setState({
+      status: 'idle',
+      progress: 0,
+      message: 'Ready to submit assessment',
+    });
+
+    console.log('Assessment Workflow Hook: Reset workflow and state');
+  }, []);
+
+  // Force reset submission state (emergency recovery)
+  const forceResetSubmission = useCallback(() => {
+    const workflow = workflowRef.current;
+    if (workflow) {
+      workflow.forceResetSubmission();
+      console.log('Assessment Workflow Hook: Force reset submission state');
+    }
+
+    // Also reset local state
     setState({
       status: 'idle',
       progress: 0,
@@ -214,64 +258,49 @@ export function useAssessmentWorkflow(
     });
   }, []);
 
-  // Retry failed assessment
+  // Optimized retry method
   const retry = useCallback(async (): Promise<AssessmentResult | null> => {
-    if (workflowRef.current) {
-      try {
-        return await workflowRef.current.retry();
-      } catch (error) {
-        console.error('Assessment retry failed:', error);
-        return null;
-      }
+    const workflow = workflowRef.current;
+    if (!workflow) {
+      console.warn('Assessment Workflow Hook: No workflow available for retry');
+      return null;
+    }
+
+    try {
+      return await workflow.retry();
+    } catch (error) {
+      console.error('Assessment retry failed:', error);
+      throw error; // Let error propagate for proper handling
     }
     return null;
   }, []);
 
-  // Utility functions
-  const getProgressPercentage = useCallback(() => {
-    return state.progress || 0;
-  }, [state.progress]);
+  // Memoized utility functions to prevent unnecessary re-renders
+  const getProgressPercentage = useCallback(() => state.progress || 0, [state.progress]);
+  const getStatusMessage = useCallback(() => state.message || 'Ready to submit assessment', [state.message]);
+  const getEstimatedTimeRemaining = useCallback(() => state.estimatedTimeRemaining || null, [state.estimatedTimeRemaining]);
 
-  const getStatusMessage = useCallback(() => {
-    return state.message || 'Ready to submit assessment';
-  }, [state.message]);
-
-  const getEstimatedTimeRemaining = useCallback(() => {
-    return state.estimatedTimeRemaining || null;
-  }, [state.estimatedTimeRemaining]);
-
-  // Computed state
-  const isIdle = state.status === 'idle';
-  const isProcessing = ['validating', 'submitting', 'queued', 'processing'].includes(state.status);
-  const isCompleted = state.status === 'completed';
-  const isFailed = state.status === 'failed';
-  const canRetry = state.canRetry || false;
-  const result = state.result || null;
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (workflowRef.current) {
-        workflowRef.current.cancel();
-      }
-    };
-  }, []);
+  // Memoized computed state to prevent unnecessary re-renders
+  const computedState = useMemo(() => ({
+    isIdle: state.status === 'idle',
+    isProcessing: ['validating', 'submitting', 'queued', 'processing'].includes(state.status),
+    isCompleted: state.status === 'completed',
+    isFailed: state.status === 'failed',
+    canRetry: state.canRetry || false,
+    result: state.result || null,
+  }), [state.status, state.canRetry, state.result]);
 
   return {
     // State
     state,
-    isIdle,
-    isProcessing,
-    isCompleted,
-    isFailed,
-    canRetry,
-    result,
+    ...computedState,
 
     // Actions
     submitFromAnswers,
     submitFromScores,
     cancel,
     reset,
+    forceResetSubmission,
     retry,
 
     // Utilities
@@ -282,73 +311,90 @@ export function useAssessmentWorkflow(
 }
 
 /**
- * Simplified hook for one-time assessment submission
+ * Optimized simplified hook for one-time assessment submission
  */
 export function useAssessmentSubmission(
   options: UseAssessmentWorkflowOptions = {}
 ) {
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [result, setResult] = useState<AssessmentResult | null>(null);
-  const [error, setError] = useState<Error | null>(null);
+  const [state, setState] = useState({
+    isSubmitting: false,
+    result: null as AssessmentResult | null,
+    error: null as Error | null
+  });
+
+  const optionsRef = useRef(options);
+
+  // Update options ref when options change
+  useEffect(() => {
+    optionsRef.current = options;
+  }, [options]);
 
   const submit = useCallback(async (
     answers: Record<number, number | null>,
     assessmentName: string = 'AI-Driven Talent Mapping'
   ): Promise<AssessmentResult | null> => {
-    
-    setIsSubmitting(true);
-    setError(null);
-    setResult(null);
+
+    // Atomic state update
+    setState(prev => ({ ...prev, isSubmitting: true, error: null, result: null }));
 
     try {
+      console.log('useAssessmentSubmission: Starting optimized submission...');
+
       const result = await runAssessmentWorkflow(
         answers,
         {
-          onComplete: (result) => {
-            setResult(result);
-            if (options.onComplete) {
-              options.onComplete(result);
-            }
-          },
-          onError: (error) => {
-            setError(error);
-            if (options.onError) {
-              options.onError(error);
-            }
-          },
-          onTokenBalanceUpdate: options.onTokenBalanceUpdate,
+          onTokenBalanceUpdate: optionsRef.current.onTokenBalanceUpdate,
         },
         assessmentName
       );
+
+      // Atomic state update for success
+      setState(prev => ({ ...prev, result, isSubmitting: false }));
+      console.log('useAssessmentSubmission: Submission completed successfully');
+
+      // Call completion callback
+      if (optionsRef.current.onComplete) {
+        optionsRef.current.onComplete(result);
+      }
 
       return result;
 
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Assessment submission failed');
-      setError(error);
-      if (options.onError) {
-        options.onError(error);
+
+      // Atomic state update for error
+      setState(prev => ({ ...prev, error, isSubmitting: false }));
+
+      // Call error callback
+      if (optionsRef.current.onError) {
+        optionsRef.current.onError(error);
       }
-      return null;
-    } finally {
-      setIsSubmitting(false);
+
+      throw error; // Let error propagate for proper handling
     }
-  }, [options]);
+  }, []);
 
   const reset = useCallback(() => {
-    setIsSubmitting(false);
-    setResult(null);
-    setError(null);
+    setState({
+      isSubmitting: false,
+      result: null,
+      error: null
+    });
   }, []);
+
+  // Memoized computed values
+  const computedValues = useMemo(() => ({
+    isCompleted: !!state.result,
+    isFailed: !!state.error,
+  }), [state.result, state.error]);
 
   return {
     submit,
     reset,
-    isSubmitting,
-    result,
-    error,
-    isCompleted: !!result,
-    isFailed: !!error,
+    isSubmitting: state.isSubmitting,
+    result: state.result,
+    error: state.error,
+    ...computedValues,
   };
 }
 

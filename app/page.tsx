@@ -1,30 +1,33 @@
-'use client';
+import { Metadata } from 'next';
+import LandingPage from '../components/landing/LandingPage';
+import AuthRedirect from '../components/landing/AuthRedirect';
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '../contexts/AuthContext';
+export const metadata: Metadata = {
+  title: 'PetaTalenta - AI-Driven Talent Mapping Assessment Platform',
+  description: 'Temukan potensi terbaik Anda dengan platform assessment kepribadian dan bakat berbasis AI. Analisis RIASEC, Big Five, dan VIA Character Strengths untuk pengembangan karir optimal.',
+  keywords: 'assessment kepribadian, tes bakat, RIASEC, Big Five, VIA Character Strengths, AI assessment, pengembangan karir',
+  openGraph: {
+    title: 'PetaTalenta - AI-Driven Talent Assessment',
+    description: 'Platform assessment kepribadian dan bakat berbasis AI untuk menemukan potensi terbaik Anda',
+    type: 'website',
+    locale: 'id_ID',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'PetaTalenta - AI-Driven Talent Assessment',
+    description: 'Platform assessment kepribadian dan bakat berbasis AI untuk menemukan potensi terbaik Anda',
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
+};
 
 export default function Page() {
-  const { isAuthenticated, isLoading } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!isLoading) {
-      if (isAuthenticated) {
-        router.push('/dashboard');
-      } else {
-        router.push('/auth');
-      }
-    }
-  }, [isAuthenticated, isLoading, router]);
-
-  // Show loading while redirecting
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center">
-      <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#6475e9] mx-auto mb-4"></div>
-        <p className="text-gray-600">Loading...</p>
-      </div>
-    </div>
+    <>
+      <LandingPage />
+      <AuthRedirect />
+    </>
   );
 }

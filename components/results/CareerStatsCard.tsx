@@ -11,6 +11,19 @@ interface CareerStatsCardProps {
 }
 
 export default function CareerStatsCard({ scores }: CareerStatsCardProps) {
+  // Early return if scores data is not available
+  if (!scores || !scores.riasec || !scores.ocean || !scores.viaIs) {
+    return (
+      <Card className="bg-white border-gray-200/60 shadow-sm">
+        <CardContent className="p-6">
+          <div className="text-center text-gray-500">
+            <p>Data statistik karir tidak tersedia</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   // Calculate career-focused statistics matching the radar chart
   const riasecScores = [
     { name: 'Development', score: scores.riasec.investigative, category: 'Technical' },

@@ -2,6 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Import Fonts CSS */
+@import '/fonts/fonts.css';
+
 /* Import Dashboard Components CSS */
 @import '../styles/components/dashboard/index.css';
 

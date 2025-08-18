@@ -6,27 +6,27 @@
 export const WEBSOCKET_CONFIG = {
   // WebSocket is now mandatory for real-time assessment monitoring
   MANDATORY: true,
-  
-  // Connection settings
-  CONNECTION_TIMEOUT: 10000, // 10 seconds
+
+  // Connection settings - OPTIMIZED for faster connections
+  CONNECTION_TIMEOUT: 5000, // 5 seconds (reduced from 10s)
   RECONNECTION_ATTEMPTS: 5,
-  RECONNECTION_DELAY: 1000, // 1 second
-  
-  // Monitoring settings
-  MONITORING_TIMEOUT: 120000, // 2 minutes for assessment completion
-  HEARTBEAT_INTERVAL: 30000, // 30 seconds
-  
+  RECONNECTION_DELAY: 500, // 0.5 seconds (reduced from 1s)
+
+  // Monitoring settings - OPTIMIZED for AI processing time
+  MONITORING_TIMEOUT: 240000, // 4 minutes (increased for AI processing)
+  HEARTBEAT_INTERVAL: 15000, // 15 seconds (more frequent heartbeat)
+
   // URLs
   PRODUCTION_URL: 'https://api.chhrone.web.id',
   DEVELOPMENT_URL: 'http://localhost:3001',
-  
+
   // Fallback settings
   ALLOW_POLLING_FALLBACK: true, // Allow polling only in extreme cases
   POLLING_WARNING: true, // Show warning when falling back to polling
-  
-  // Performance settings
+
+  // Performance settings - OPTIMIZED
   MAX_CONCURRENT_CONNECTIONS: 1,
-  BUFFER_SIZE: 1024,
+  BUFFER_SIZE: 2048, // Increased buffer size
   
   // Error handling
   MAX_RETRY_ATTEMPTS: 3,

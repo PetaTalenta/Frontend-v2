@@ -6,7 +6,8 @@
 import {
   AssessmentScores,
   AssessmentStatusResponse,
-  AssessmentResult
+  AssessmentResult,
+  convertScoresToApiData
 } from '../types/assessment-results';
 import {
   submitAssessment,
@@ -69,6 +70,10 @@ export class AssessmentWorkflow {
   private isSubmitting = false; // Prevent duplicate submissions
   private currentJobId: string | null = null; // Track current job
   private callbackCalled = false; // Prevent duplicate callback calls
+  private submissionId: string | null = null; // Track unique submission ID
+  private isCompleted = false; // Global completion flag to prevent race conditions
+  private completionSource: 'websocket' | 'polling' | null = null; // Track completion source
+  private submissionStartTime: number = 0; // Track when submission started
 
   constructor(callbacks: WorkflowCallbacks = {}) {
     this.callbacks = callbacks;
@@ -86,6 +91,47 @@ export class AssessmentWorkflow {
    */
   getState(): WorkflowState {
     return { ...this.state };
+  }
+
+  /**
+   * Reset workflow state for new submission
+   */
+  reset(): void {
+    console.log('Assessment Workflow: Resetting workflow state');
+    this.isSubmitting = false;
+    this.isCompleted = false;
+    this.callbackCalled = false;
+    this.completionSource = null;
+    this.currentJobId = null;
+    this.submissionId = null;
+    this.submissionStartTime = 0;
+
+    this.state = {
+      status: 'idle',
+      progress: 0,
+      message: 'Ready to submit assessment',
+      useWebSocket: false,
+      webSocketConnected: false,
+    };
+  }
+
+  /**
+   * Force reset submission state (for emergency recovery)
+   */
+  forceResetSubmission(): void {
+    console.warn('Assessment Workflow: Force resetting submission state');
+    this.isSubmitting = false;
+    this.submissionStartTime = 0;
+    this.currentJobId = null;
+    this.submissionId = null;
+
+    if (this.state.status === 'submitting' || this.state.status === 'queued' || this.state.status === 'processing') {
+      this.updateState({
+        status: 'idle',
+        progress: 0,
+        message: 'Ready to submit assessment',
+      });
+    }
   }
 
   /**
@@ -114,14 +160,85 @@ export class AssessmentWorkflow {
   }
 
   /**
+   * Centralized completion handler to prevent race conditions and duplicate callbacks
+   */
+  private async handleCompletion(
+    result: AssessmentResult,
+    source: 'websocket' | 'polling'
+  ): Promise<AssessmentResult> {
+    // Check if already completed to prevent race conditions
+    if (this.isCompleted) {
+      console.warn(`Assessment Workflow: Completion already handled by ${this.completionSource}, ignoring ${source} completion`);
+      return result;
+    }
+
+    // Mark as completed atomically
+    this.isCompleted = true;
+    this.completionSource = source;
+    this.currentJobId = null; // Clear job on completion
+    this.isSubmitting = false; // CRITICAL: Reset submission flag to allow future submissions
+
+    console.log(`Assessment Workflow: Handling completion from ${source} with result ID: ${result.id} (submission: ${this.submissionId})`);
+
+    // Update state
+    this.updateState({
+      status: 'completed',
+      progress: 100,
+      message: 'Assessment completed successfully',
+      result
+    });
+
+    // Call completion callback only once
+    if (this.callbacks.onComplete && !this.callbackCalled) {
+      console.log(`Assessment Workflow: Calling onComplete callback from ${source} (submission: ${this.submissionId})`);
+      this.callbackCalled = true;
+      this.callbacks.onComplete(result);
+    } else if (this.callbackCalled) {
+      console.warn(`Assessment Workflow: Prevented duplicate callback call from ${source} (submission: ${this.submissionId})`);
+    }
+
+    // Update token balance
+    if (this.callbacks.onTokenBalanceUpdate) {
+      try {
+        await this.callbacks.onTokenBalanceUpdate();
+      } catch (error) {
+        console.error('Error updating token balance:', error);
+      }
+    }
+
+    return result;
+  }
+
+  /**
    * Submit assessment from raw answers
    */
   async submitFromAnswers(
     answers: Record<number, number | null>,
     assessmentName: string = 'AI-Driven Talent Mapping'
   ): Promise<AssessmentResult> {
-    
+
+    // Check if already submitting to prevent duplicates
+    if (this.isSubmitting) {
+      console.warn('AssessmentWorkflow.submitFromAnswers: Duplicate submission attempt detected', {
+        submissionId: this.submissionId,
+        status: this.state.status,
+        timeSinceStart: this.submissionStartTime ? Date.now() - this.submissionStartTime : 0
+      });
+      throw new Error('Assessment submission already in progress. Please wait for the current submission to complete.');
+    }
+
+    // Generate unique submission ID for tracking
+    this.submissionId = `submission-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    console.log(`Assessment Workflow: Starting new submission with ID: ${this.submissionId}`);
+
     try {
+      // Mark as submitting and reset completion flags
+      this.isSubmitting = true;
+      this.submissionStartTime = Date.now(); // Track when submission started
+      this.isCompleted = false;
+      this.callbackCalled = false;
+      this.completionSource = null;
+
       // Reset state
       this.updateState({
         status: 'validating',
@@ -146,8 +263,8 @@ export class AssessmentWorkflow {
       // Calculate scores
       const scores = calculateAllScores(answers);
 
-      // Submit assessment
-      return await this.submitFromScores(scores, assessmentName);
+      // Call internal submission method directly to avoid double-checking isSubmitting
+      return await this._internalSubmitFromScores(scores, assessmentName);
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
@@ -163,6 +280,9 @@ export class AssessmentWorkflow {
       }
 
       throw error;
+    } finally {
+      // Always reset submission state
+      this.isSubmitting = false;
     }
   }
 
@@ -177,35 +297,40 @@ export class AssessmentWorkflow {
     // Store parameters for potential retry
     this.lastSubmissionParams = { scores, assessmentName };
 
-    // Prevent duplicate submissions
+    // Prevent duplicate submissions with safety check for stuck submissions
     if (this.isSubmitting) {
-      console.warn('Assessment Workflow: Submission already in progress, ignoring duplicate request');
-      throw new Error('Assessment submission already in progress');
+      const timeSinceStart = Date.now() - this.submissionStartTime;
+      const maxSubmissionTime = 10 * 60 * 1000; // 10 minutes max
+
+      if (timeSinceStart > maxSubmissionTime) {
+        console.warn('Assessment Workflow: Submission appears stuck, auto-resetting...');
+        console.warn('Assessment Workflow: Stuck submission details:', {
+          timeSinceStart: Math.round(timeSinceStart / 1000) + 's',
+          submissionId: this.submissionId,
+          status: this.state.status
+        });
+        this.reset(); // Auto-reset stuck submission
+      } else {
+        console.warn('Assessment Workflow: External duplicate submission attempt detected');
+        console.warn('Assessment Workflow: Current state:', {
+          isSubmitting: this.isSubmitting,
+          isCompleted: this.isCompleted,
+          status: this.state.status,
+          submissionId: this.submissionId,
+          currentJobId: this.currentJobId,
+          timeSinceStart: Math.round(timeSinceStart / 1000) + 's'
+        });
+        throw new Error('Assessment submission already in progress (external duplicate)');
+      }
     }
 
     try {
       this.isSubmitting = true;
+      this.submissionStartTime = Date.now(); // Track when submission started
       this.callbackCalled = false; // Reset callback flag for new submission
+      this.submissionId = `submission-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`; // Generate unique submission ID
 
-      this.updateState({
-        status: 'submitting',
-        progress: 20,
-        message: 'Submitting assessment...',
-      });
-
-      // Create abort controller for cancellation
-      this.abortController = new AbortController();
-
-      // Check if service is available
-      const serviceAvailable = await isAssessmentServiceAvailable();
-      
-      if (serviceAvailable) {
-        // Use real API with WebSocket priority
-        return await this.submitWithRealAPI(scores, assessmentName);
-      } else {
-        // Use mock API (existing behavior)
-        return await this.submitWithMockAPI(scores, assessmentName);
-      }
+      return await this._internalSubmitFromScores(scores, assessmentName);
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
@@ -224,6 +349,38 @@ export class AssessmentWorkflow {
     } finally {
       // Always reset submission state
       this.isSubmitting = false;
+    }
+  }
+
+  /**
+   * Internal method for submitting from scores without duplicate submission checks
+   * Used by both submitFromScores and submitFromAnswers to avoid race conditions
+   */
+  private async _internalSubmitFromScores(
+    scores: AssessmentScores,
+    assessmentName: string = 'AI-Driven Talent Mapping'
+  ): Promise<AssessmentResult> {
+
+    console.log(`Assessment Workflow: Starting submission with ID: ${this.submissionId}`);
+
+    this.updateState({
+      status: 'submitting',
+      progress: 20,
+      message: 'Submitting assessment...',
+    });
+
+    // Create abort controller for cancellation
+    this.abortController = new AbortController();
+
+    // Check if service is available
+    const serviceAvailable = await isAssessmentServiceAvailable();
+
+    if (serviceAvailable) {
+      // Use real API with WebSocket priority
+      return await this.submitWithRealAPI(scores, assessmentName);
+    } else {
+      // Use mock API (existing behavior)
+      return await this.submitWithMockAPI(scores, assessmentName);
     }
   }
 
@@ -418,7 +575,7 @@ export class AssessmentWorkflow {
 
       // Setup WebSocket callbacks
       this.webSocketService.setCallbacks({
-        onAssessmentEvent: (event: AssessmentWebSocketEvent) => {
+        onAssessmentEvent: async (event: AssessmentWebSocketEvent) => {
           if (event.jobId !== jobId || isResolved) return;
 
           console.log('Assessment Workflow: Received WebSocket event', event);
@@ -432,21 +589,8 @@ export class AssessmentWorkflow {
               webSocketConnected: true,
             });
           } else if (event.type === 'analysis-complete' && event.resultId) {
+            if (isResolved) return; // Prevent duplicate handling
             isResolved = true;
-            this.currentJobId = null; // Clear job on completion
-            this.updateState({
-              status: 'completed',
-              progress: 100,
-              message: event.message || 'Analysis completed successfully!',
-              webSocketConnected: true,
-            });
-
-            // Redirect directly to result page instead of handling completion
-            console.log(`Assessment Workflow: Redirecting to result page with ID: ${event.resultId}`);
-            // Don't await this to avoid blocking the resolve
-            this.redirectToResultPage(event.resultId).catch(error => {
-              console.error('Assessment Workflow: Error during redirect:', error);
-            });
 
             // Create minimal result object for callback
             const result = {
@@ -454,11 +598,25 @@ export class AssessmentWorkflow {
               userId: 'current-user',
               createdAt: new Date().toISOString(),
               status: 'completed' as const,
-              assessment_data: scores,
+              assessment_data: convertScoresToApiData(scores),
               persona_profile: null // Will be fetched from API on result page
             };
 
-            resolve(result);
+            try {
+              // Use centralized completion handler
+              const finalResult = await this.handleCompletion(result, 'websocket');
+
+              // Redirect to result page
+              console.log(`Assessment Workflow: Redirecting to result page with ID: ${event.resultId}`);
+              this.redirectToResultPage(event.resultId).catch(error => {
+                console.error('Assessment Workflow: Error during redirect:', error);
+              });
+
+              resolve(finalResult);
+            } catch (error) {
+              console.error('Assessment Workflow: Error in WebSocket completion handler:', error);
+              reject(error);
+            }
           } else if (event.type === 'analysis-failed') {
             isResolved = true;
             this.currentJobId = null; // Clear job on failure
@@ -491,7 +649,7 @@ export class AssessmentWorkflow {
         onError: (error) => {
           console.error('Assessment Workflow: WebSocket error', error);
           // Don't fail immediately on WebSocket error - fall back to polling
-          if (!isResolved && !hasFallenBackToPolling) {
+          if (!isResolved && !hasFallenBackToPolling && !this.isCompleted) {
             hasFallenBackToPolling = true;
             console.log('Assessment Workflow: WebSocket error, falling back to polling');
             this.monitorWithPolling(jobId, scores).then(resolve).catch(reject);
@@ -523,15 +681,17 @@ export class AssessmentWorkflow {
 
       // Check job status every 60 seconds as backup
       const checkStatus = async () => {
-        if (!isResolved) {
+        if (!isResolved && !this.isCompleted) {
           try {
             const status = await this.checkJobStatus(jobId);
             if (status.data.status === 'completed') {
+              if (isResolved || this.isCompleted) return; // Prevent race condition
               isResolved = true;
-              this.currentJobId = null;
+
               try {
                 const result = await this.convertStatusToResult(status, scores);
-                resolve(result);
+                const finalResult = await this.handleCompletion(result, 'websocket');
+                resolve(finalResult);
               } catch (conversionError) {
                 console.error('Assessment Workflow: Error converting status to result:', conversionError);
                 reject(conversionError);
@@ -553,7 +713,7 @@ export class AssessmentWorkflow {
           } catch (error) {
             console.log('Assessment Workflow: Status check failed, continuing to wait for WebSocket events. Error:', error);
             // Don't schedule another check if already resolved
-            if (!isResolved) {
+            if (!isResolved && !this.isCompleted) {
               statusCheckTimeoutId = setTimeout(checkStatus, 10000); // Retry every 10 seconds
             }
           }
@@ -564,20 +724,22 @@ export class AssessmentWorkflow {
       progressTimeoutId = setTimeout(updateProgress, 30000);
       statusCheckTimeoutId = setTimeout(checkStatus, 10000); // Check status every 10 seconds instead of 60
 
-      // Main timeout - increased to 10 minutes for complex assessments
+      // Main timeout - OPTIMIZED to 5 minutes for faster failure detection
       timeoutId = setTimeout(async () => {
-        if (!isResolved) {
+        if (!isResolved && !this.isCompleted) {
           console.log('Assessment Workflow: WebSocket timeout reached, checking final status');
 
           try {
             // Check job status one more time before failing
             const status = await this.checkJobStatus(jobId);
             if (status.data.status === 'completed') {
+              if (isResolved || this.isCompleted) return; // Prevent race condition
               isResolved = true;
-              this.currentJobId = null;
+
               try {
                 const result = await this.convertStatusToResult(status, scores);
-                resolve(result);
+                const finalResult = await this.handleCompletion(result, 'websocket');
+                resolve(finalResult);
                 return;
               } catch (conversionError) {
                 console.error('Assessment Workflow: Error converting status to result on timeout:', conversionError);
@@ -586,7 +748,7 @@ export class AssessmentWorkflow {
               }
             } else if (status.data.status === 'processing' || status.data.status === 'queued') {
               // Job is still processing, fall back to polling
-              if (!hasFallenBackToPolling) {
+              if (!hasFallenBackToPolling && !this.isCompleted) {
                 hasFallenBackToPolling = true;
                 console.log('Assessment Workflow: Job still processing after timeout, falling back to polling');
                 this.monitorWithPolling(jobId, scores).then(resolve).catch(reject);
@@ -611,7 +773,7 @@ export class AssessmentWorkflow {
 
           reject(new Error('Assessment timeout - please check results or try again'));
         }
-      }, 600000); // 10 minutes timeout
+      }, 240000); // 4 minutes timeout (optimized for AI processing)
 
       // Clean up timeouts when resolved
       const cleanup = () => {
@@ -811,7 +973,7 @@ export class AssessmentWorkflow {
       userId: 'current-user', // This should come from auth context
       createdAt: new Date().toISOString(),
       status: 'completed',
-      assessment_data: scores,
+      assessment_data: convertScoresToApiData(scores),
       persona_profile: aiAnalysis, // Include AI analysis for consistency
     };
 
@@ -823,9 +985,11 @@ export class AssessmentWorkflow {
 
     // Only call onComplete callback once
     if (this.callbacks.onComplete && !this.callbackCalled) {
-      console.log(`Assessment Workflow: Calling WebSocket onComplete callback with result ID: ${result.id}`);
+      console.log(`Assessment Workflow: Calling WebSocket onComplete callback with result ID: ${result.id} (submission: ${this.submissionId})`);
       this.callbackCalled = true;
       this.callbacks.onComplete(result);
+    } else if (this.callbackCalled) {
+      console.warn(`Assessment Workflow: Prevented duplicate WebSocket callback call for submission: ${this.submissionId}`);
     }
 
     return result;
@@ -937,7 +1101,7 @@ export class AssessmentWorkflow {
       userId: 'current-user', // This should come from auth context
       createdAt: new Date().toISOString(),
       status: 'completed',
-      assessment_data: scores,
+      assessment_data: convertScoresToApiData(scores),
       persona_profile: aiAnalysis,
     };
 
@@ -953,9 +1117,11 @@ export class AssessmentWorkflow {
     console.log(`Assessment Workflow: Fallback assessment completed successfully with result ID: ${result.id}`);
 
     if (this.callbacks.onComplete && !this.callbackCalled) {
-      console.log(`Assessment Workflow: Calling fallback onComplete callback with result ID: ${result.id}`);
+      console.log(`Assessment Workflow: Calling fallback onComplete callback with result ID: ${result.id} (submission: ${this.submissionId})`);
       this.callbackCalled = true;
       this.callbacks.onComplete(result);
+    } else if (this.callbackCalled) {
+      console.warn(`Assessment Workflow: Prevented duplicate fallback callback call for submission: ${this.submissionId}`);
     }
 
     // Update token balance
@@ -1001,7 +1167,7 @@ export class AssessmentWorkflow {
       userId: statusResponse.data.userId,
       createdAt: statusResponse.data.createdAt,
       status: 'completed',
-      assessment_data: scores,
+      assessment_data: convertScoresToApiData(scores),
       persona_profile: personaProfile,
     };
   }
@@ -1015,37 +1181,10 @@ export class AssessmentWorkflow {
   ): Promise<AssessmentResult> {
     console.log(`Assessment Workflow: Converting status to result for job ${statusResponse.data.jobId}`);
 
-    // Update state to completed before conversion
-    this.updateState({
-      status: 'completed',
-      progress: 100,
-      message: 'Assessment completed successfully',
-    });
-
     const result = await this.convertApiResponseToResult(statusResponse, scores);
 
-    // Note: No longer saving to localStorage - data will be fetched from API
-
-    // Update state with result
-    this.updateState({ result });
-
-    // Call completion callback only once
-    if (this.callbacks.onComplete && !this.callbackCalled) {
-      console.log(`Assessment Workflow: Calling onComplete callback with result ID: ${result.id}`);
-      this.callbackCalled = true;
-      this.callbacks.onComplete(result);
-    }
-
-    // Update token balance
-    if (this.callbacks.onTokenBalanceUpdate) {
-      try {
-        await this.callbacks.onTokenBalanceUpdate();
-      } catch (error) {
-        console.error('Error updating token balance:', error);
-      }
-    }
-
-    return result;
+    // Use centralized completion handler to prevent race conditions
+    return await this.handleCompletion(result, 'polling');
   }
 
   /**

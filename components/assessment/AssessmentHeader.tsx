@@ -8,8 +8,10 @@ import { useToken } from '../../contexts/TokenContext';
 import { assessmentTypes } from '../../data/assessmentQuestions';
 import { validateAnswers } from '../../utils/assessment-calculations';
 import { submitAssessment, submitAssessmentFlexible } from '../../services/assessment-api';
+import { useSimpleAssessment } from '../../hooks/useSimpleAssessment';
 import { debugNavigate, navigationDebugger } from '../../utils/navigation-debug';
 import { getTokenBalanceErrorMessage } from '../../utils/token-balance';
+import FlaggedQuestionsButton from './FlaggedQuestionsButton';
 import {
   showAssessmentSubmissionStart,
   showAssessmentSubmissionResult,
@@ -17,7 +19,7 @@ import {
 } from '../../utils/token-notifications';
 import { useAssessmentSubmission } from '../../hooks/useAssessmentSubmission';
 import { addToAssessmentHistory } from '../../utils/assessment-history';
-import { withSubmissionGuard, hasRecentSubmission, markRecentSubmission } from '../../utils/submission-guard';
+import { withSubmissionGuard, hasRecentSubmission, markRecentSubmission, isFirstTimeSubmissionInSession } from '../../utils/submission-guard';
 
 interface AssessmentHeaderProps {
   currentQuestion?: number;
@@ -148,6 +150,13 @@ export default function AssessmentHeader({
           return;
         }
 
+        // ENHANCED: Additional check for first-time submission in session
+        if (!isFirstTimeSubmissionInSession(answers)) {
+          console.warn('AssessmentHeader: First-time submission already processed in this session');
+          alert('Assessment sudah disubmit dalam sesi ini. Mohon refresh halaman jika ingin submit ulang.');
+          return;
+        }
+
         console.log('AssessmentHeader: Starting direct submission with submission guard...');
         // Use submission guard to prevent duplicates
         const result = await withSubmissionGuard(answers, async () => {
@@ -163,7 +172,7 @@ export default function AssessmentHeader({
           // All questions answered - submit assessment and go to results
           console.log('AssessmentHeader: Calling submitAssessment API...');
           return await submitAssessment(answers, user?.id, refreshTokenBalance);
-        });
+        }, 'header');
 
         const { resultId, personaTitle } = result;
 
@@ -218,6 +227,13 @@ export default function AssessmentHeader({
               return;
             }
 
+            // ENHANCED: Additional check for first-time submission in session
+            if (!isFirstTimeSubmissionInSession(answers)) {
+              console.warn('AssessmentHeader: First-time flexible submission already processed in this session');
+              alert('Assessment sudah disubmit dalam sesi ini. Mohon refresh halaman jika ingin submit ulang.');
+              return;
+            }
+
             console.log('AssessmentHeader: Starting flexible submission with submission guard...');
             // Use submission guard to prevent duplicates
             const result = await withSubmissionGuard(answers, async () => {
@@ -232,7 +248,7 @@ export default function AssessmentHeader({
 
               console.log('AssessmentHeader: Calling submitAssessmentFlexible API...');
               return await submitAssessmentFlexible(answers, user?.id, refreshTokenBalance);
-            });
+            }, 'header');
 
             const { resultId, personaTitle } = result;
 
@@ -367,6 +383,9 @@ export default function AssessmentHeader({
             </button>
           </div>
         )}
+
+        {/* Flagged Questions Button */}
+        <FlaggedQuestionsButton />
 
         <button
           onClick={handleSaveAndExit}

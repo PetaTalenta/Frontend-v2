@@ -8,13 +8,13 @@ import { PersonaProfile } from '../../types/assessment-results';
 import { User, Star, ArrowRight, Briefcase } from 'lucide-react';
 
 interface PersonaProfileSummaryProps {
-  profile: PersonaProfile;
-  resultId: string;
+  persona: PersonaProfile;
+  resultId?: string;
 }
 
-export default function PersonaProfileSummary({ profile, resultId }: PersonaProfileSummaryProps) {
+export default function PersonaProfileSummary({ persona, resultId }: PersonaProfileSummaryProps) {
   // Ensure profile data exists to prevent errors
-  if (!profile) {
+  if (!persona) {
     console.error('PersonaProfileSummary: Missing profile data');
     return (
       <Card className="bg-gradient-to-br from-[#6475e9] to-[#5a6bd8] text-white border-none shadow-lg">
@@ -27,6 +27,16 @@ export default function PersonaProfileSummary({ profile, resultId }: PersonaProf
     );
   }
 
+  // Helper function to get the profile title with fallbacks
+  const getProfileTitle = () => {
+    return persona.archetype || persona.title || 'Profil Tidak Tersedia';
+  };
+
+  // Helper function to get the profile description with fallbacks
+  const getProfileDescription = () => {
+    return persona.shortSummary || persona.description || 'Deskripsi tidak tersedia';
+  };
+
   // Get first 2 sentences of description for summary
   const getShortDescription = (description: string) => {
     if (!description) return 'Deskripsi tidak tersedia';
@@ -35,10 +45,10 @@ export default function PersonaProfileSummary({ profile, resultId }: PersonaProf
   };
 
   // Get top 3 strengths
-  const topStrengths = (profile.strengths || []).slice(0, 3);
+  const topStrengths = (persona.strengths || []).slice(0, 3);
 
   // Get top 2 career recommendations
-  const topCareers = (profile.careerRecommendation || []).slice(0, 2);
+  const topCareers = (persona.careerRecommendation || []).slice(0, 2);
 
   return (
     <Card className="bg-gradient-to-br from-[#6475e9] to-[#5a6bd8] text-white border-none shadow-lg">
@@ -50,19 +60,19 @@ export default function PersonaProfileSummary({ profile, resultId }: PersonaProf
             </div>
             <div>
               <CardTitle className="text-2xl font-bold text-white">
-                {profile.archetype}
+                {getProfileTitle()}
               </CardTitle>
               <p className="text-white/80 text-sm">Profil Kepribadian Anda</p>
             </div>
           </div>
         </div>
       </CardHeader>
-      
+
       <CardContent className="space-y-4">
         {/* Short Description */}
         <div className="bg-white/10 rounded-lg p-4">
           <p className="text-white/90 leading-relaxed text-sm">
-            {getShortDescription(profile.shortSummary)}
+            {getShortDescription(getProfileDescription())}
           </p>
         </div>
 
@@ -117,17 +127,19 @@ export default function PersonaProfileSummary({ profile, resultId }: PersonaProf
 
 
         {/* View Full Profile Button */}
-        <div className="pt-2">
-          <Link href={`/results/${resultId}/persona`}>
-            <Button 
-              variant="secondary" 
-              className="w-full bg-white/20 text-white border-white/30 hover:bg-white/30 transition-colors"
-            >
-              <span>Lihat Profil Lengkap</span>
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
-          </Link>
-        </div>
+        {resultId && (
+          <div className="pt-2">
+            <Link href={`/results/${resultId}/persona`}>
+              <Button
+                variant="secondary"
+                className="w-full bg-white/20 text-white border-white/30 hover:bg-white/30 transition-colors"
+              >
+                <span>Lihat Profil Lengkap</span>
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+            </Link>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

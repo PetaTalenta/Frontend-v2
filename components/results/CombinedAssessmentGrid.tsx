@@ -16,6 +16,21 @@ interface CombinedAssessmentGridProps {
 }
 
 export default function CombinedAssessmentGrid({ scores }: CombinedAssessmentGridProps) {
+  // Early return if scores data is not available
+  if (!scores || !scores.riasec || !scores.ocean || !scores.viaIs) {
+    return (
+      <div className="w-full max-w-[1280px] mx-auto">
+        <Card className="bg-white border-gray-200 shadow-sm">
+          <CardContent className="p-6">
+            <div className="text-center text-gray-500">
+              <p>Data assessment tidak tersedia</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   // Get dominant types and top strengths
   const dominantRiasec = getDominantRiasecType(scores.riasec);
   const topViaStrengths = getTopViaStrengths(scores.viaIs, 3);

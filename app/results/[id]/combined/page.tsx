@@ -170,7 +170,12 @@ export default function CombinedDetailPage() {
         </div>
 
         {/* Combined Assessment Grid */}
-        <CombinedAssessmentGrid scores={result.assessment_data} />
+        <CombinedAssessmentGrid scores={{
+          riasec: result.assessment_data.riasec,
+          ocean: result.assessment_data.ocean,
+          viaIs: result.assessment_data.viaIs,
+          industryScore: result.assessment_data.industryScore
+        }} />
 
         {/* Additional Navigation */}
         <div className="mt-8 text-center">

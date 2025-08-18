@@ -12,7 +12,8 @@ export default function AssessmentSidebar() {
     setCurrentAssessmentIndex,
     setCurrentSectionIndex,
     answers,
-    getProgress
+    getProgress,
+    getFlaggedQuestions
   } = useAssessment();
 
   const progress = getProgress();
@@ -326,6 +327,19 @@ export default function AssessmentSidebar() {
         )}
       </div>
       </div>
+
+      {/* Flagged Questions Summary */}
+      {getFlaggedQuestions().length > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-amber-600">🏷️</span>
+            <span className="text-sm font-semibold text-amber-800">Flagged Questions</span>
+          </div>
+          <div className="text-xs text-amber-700">
+            {getFlaggedQuestions().length} question{getFlaggedQuestions().length !== 1 ? 's' : ''} flagged for review
+          </div>
+        </div>
+      )}
 
       {/* Total Progress */}
       <div className="mt-auto pt-4">

@@ -12,6 +12,19 @@ interface RiasecRadarChartProps {
 }
 
 export default function RiasecRadarChart({ scores }: RiasecRadarChartProps) {
+  // Early return if scores data is not available
+  if (!scores || !scores.riasec) {
+    return (
+      <Card className="bg-white border-gray-200 shadow-sm">
+        <CardContent className="p-6">
+          <div className="text-center text-gray-500">
+            <p>Data RIASEC tidak tersedia</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   // Transform RIASEC scores for radar chart
   const radarData = [
     {

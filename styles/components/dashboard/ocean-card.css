@@ -60,71 +60,71 @@
 /* Mobile: Compact chart with better readability */
 @media (max-width: 640px) {
   .ocean-card__content {
-    @apply p-3 space-y-2;
-  }
-
-  .ocean-card__title {
-    @apply text-base font-semibold;
-  }
-
-  .ocean-card__description {
-    @apply text-xs mb-2;
-  }
-
-  .ocean-card__chart-container {
-    @apply gap-1;
-  }
-
-  .ocean-card__bar-item {
-    @apply gap-1;
-  }
-
-  .ocean-card__percentage-container {
-    @apply h-4;
-  }
-
-  .ocean-card__percentage {
-    @apply text-xs font-bold;
-  }
-
-  .ocean-card__bar-background {
-    height: 60px;
-    @apply rounded-md;
-  }
-
-  .ocean-card__trait-label {
-    @apply text-xs font-medium;
-  }
-}
-
-/* Tablet: Medium optimization */
-@media (min-width: 641px) and (max-width: 1023px) {
-  .ocean-card__content {
     @apply p-4 space-y-3;
   }
 
   .ocean-card__title {
-    @apply text-lg;
+    @apply text-lg font-semibold;
   }
 
   .ocean-card__description {
-    @apply text-sm;
+    @apply text-sm mb-3;
   }
 
   .ocean-card__chart-container {
     @apply gap-2;
   }
 
+  .ocean-card__bar-item {
+    @apply gap-2;
+  }
+
+  .ocean-card__percentage-container {
+    @apply h-5;
+  }
+
   .ocean-card__percentage {
-    @apply text-sm;
+    @apply text-sm font-bold;
   }
 
   .ocean-card__bar-background {
-    height: 90px;
+    height: 80px;
+    @apply rounded-lg;
   }
 
   .ocean-card__trait-label {
-    @apply text-sm;
+    @apply text-sm font-medium;
+  }
+}
+
+/* Tablet: Medium optimization */
+@media (min-width: 641px) and (max-width: 1023px) {
+  .ocean-card__content {
+    @apply p-5 space-y-4;
+  }
+
+  .ocean-card__title {
+    @apply text-xl;
+  }
+
+  .ocean-card__description {
+    @apply text-base;
+  }
+
+  .ocean-card__chart-container {
+    @apply gap-3;
+  }
+
+  .ocean-card__percentage {
+    @apply text-base;
+  }
+
+  .ocean-card__bar-background {
+    height: 110px;
+  }
+
+  .ocean-card__trait-label {
+    @apply text-base;
   }
 }
 

@@ -11,6 +11,36 @@ interface VisualSummaryProps {
 }
 
 export default function VisualSummary({ scores }: VisualSummaryProps) {
+  // Ensure scores data exists to prevent errors
+  if (!scores) {
+    return (
+      <Card className="bg-white border-gray-200 shadow-sm">
+        <CardContent className="p-6">
+          <div className="text-center text-gray-500">
+            <p>Data visual summary tidak tersedia</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!scores.riasec || !scores.ocean || !scores.viaIs) {
+    console.error('VisualSummary: Missing required scores data', {
+      hasRiasec: !!scores.riasec,
+      hasOcean: !!scores.ocean,
+      hasViaIs: !!scores.viaIs
+    });
+    return (
+      <Card className="bg-white border-gray-200 shadow-sm">
+        <CardContent className="p-6">
+          <div className="text-center text-gray-500">
+            <p>Data visual summary tidak tersedia</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   // Get top categories from each assessment type
   const dominantRiasec = getDominantRiasecType(scores.riasec);
   const topViaStrengths = getTopViaStrengths(scores.viaIs, 1);

@@ -233,7 +233,12 @@ export default function RiasecDetailPage() {
 
         {/* Radar Chart */}
         <div className="mb-8">
-          <RiasecRadarChart scores={result.assessment_data} />
+          <RiasecRadarChart scores={{
+            riasec: result.assessment_data.riasec,
+            ocean: result.assessment_data.ocean,
+            viaIs: result.assessment_data.viaIs,
+            industryScore: result.assessment_data.industryScore
+          }} />
         </div>
 
         {/* Detailed RIASEC Types - 2x2 Grid Layout */}

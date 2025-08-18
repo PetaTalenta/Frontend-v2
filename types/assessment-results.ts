@@ -102,18 +102,79 @@ export interface CareerProspect {
 
 export interface CareerRecommendation {
   careerName: string;
+  justification?: string;
+  firstSteps?: string[];
+  relatedMajors?: string[];
   careerProspect: CareerProspect;
   description?: string;
   matchPercentage?: number;
 }
 
-export interface PersonaProfile {
+export interface BookRecommendation {
   title: string;
-  description: string;
+  author: string;
+  reason: string;
+}
+
+export interface DevelopmentActivities {
+  extracurricular: string[];
+  projectIdeas: string[];
+  bookRecommendations: BookRecommendation[];
+}
+
+export interface PersonaProfile {
+  // Core profile information
+  archetype: string;
+  coreMotivators?: string[];
+  learningStyle?: string;
+  shortSummary?: string;
+  strengthSummary?: string;
   strengths: string[];
-  recommendations: string[];
+  weaknessSummary?: string;
+  weaknesses?: string[];
   careerRecommendation: CareerRecommendation[];
+  insights?: string[];
+  skillSuggestion?: string[];
+  possiblePitfalls?: string[];
+  riskTolerance?: string;
+  workEnvironment?: string;
   roleModel: string[];
+  developmentActivities?: DevelopmentActivities;
+
+  // Legacy properties for backward compatibility
+  title?: string;
+  description?: string;
+  recommendations?: string[];
+}
+
+// API Response structure for assessment_data
+export interface ApiAssessmentData {
+  assessmentName: string;
+  riasec: RiasecScores;
+  ocean: OceanScores;
+  viaIs: ViaScores;
+  industryScore?: IndustryScores;
+}
+
+// Helper function to convert AssessmentScores to ApiAssessmentData
+export function convertScoresToApiData(scores: AssessmentScores, assessmentName: string = 'AI-Driven Talent Mapping'): ApiAssessmentData {
+  return {
+    assessmentName,
+    riasec: scores.riasec,
+    ocean: scores.ocean,
+    viaIs: scores.viaIs,
+    industryScore: scores.industryScore
+  };
+}
+
+// Helper function to extract AssessmentScores from ApiAssessmentData
+export function extractScoresFromApiData(apiData: ApiAssessmentData): AssessmentScores {
+  return {
+    riasec: apiData.riasec,
+    ocean: apiData.ocean,
+    viaIs: apiData.viaIs,
+    industryScore: apiData.industryScore
+  };
 }
 
 export interface AssessmentResult {
@@ -121,7 +182,7 @@ export interface AssessmentResult {
   userId?: string;
   createdAt: string;
   status: 'queued' | 'processing' | 'completed' | 'failed';
-  assessment_data: AssessmentScores;
+  assessment_data: ApiAssessmentData;
   persona_profile: PersonaProfile;
 }
 

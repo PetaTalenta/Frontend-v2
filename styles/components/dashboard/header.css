@@ -10,11 +10,13 @@
 
 .dashboard-header__logo-container {
   @apply w-16 h-16 rounded-full flex items-center justify-center;
-  background-color: #6475e9;
+  background: linear-gradient(135deg, #6475e9 0%, #8b5cf6 100%);
+  box-shadow: 0 4px 12px rgba(100, 117, 233, 0.3);
 }
 
 .dashboard-header__logo {
-  @apply w-8 h-8 object-contain;
+  @apply w-8 h-8;
+  color: white;
 }
 
 .dashboard-header__text-container {
@@ -94,6 +96,7 @@
 
   .dashboard-header__logo {
     @apply w-6 h-6;
+    color: white;
   }
 
   .dashboard-header__text-container {
@@ -138,6 +141,7 @@
 
   .dashboard-header__logo {
     @apply w-7 h-7;
+    color: white;
   }
 }
 
@@ -163,5 +167,6 @@
 
   .dashboard-header__logo {
     @apply w-8 h-8;
+    color: white;
   }
 }

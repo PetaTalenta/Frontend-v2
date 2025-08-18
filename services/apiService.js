@@ -181,17 +181,18 @@ class ApiService {
   // ==================== ASSESSMENTS ====================
 
   /**
-   * Submit assessment data for AI analysis
+   * OPTIMIZED: Direct assessment submission without redundant wrappers
    * @param {Object} assessmentData - Assessment data
    * @param {Object} assessmentData.riasec - RIASEC scores
    * @param {Object} assessmentData.ocean - Big Five (OCEAN) scores
    * @param {Object} assessmentData.viaIs - VIA Character Strengths scores
    * @param {string} assessmentName - Assessment type name
+   * @param {Function} onTokenBalanceUpdate - Token balance update callback
    */
-  async submitAssessment(assessmentData, assessmentName = 'AI-Driven Talent Mapping') {
-    // Use enhanced assessment API (Real API only)
+  async submitAssessment(assessmentData, assessmentName = 'AI-Driven Talent Mapping', onTokenBalanceUpdate) {
+    // Direct import and call to avoid wrapper overhead
     const { submitAssessment } = await import('./enhanced-assessment-api');
-    return await submitAssessment(assessmentData, assessmentName);
+    return await submitAssessment(assessmentData, assessmentName, onTokenBalanceUpdate);
   }
 
   /**
@@ -205,29 +206,54 @@ class ApiService {
   }
 
   /**
-   * Submit assessment with WebSocket monitoring (preferred method)
-   * FIXED: Now uses direct submission to prevent double token consumption
+   * OPTIMIZED: Unified submission with intelligent monitoring
+   * Automatically chooses best monitoring method (WebSocket preferred, polling fallback)
    * @param {Object} assessmentData - Assessment data
    * @param {string} assessmentName - Assessment type name
    * @param {Function} onProgress - Progress callback
    * @param {Function} onTokenBalanceUpdate - Token balance update callback
    */
-  async submitAssessmentWithWebSocket(assessmentData, assessmentName = 'AI-Driven Talent Mapping', onProgress, onTokenBalanceUpdate) {
-    console.log('ApiService: Using fixed WebSocket submission (direct call to prevent double token consumption)');
-    const { submitAssessmentWithWebSocket } = await import('./enhanced-assessment-api');
-    return await submitAssessmentWithWebSocket(assessmentData, assessmentName, onProgress, onTokenBalanceUpdate);
+  async submitAssessmentWithMonitoring(assessmentData, assessmentName = 'AI-Driven Talent Mapping', onProgress, onTokenBalanceUpdate) {
+    console.log('ApiService: Using optimized unified submission with intelligent monitoring');
+
+    // Import only what we need to reduce bundle size
+    const {
+      submitAssessment,
+      monitorAssessmentWithWebSocket,
+      pollAssessmentStatus,
+      isWebSocketSupported
+    } = await import('./enhanced-assessment-api');
+
+    // Submit assessment first
+    const submitResponse = await submitAssessment(assessmentData, assessmentName, onTokenBalanceUpdate);
+    const jobId = submitResponse.data.jobId;
+
+    // Choose monitoring method based on WebSocket support
+    if (isWebSocketSupported()) {
+      console.log('ApiService: Using WebSocket monitoring for optimal performance');
+      return await monitorAssessmentWithWebSocket(jobId, onProgress, onTokenBalanceUpdate);
+    } else {
+      console.log('ApiService: Using polling fallback (WebSocket not supported)');
+      return await pollAssessmentStatus(jobId, onProgress);
+    }
   }
 
   /**
-   * Submit assessment with polling for completion (FALLBACK ONLY)
-   * @param {Object} assessmentData - Assessment data
-   * @param {string} assessmentName - Assessment type name
-   * @param {Function} onProgress - Progress callback
+   * DEPRECATED: Use submitAssessmentWithMonitoring instead
+   * @deprecated
    */
-  async submitAssessmentWithPolling(assessmentData, assessmentName = 'AI-Driven Talent Mapping', onProgress) {
-    console.warn('ApiService: Using polling fallback - WebSocket preferred for better performance');
-    const { submitAssessmentWithPolling } = await import('./enhanced-assessment-api');
-    return await submitAssessmentWithPolling(assessmentData, assessmentName, onProgress);
+  async submitAssessmentWithWebSocket(assessmentData, assessmentName, onProgress, onTokenBalanceUpdate) {
+    console.warn('ApiService: submitAssessmentWithWebSocket is deprecated, use submitAssessmentWithMonitoring');
+    return this.submitAssessmentWithMonitoring(assessmentData, assessmentName, onProgress, onTokenBalanceUpdate);
+  }
+
+  /**
+   * DEPRECATED: Use submitAssessmentWithMonitoring instead
+   * @deprecated
+   */
+  async submitAssessmentWithPolling(assessmentData, assessmentName, onProgress) {
+    console.warn('ApiService: submitAssessmentWithPolling is deprecated, use submitAssessmentWithMonitoring');
+    return this.submitAssessmentWithMonitoring(assessmentData, assessmentName, onProgress);
   }
 
   /**

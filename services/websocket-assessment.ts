@@ -29,19 +29,19 @@ export type AssessmentEventCallback = (event: AssessmentWebSocketEvent) => void;
 export type ConnectionCallback = () => void;
 export type ErrorCallback = (error: Error) => void;
 
-// WebSocket Configuration - Following API documentation
+// WebSocket Configuration - OPTIMIZED for faster connections
 const WEBSOCKET_CONFIG = {
   // Use API Gateway WebSocket endpoint as per documentation
   DEVELOPMENT_URL: 'https://api.chhrone.web.id', // Use production URL even in development
   PRODUCTION_URL: 'https://api.chhrone.web.id', // API documentation URL
   RECONNECTION_ATTEMPTS: 3,
-  RECONNECTION_DELAY: 1000,
-  TIMEOUT: 10000,
-  CONNECTION_TIMEOUT: 20000, // Increased from 15s to 20s for better reliability
-  AUTHENTICATION_TIMEOUT: 15000, // Increased from 10s to 15s for slower connections
-  HEALTH_CHECK_TIMEOUT: 1500,
-  PING_TIMEOUT: 3000, // Ping timeout for connection health
-  PING_INTERVAL: 10000, // Ping every 10 seconds to keep connection alive
+  RECONNECTION_DELAY: 500, // Reduced from 1s to 0.5s
+  TIMEOUT: 8000, // Reduced from 10s to 8s
+  CONNECTION_TIMEOUT: 12000, // Reduced from 20s to 12s for faster failure detection
+  AUTHENTICATION_TIMEOUT: 8000, // Reduced from 15s to 8s for faster auth
+  HEALTH_CHECK_TIMEOUT: 1000, // Reduced from 1.5s to 1s
+  PING_TIMEOUT: 2000, // Reduced from 3s to 2s
+  PING_INTERVAL: 8000, // Reduced from 10s to 8s for more frequent health checks
   ANALYSIS_TIMEOUT: 90000, // 90 seconds for analysis completion (matches workflow timeout)
 } as const;
 
@@ -147,18 +147,20 @@ export class WebSocketAssessmentService {
         console.log('WebSocket Assessment: Health check passed');
         */
 
-        // Create socket connection with optimized settings
+        // Create socket connection with HIGHLY OPTIMIZED settings
         this.socket = io(wsUrl, {
           autoConnect: false,
           reconnection: true,
           reconnectionAttempts: WEBSOCKET_CONFIG.RECONNECTION_ATTEMPTS,
           reconnectionDelay: WEBSOCKET_CONFIG.RECONNECTION_DELAY,
-          reconnectionDelayMax: 2000, // Max delay between reconnection attempts
+          reconnectionDelayMax: 1000, // Reduced max delay for faster reconnection (from 2s to 1s)
           timeout: WEBSOCKET_CONFIG.CONNECTION_TIMEOUT,
           transports: ['websocket', 'polling'], // Try websocket first, fallback to polling
           forceNew: true,
           upgrade: true, // Allow transport upgrades
           rememberUpgrade: false, // Don't remember transport upgrades for faster fallback
+          // Additional optimizations
+          randomizationFactor: 0.2, // Reduce randomization for more predictable timing
         });
 
         this.setupEventListeners();

@@ -1,7 +1,7 @@
 // Assessment API Service
 // Handles submission and retrieval of assessment results
 
-import { AssessmentResult, AssessmentScores } from '../types/assessment-results';
+import { AssessmentResult, AssessmentScores, convertScoresToApiData } from '../types/assessment-results';
 import { calculateAllScores, validateAnswers } from '../utils/assessment-calculations';
 import { generateApiOnlyAnalysis } from './ai-analysis';
 
@@ -40,7 +40,7 @@ export async function submitAssessment(
     userId: userId || 'anonymous-user',
     createdAt: new Date().toISOString(),
     status: 'completed',
-    assessment_data: scores,
+    assessment_data: convertScoresToApiData(scores),
     persona_profile: aiAnalysis
   };
 
@@ -97,7 +97,7 @@ export async function submitAssessmentFlexible(
     userId: userId || 'anonymous-user',
     createdAt: new Date().toISOString(),
     status: 'completed',
-    assessment_data: scores,
+    assessment_data: convertScoresToApiData(scores),
     persona_profile: aiAnalysis
   };
 

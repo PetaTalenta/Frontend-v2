@@ -298,7 +298,12 @@ export default function ViaDetailPage() {
 
         {/* Radar Chart */}
         <div className="mb-8">
-          <ViaRadarChart scores={result.assessment_data} />
+          <ViaRadarChart scores={{
+            riasec: result.assessment_data.riasec,
+            ocean: result.assessment_data.ocean,
+            viaIs: result.assessment_data.viaIs,
+            industryScore: result.assessment_data.industryScore
+          }} />
         </div>
 
         {/* Strengths by Category */}

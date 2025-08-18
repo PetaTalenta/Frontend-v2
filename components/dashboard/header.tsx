@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar"
-import { User, LogOut, Settings } from "lucide-react"
+import { User, LogOut, TrendingUp } from "lucide-react"
 import { useAuth } from "../../contexts/AuthContext"
 import { useRouter } from "next/navigation"
 import "../../styles/components/dashboard/header.css"
@@ -18,13 +18,19 @@ import "../../styles/components/dashboard/header.css"
 
 
 interface HeaderProps {
-  title: string
-  description: string
+  title?: string
+  description?: string
+  user?: any
+  onRefresh?: () => void
+  isRefreshing?: boolean
 }
 
-export function Header({ title, description }: HeaderProps) {
-  const { user, logout } = useAuth();
+export function Header({ title, description, user: propUser, onRefresh, isRefreshing }: HeaderProps) {
+  const { user: authUser, logout } = useAuth();
   const router = useRouter();
+
+  // Use prop user if provided, otherwise use auth user
+  const user = propUser || authUser;
 
   const getUserInitials = (username?: string, name?: string, email?: string) => {
     if (username) {
@@ -53,19 +59,19 @@ export function Header({ title, description }: HeaderProps) {
     return 'User';
   };
 
+  // Generate title and description if not provided
+  const headerTitle = title || `Welcome, ${getUserDisplayName()}!`;
+  const headerDescription = description || "Track your progress here, You almost reach your goal.";
+
   return (
     <div className="dashboard-header">
       <div className="dashboard-header__left">
         <div className="dashboard-header__logo-container">
-          <img
-            src="/placeholder-icon-logo.png"
-            alt="Logo"
-            className="dashboard-header__logo"
-          />
+          <TrendingUp className="dashboard-header__logo text-white" size={32} />
         </div>
         <div className="dashboard-header__text-container">
-          <h1 className="dashboard-header__title">{title}</h1>
-          <p className="dashboard-header__description">{description}</p>
+          <h1 className="dashboard-header__title">{headerTitle}</h1>
+          <p className="dashboard-header__description">{headerDescription}</p>
         </div>
       </div>
 

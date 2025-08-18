@@ -11,9 +11,8 @@ import { Skeleton } from '../../../../components/ui/skeleton';
 import { toast } from '../../../../components/ui/use-toast';
 import { AssessmentResult, getScoreInterpretation, OCEAN_DESCRIPTIONS } from '../../../../types/assessment-results';
 import { getAssessmentResult } from '../../../../services/assessment-api';
-import { ArrowLeft, Brain, Eye, Target, Heart, Zap } from 'lucide-react';
+import { ArrowLeft, Brain, Eye, Heart, Zap, CheckCircle } from 'lucide-react';
 import OceanRadarChart from '../../../../components/results/OceanRadarChart';
-import OceanBarChart from '../../../../components/results/OceanBarChart';
 
 export default function OceanDetailPage() {
   const params = useParams();
@@ -21,7 +20,6 @@ export default function OceanDetailPage() {
   const [result, setResult] = useState<AssessmentResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [chartType, setChartType] = useState<'radar' | 'bar'>('radar');
 
   const resultId = params.id as string;
 
@@ -110,7 +108,7 @@ export default function OceanDetailPage() {
       key: 'conscientiousness',
       name: 'Conscientiousness',
       shortName: 'Conscientiousness',
-      icon: Target,
+      icon: CheckCircle,
       color: '#10b981',
       description: 'Kehati-hatian dan kedisiplinan',
       detailedDescription: 'Conscientiousness mengukur tingkat kedisiplinan, keteraturan, dan orientasi pencapaian seseorang. Orang dengan skor tinggi cenderung terorganisir, dapat diandalkan, dan bekerja keras.',
@@ -257,39 +255,19 @@ export default function OceanDetailPage() {
 
         {/* Chart Visualization */}
         <div className="mb-8">
-          {/* Chart Type Selector */}
           <div className="mb-6">
             <div className="flex items-center gap-2 mb-4">
               <h3 className="text-lg font-semibold text-gray-900">Visualisasi Data</h3>
             </div>
-            <div className="flex gap-2">
-              <Button
-                variant={chartType === 'radar' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setChartType('radar')}
-                className="flex items-center gap-2"
-              >
-                <Brain className="w-4 h-4" />
-                Radar Chart
-              </Button>
-              <Button
-                variant={chartType === 'bar' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setChartType('bar')}
-                className="flex items-center gap-2"
-              >
-                <Target className="w-4 h-4" />
-                Bar Chart (OPNS, CONS, EXTN, AGRS, NESM)
-              </Button>
-            </div>
           </div>
 
           {/* Chart Display */}
-          {chartType === 'radar' ? (
-            <OceanRadarChart scores={result.assessment_data} />
-          ) : (
-            <OceanBarChart scores={result.assessment_data} />
-          )}
+          <OceanRadarChart scores={{
+            riasec: result.assessment_data.riasec,
+            ocean: result.assessment_data.ocean,
+            viaIs: result.assessment_data.viaIs,
+            industryScore: result.assessment_data.industryScore
+          }} />
         </div>
 
         {/* Detailed Big Five Traits */}

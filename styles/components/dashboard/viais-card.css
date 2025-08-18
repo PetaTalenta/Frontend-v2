@@ -45,35 +45,35 @@
 /* Mobile: Compact layout for better readability */
 @media (max-width: 640px) {
   .viais-card__content {
-    @apply p-3 space-y-2;
+    @apply p-4 space-y-3;
   }
 
   .viais-card__title {
-    @apply text-base font-semibold;
+    @apply text-lg font-semibold;
   }
 
   .viais-card__description {
-    @apply text-xs mb-2;
+    @apply text-sm mb-3;
   }
 
   .viais-card__strengths-grid {
-    @apply grid grid-cols-1 gap-1;
+    @apply grid grid-cols-1 gap-2;
   }
 
   .viais-card__strength-item {
-    @apply p-2 rounded-md;
+    @apply p-3 rounded-lg;
     display: flex;
     justify-content: space-between;
     align-items: center;
   }
 
   .viais-card__strength-name {
-    @apply text-xs font-medium;
+    @apply text-sm font-medium;
     flex: 1;
   }
 
   .viais-card__strength-score {
-    @apply text-sm font-bold;
+    @apply text-base font-bold;
     margin-left: auto;
   }
 }
@@ -81,31 +81,31 @@
 /* Tablet: Balanced layout */
 @media (min-width: 641px) and (max-width: 1023px) {
   .viais-card__content {
-    @apply p-3 space-y-2;
+    @apply p-4 space-y-3;
   }
 
   .viais-card__title {
-    @apply text-lg;
+    @apply text-xl;
   }
 
   .viais-card__description {
-    @apply text-xs mb-3;
+    @apply text-sm mb-4;
   }
 
   .viais-card__strengths-grid {
-    @apply grid grid-cols-2 gap-2;
+    @apply grid grid-cols-2 gap-3;
   }
 
   .viais-card__strength-item {
-    @apply p-2;
+    @apply p-3;
   }
 
   .viais-card__strength-name {
-    @apply text-xs;
+    @apply text-sm;
   }
 
   .viais-card__strength-score {
-    @apply text-sm;
+    @apply text-base;
   }
 }
 
