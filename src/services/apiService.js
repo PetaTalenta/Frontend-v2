@@ -88,9 +88,9 @@ class ApiService {
       }
     );
   }
-  
+
   // ==================== GATEWAY INFO ====================
-  
+
   /**
    * Get API Gateway information
    */
@@ -339,6 +339,86 @@ class ApiService {
           include_suggestions: true
         }
       });
+      // First attempt: use generic conversations endpoint as per latest API docs
+      try {
+        const genericResponse = await this.axiosInstance.post(API_ENDPOINTS.CHATBOT.CREATE_CONVERSATION, {
+          title: 'Career Guidance Session',
+          context: 'assessment',
+          initialMessage: "I'd like to discuss my recent assessment results"
+        });
+
+        console.log('Generic conversation creation response:', genericResponse.data);
+
+        if (genericResponse.data?.success) {
+          const apiData = genericResponse.data.data;
+          const ai = apiData.aiResponse;
+          return {
+            success: true,
+            data: {
+              id: apiData.conversationId,
+              resultId: data.resultId,
+              messages: ai ? [
+                {
+                  id: ai.id || ai.messageId || `msg-${Date.now()}`,
+                  role: 'assistant',
+                  content: ai.content,
+                  timestamp: ai.timestamp || new Date().toISOString(),
+                  resultId: data.resultId
+                }
+              ] : [],
+              createdAt: apiData.createdAt,
+              updatedAt: apiData.lastActivity || apiData.createdAt,
+              assessmentContext: data.assessmentContext
+            }
+          };
+        }
+      } catch (genericErr) {
+        const gp = genericErr.response?.data || { message: genericErr.message };
+        const gm = (gp.error || gp.message || '').toString().toLowerCase();
+        console.warn('Generic conversation creation failed, will try fallback:', gp);
+
+        // If server indicates conversation already exists, try to recover it immediately
+        if (gm.includes('conversation already exists')) {
+          try {
+            const listResp = await this.axiosInstance.get(`${API_ENDPOINTS.CHATBOT.GET_CONVERSATIONS}?status=active&context=assessment`);
+            if (listResp.data?.success && Array.isArray(listResp.data.data?.conversations) && listResp.data.data.conversations.length > 0) {
+              const conversations = listResp.data.data.conversations.slice().sort((a, b) => {
+                const aTime = new Date(a.lastActivity || a.createdAt || 0).getTime();
+                const bTime = new Date(b.lastActivity || b.createdAt || 0).getTime();
+                return bTime - aTime;
+              });
+              const existing = conversations[0];
+              const detailResp = await this.axiosInstance.get(API_ENDPOINTS.CHATBOT.GET_CONVERSATION(existing.id));
+              if (detailResp.data?.success) {
+                const conv = detailResp.data.data.conversation;
+                return {
+                  success: true,
+                  data: {
+                    id: conv.id,
+                    resultId: data.resultId,
+                    messages: Array.isArray(conv.messages)
+                      ? conv.messages.map(msg => ({
+                          id: msg.id,
+                          role: msg.sender === 'ai' ? 'assistant' : msg.sender,
+                          content: msg.content,
+                          timestamp: msg.timestamp,
+                          resultId: data.resultId
+                        }))
+                      : [],
+                    createdAt: conv.createdAt,
+                    updatedAt: conv.lastActivity || conv.createdAt,
+                    assessmentContext: data.assessmentContext
+                  }
+                };
+              }
+            }
+          } catch (recoverErr) {
+            console.warn('Recovery after generic conflict failed:', recoverErr.response?.data || recoverErr.message);
+          }
+        }
+        // Continue to fallback to from-assessment
+      }
+
 
       // Try the real chatbot API first
       const response = await this.axiosInstance.post(API_ENDPOINTS.CHATBOT.CREATE_FROM_ASSESSMENT, {
@@ -635,7 +715,7 @@ class ApiService {
   }
 
   // ==================== ARCHIVE ====================
-  
+
   /**
    * Get user's analysis results with pagination
    * @param {Object} params - Query parameters

@@ -176,8 +176,13 @@ export async function sendChatMessage(
 ): Promise<ChatMessage> {
   console.log('Sending chat message:', { conversationId, resultId, messageLength: message.length });
 
+  // Defensive guard: avoid hitting API with undefined conversationId
+  if (!conversationId || typeof conversationId !== 'string') {
+    throw new Error('Conversation not found');
+  }
+
   // Check if this is a mock conversation (starts with 'mock-chat-')
-  const isMockConversation = conversationId.startsWith('mock-chat-');
+  const isMockConversation = typeof conversationId === 'string' && conversationId.startsWith('mock-chat-');
 
   if (isMockConversation) {
     console.log('Using mock implementation for mock conversation:', conversationId);
@@ -254,7 +259,7 @@ export async function sendChatMessage(
     }
 
     throw new Error(response.error?.message || 'Failed to send message');
-  } catch (error) {
+  } catch (error: any) {
     console.error('Real API chat message failed:', {
       error: error.message,
       conversationId,
@@ -321,7 +326,7 @@ export async function getChatConversation(resultId: string): Promise<ChatConvers
     // Try to use real API first
     const response = await apiService.getChatConversation(resultId);
 
-    if (response.success && response.data) {
+    if (response && response.success && response.data) {
       // Ensure messages is always an array
       const messages = Array.isArray(response.data.messages) ? response.data.messages : [];
 
@@ -331,7 +336,8 @@ export async function getChatConversation(resultId: string): Promise<ChatConvers
       };
     }
 
-    throw new Error(response.error?.message || 'Failed to get conversation');
+    // If response is null/undefined or unsuccessful, gracefully fall back
+    throw new Error('Conversation not available from API');
   } catch (error) {
     console.warn('API chat failed, using stored conversation:', error);
 
@@ -351,7 +357,28 @@ export async function getChatConversation(resultId: string): Promise<ChatConvers
 function getStoredConversation(resultId: string): ChatConversation | null {
   try {
     const stored = localStorage.getItem(`chat-${resultId}`);
-    return stored ? JSON.parse(stored) : null;
+    if (!stored) return null;
+
+    const conv = JSON.parse(stored);
+
+    // Normalize structure from possible legacy shapes
+    if (conv) {
+      if (!conv.id || typeof conv.id !== 'string') {
+        // Try to map from legacy fields
+        if (typeof conv.conversationId === 'string' && conv.conversationId.length > 0) {
+          conv.id = conv.conversationId;
+        } else {
+          // Generate a safe mock ID so we never hit the real API with undefined
+          conv.id = `mock-chat-${resultId}`;
+        }
+      }
+
+      if (!Array.isArray(conv.messages)) {
+        conv.messages = [];
+      }
+    }
+
+    return conv as ChatConversation;
   } catch (error) {
     console.error('Failed to get stored conversation:', error);
     return null;

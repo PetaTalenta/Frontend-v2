@@ -102,6 +102,14 @@ export async function exportAdvancedPDF(
     // pdf.addPage();
     // await captureAndAddCurrentPage(pdf, 'Hasil Assessment Utama', { pageWidth, pageHeight, contentWidth, contentHeight, margin: defaultOptions.margin! }, defaultOptions);
 
+    // Add summary page
+    pdf.addPage();
+    addSummaryPage(pdf, result, { pageWidth, pageHeight, contentWidth, contentHeight, margin: defaultOptions.margin! });
+
+    // Persona detail immediately after summary
+    pdf.addPage();
+    addPersonaDetailPage(pdf, result, { pageWidth, pageHeight, contentWidth, contentHeight, margin: defaultOptions.margin! });
+
     // Add detailed content pages with actual data
     pdf.addPage();
     addRiasecDetailPage(pdf, result, { pageWidth, pageHeight, contentWidth, contentHeight, margin: defaultOptions.margin! });
@@ -112,8 +120,11 @@ export async function exportAdvancedPDF(
     pdf.addPage();
     addViaDetailPage(pdf, result, { pageWidth, pageHeight, contentWidth, contentHeight, margin: defaultOptions.margin! });
 
-    pdf.addPage();
-    addPersonaDetailPage(pdf, result, { pageWidth, pageHeight, contentWidth, contentHeight, margin: defaultOptions.margin! });
+    // Add industry page if exists
+    if (result.assessment_data.industryScore) {
+      pdf.addPage();
+      addIndustryDetailPage(pdf, result, { pageWidth, pageHeight, contentWidth, contentHeight, margin: defaultOptions.margin! });
+    }
 
     // Add footer to all pages
     const totalPages = pdf.getNumberOfPages();
@@ -180,12 +191,13 @@ function addAdvancedCoverPage(
   yPosition += 40;
 
   // Assessment details box
+  const metaStartY = yPosition;
   pdf.setFillColor(250, 250, 250);
-  pdf.rect(dimensions.margin + 20, yPosition, dimensions.contentWidth - 40, 60, 'F');
+  pdf.rect(dimensions.margin + 20, metaStartY, dimensions.contentWidth - 40, 60, 'F');
   pdf.setDrawColor(200, 200, 200);
-  pdf.rect(dimensions.margin + 20, yPosition, dimensions.contentWidth - 40, 60, 'S');
+  pdf.rect(dimensions.margin + 20, metaStartY, dimensions.contentWidth - 40, 60, 'S');
 
-  yPosition += 15;
+  let metaY = metaStartY + 15;
 
   // Date
   pdf.setFontSize(12);
@@ -198,8 +210,8 @@ function addAdvancedCoverPage(
   });
   const dateText = `Tanggal Assessment: ${date}`;
   const dateWidth = pdf.getTextWidth(dateText);
-  pdf.text(dateText, centerX - (dateWidth / 2), yPosition);
-  yPosition += 15;
+  pdf.text(dateText, centerX - (dateWidth / 2), metaY);
+  metaY += 15;
 
   // ID
   pdf.setFontSize(10);
@@ -207,62 +219,51 @@ function addAdvancedCoverPage(
   pdf.setTextColor(120, 120, 120);
   const idText = `ID Hasil: ${result.id}`;
   const idWidth = pdf.getTextWidth(idText);
-  pdf.text(idText, centerX - (idWidth / 2), yPosition);
-  yPosition += 15;
+  pdf.text(idText, centerX - (idWidth / 2), metaY);
+  metaY += 15;
 
   // Assessment type
   pdf.setFontSize(10);
   pdf.setFont('helvetica', 'italic');
   const typeText = 'Assessment Komprehensif: RIASEC • Big Five • VIA Character Strengths';
   const typeWidth = pdf.getTextWidth(typeText);
-  pdf.text(typeText, centerX - (typeWidth / 2), yPosition);
+  pdf.text(typeText, centerX - (typeWidth / 2), metaY);
 
-  // Footer note
-  yPosition = dimensions.pageHeight - 50;
+  // Description and strengths on cover removed per request
+  let contentY = metaStartY + 60 + 15;
+  const footerReserve = 60; // keep clear area above footer panel
+
+  // Footer note (always at bottom). Add a new page if content already reached near bottom.
+  const footerPanelHeight = 35;
+  const footerPanelPadding = 5;
+  const needed = footerPanelHeight + footerPanelPadding + 10;
+  const currentY = contentY;
+  const placedY = ensureSpace(pdf, currentY, dimensions, needed, 0);
+  if (placedY !== currentY) {
+    contentY = placedY; // moved to next page
+  }
+  const footerY = dimensions.pageHeight - 50;
   pdf.setFillColor(240, 248, 255);
-  pdf.rect(dimensions.margin, yPosition - 5, dimensions.contentWidth, 35, 'F');
+  pdf.rect(dimensions.margin, footerY - 5, dimensions.contentWidth, footerPanelHeight, 'F');
   pdf.setDrawColor(66, 117, 233);
-  pdf.rect(dimensions.margin, yPosition - 5, dimensions.contentWidth, 35, 'S');
+  pdf.rect(dimensions.margin, footerY - 5, dimensions.contentWidth, footerPanelHeight, 'S');
 
   pdf.setFontSize(10);
   pdf.setFont('helvetica', 'bold');
   pdf.setTextColor(66, 117, 233);
   const noteTitle = 'Laporan Lengkap Tersedia';
   const noteTitleWidth = pdf.getTextWidth(noteTitle);
-  pdf.text(noteTitle, centerX - (noteTitleWidth / 2), yPosition + 5);
+  pdf.text(noteTitle, centerX - (noteTitleWidth / 2), footerY + 5);
 
-  pdf.setFontSize(9);
+  pdf.setFontSize(10);
   pdf.setFont('helvetica', 'normal');
   pdf.setTextColor(80, 80, 80);
   const noteText = 'PDF ini berisi semua detail halaman assessment termasuk analisis RIASEC,';
   const noteText2 = 'Big Five (OCEAN), VIA Character Strengths, dan profil persona lengkap.';
   const noteTextWidth = pdf.getTextWidth(noteText);
   const noteText2Width = pdf.getTextWidth(noteText2);
-  pdf.text(noteText, centerX - (noteTextWidth / 2), yPosition + 15);
-  pdf.text(noteText2, centerX - (noteText2Width / 2), yPosition + 23);
-
-  // Reset text color for next pages
-  pdf.setTextColor(0, 0, 0);
-
-  // Description
-  const descriptionY = 160;
-  pdf.setFontSize(10);
-  pdf.setFont('helvetica', 'normal');
-  const description = getPersonaDescription(result);
-  const lines = pdf.splitTextToSize(description, dimensions.contentWidth - 40);
-  pdf.text(lines, dimensions.margin + 20, descriptionY);
-
-  // Strengths
-  pdf.setFontSize(12);
-  pdf.setFont('helvetica', 'bold');
-  pdf.text('Kekuatan Utama:', dimensions.margin, descriptionY + 40);
-
-  pdf.setFontSize(10);
-  pdf.setFont('helvetica', 'normal');
-  const strengths = getPersonaStrengths(result);
-  strengths.slice(0, 5).forEach((strength, index) => {
-    pdf.text(`• ${strength}`, dimensions.margin + 5, descriptionY + 55 + (index * 8));
-  });
+  pdf.text(noteText, centerX - (noteTextWidth / 2), footerY + 15);
+  pdf.text(noteText2, centerX - (noteText2Width / 2), footerY + 23);
 }
 
 /**
@@ -299,10 +300,10 @@ async function captureAndAddCurrentPage(
     // Calculate image dimensions to fit page
     const maxImgWidth = dimensions.contentWidth;
     const maxImgHeight = dimensions.contentHeight - 20;
-    
+
     const imgWidth = maxImgWidth;
     const imgHeight = Math.min((canvas.height * imgWidth) / canvas.width, maxImgHeight);
-    
+
     // Add image to PDF
     const imgData = canvas.toDataURL('image/png', options.quality || 0.95);
     pdf.addImage(
@@ -316,7 +317,7 @@ async function captureAndAddCurrentPage(
 
   } catch (error) {
     console.error(`Error capturing current page:`, error);
-    
+
     // Add error message
     pdf.setFontSize(12);
     pdf.setFont('helvetica', 'normal');
@@ -343,13 +344,13 @@ function addInstructionPage(
   pdf.setFontSize(12);
   pdf.setFont('helvetica', 'normal');
   pdf.text('Untuk melihat detail lengkap dari bagian ini, silakan kunjungi:', dimensions.margin, dimensions.margin + 30);
-  
+
   // Add URL
   const url = `${window.location.origin}/results/${resultId}/${section}`;
   pdf.setFontSize(10);
   pdf.setFont('helvetica', 'normal');
   pdf.text(url, dimensions.margin, dimensions.margin + 45);
-  
+
   // Add note
   pdf.setFontSize(10);
   pdf.setFont('helvetica', 'italic');
@@ -368,7 +369,7 @@ function addAdvancedFooter(
 ): void {
   pdf.setFontSize(8);
   pdf.setFont('helvetica', 'normal');
-  
+
   // Page number
   const pageText = `Halaman ${pageNumber} dari ${totalPages}`;
   const pageTextWidth = pdf.getTextWidth(pageText);
@@ -377,7 +378,7 @@ function addAdvancedFooter(
     dimensions.pageWidth - dimensions.margin - pageTextWidth,
     dimensions.pageHeight - dimensions.margin
   );
-  
+
   // Footer text
   pdf.text(
     'PetaTalenta Assessment Report',
@@ -385,6 +386,152 @@ function addAdvancedFooter(
     dimensions.pageHeight - dimensions.margin
   );
 }
+
+/**
+ * Ensure there is enough space on the current page, otherwise add a new page
+ * Returns the (possibly reset) yPosition to continue drawing
+ */
+function ensureSpace(
+  pdf: jsPDF,
+  yPosition: number,
+  dimensions: { pageWidth: number; pageHeight: number; contentWidth: number; contentHeight: number; margin: number },
+  neededSpace: number = 30,
+  reserveBottom: number = 16
+): number {
+  const usableBottom = dimensions.pageHeight - dimensions.margin - reserveBottom;
+  if (yPosition + neededSpace > usableBottom) {
+    pdf.addPage();
+    return dimensions.margin + 10;
+  }
+  return yPosition;
+}
+/**
+ * Add summary page with key results
+ */
+function addSummaryPage(
+  pdf: jsPDF,
+  result: AssessmentResult,
+  dimensions: { pageWidth: number; pageHeight: number; contentWidth: number; contentHeight: number; margin: number }
+): void {
+  const { assessment_data } = result;
+  const riasec = assessment_data.riasec;
+  const ocean = assessment_data.ocean;
+  const via = assessment_data.viaIs;
+  const industry = assessment_data.industryScore;
+
+  let y = dimensions.margin + 10;
+
+  // Header decoration
+  pdf.setFillColor(66, 117, 233);
+  pdf.rect(0, 0, dimensions.pageWidth, 6, 'F');
+
+  // Title
+  pdf.setFontSize(20);
+  pdf.setFont('helvetica', 'bold');
+  pdf.setTextColor(66, 117, 233);
+  pdf.text('Ringkasan Hasil Assessment', dimensions.margin, y);
+  y += 16;
+
+  // Meta info box
+  pdf.setTextColor(0, 0, 0);
+  pdf.setFillColor(248, 250, 252);
+  pdf.setDrawColor(200, 200, 200);
+  pdf.rect(dimensions.margin, y, dimensions.contentWidth, 22, 'F');
+  pdf.rect(dimensions.margin, y, dimensions.contentWidth, 22, 'S');
+
+  pdf.setFontSize(10);
+  pdf.setFont('helvetica', 'normal');
+  const dateStr = new Date(result.createdAt).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' });
+  const metaLeft = [`Assessment: ${assessment_data.assessmentName || 'AI-Driven Talent Mapping'}`, `Tanggal: ${dateStr}`];
+  const metaRight = [`ID: ${result.id}`, `Status: ${result.status}`];
+  pdf.text(metaLeft[0], dimensions.margin + 6, y + 8);
+  pdf.text(metaLeft[1], dimensions.margin + 6, y + 16);
+  const rightX = dimensions.margin + dimensions.contentWidth - 80;
+  pdf.text(metaRight[0], rightX, y + 8);
+  pdf.text(metaRight[1], rightX, y + 16);
+  y += 30;
+
+  // RIASEC top 3
+  y = ensureSpace(pdf, y, dimensions, 30);
+  pdf.setFontSize(12);
+  pdf.setFont('helvetica', 'bold');
+  pdf.setTextColor(34, 197, 94);
+  pdf.text('Top 3 RIASEC:', dimensions.margin, y);
+  y += 8;
+  pdf.setFontSize(10);
+  pdf.setFont('helvetica', 'normal');
+  pdf.setTextColor(60, 60, 60);
+  const sortedRiasec = Object.entries(riasec).sort(([, a], [, b]) => (b as number) - (a as number)).slice(0, 3);
+  const riasecLabel: { [k: string]: string } = { realistic: 'Realistic', investigative: 'Investigative', artistic: 'Artistic', social: 'Social', enterprising: 'Enterprising', conventional: 'Conventional' };
+  pdf.text(sortedRiasec.map(([k, v]) => `• ${riasecLabel[k] || k}: ${v}%`), dimensions.margin + 4, y);
+  y += 16;
+
+  // OCEAN quick summary
+  y = ensureSpace(pdf, y, dimensions, 40);
+  pdf.setFontSize(12);
+  pdf.setFont('helvetica', 'bold');
+  pdf.setTextColor(59, 130, 246);
+  pdf.text('Ringkasan Big Five (OCEAN):', dimensions.margin, y);
+  y += 8;
+  pdf.setFontSize(10);
+  pdf.setFont('helvetica', 'normal');
+  pdf.setTextColor(60, 60, 60);
+  const oceanOrder: Array<keyof typeof ocean> = ['openness', 'conscientiousness', 'extraversion', 'agreeableness', 'neuroticism'];
+  const oceanLabel: { [k in keyof typeof ocean]: string } = {
+    openness: 'Openness', conscientiousness: 'Conscientiousness', extraversion: 'Extraversion', agreeableness: 'Agreeableness', neuroticism: 'Neuroticism'
+  } as any;
+  oceanOrder.forEach((key) => {
+    y = ensureSpace(pdf, y, dimensions, 10);
+    const score = ocean[key] as number;
+    pdf.text(`• ${oceanLabel[key]}: ${score}%`, dimensions.margin + 4, y);
+    y += 6;
+  });
+  y += 6;
+
+  // VIA top 5
+  y = ensureSpace(pdf, y, dimensions, 30);
+  pdf.setFontSize(12);
+  pdf.setFont('helvetica', 'bold');
+  pdf.setTextColor(168, 85, 247);
+  pdf.text('Top 5 VIA Character Strengths:', dimensions.margin, y);
+  y += 8;
+  pdf.setFontSize(10);
+  pdf.setFont('helvetica', 'normal');
+  pdf.setTextColor(60, 60, 60);
+  const topVia = Object.entries(via).sort(([, a], [, b]) => (b as number) - (a as number)).slice(0, 5);
+  topVia.forEach(([k, v]) => {
+    y = ensureSpace(pdf, y, dimensions, 10);
+    const name = k.charAt(0).toUpperCase() + k.slice(1).replace(/([A-Z])/g, ' $1');
+    pdf.text(`• ${name}: ${v}%`, dimensions.margin + 4, y);
+    y += 6;
+  });
+
+  // Industry top 5 if exists
+  if (industry) {
+    y += 6;
+    y = ensureSpace(pdf, y, dimensions, 30);
+    pdf.setFontSize(12);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(245, 158, 11);
+    pdf.text('Top 5 Kecocokan Industri:', dimensions.margin, y);
+    y += 8;
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setTextColor(60, 60, 60);
+    const topIndustries = Object.entries(industry).sort(([, a], [, b]) => (b as number) - (a as number)).slice(0, 5);
+    topIndustries.forEach(([k, v]) => {
+      y = ensureSpace(pdf, y, dimensions, 10);
+      const label = k.charAt(0).toUpperCase() + k.slice(1);
+      pdf.text(`• ${label}: ${v}%`, dimensions.margin + 4, y);
+      y += 6;
+    });
+  }
+
+  // Reset text color
+  pdf.setTextColor(0, 0, 0);
+}
+
+
 
 /**
  * Add RIASEC detail page
@@ -415,22 +562,27 @@ function addRiasecDetailPage(
   const description = 'RIASEC adalah model yang mengidentifikasi enam tipe kepribadian kerja berdasarkan minat dan preferensi aktivitas. Model ini membantu memahami lingkungan kerja yang paling sesuai dengan kepribadian Anda.';
   const descLines = pdf.splitTextToSize(description, dimensions.contentWidth);
   pdf.text(descLines, dimensions.margin, yPosition);
-  yPosition += 25;
+  // hitung tinggi paragraf agar tidak menabrak elemen berikutnya
+  const descHeight = (Array.isArray(descLines) ? descLines.length : 1) * 5;
+  yPosition += descHeight + 10;
 
   // Top 3 scores highlight
   const sortedRiasec = Object.entries(riasecData)
     .sort(([,a], [,b]) => (b as number) - (a as number))
     .slice(0, 3);
 
+  // Pastikan ruang untuk kartu highlight
+  yPosition = ensureSpace(pdf, yPosition, dimensions, 30, 20);
+  const highlightY = yPosition;
   pdf.setFillColor(248, 250, 252);
-  pdf.rect(dimensions.margin, yPosition - 5, dimensions.contentWidth, 25, 'F');
   pdf.setDrawColor(34, 197, 94);
-  pdf.rect(dimensions.margin, yPosition - 5, dimensions.contentWidth, 25, 'S');
+  pdf.rect(dimensions.margin, highlightY - 5, dimensions.contentWidth, 25, 'F');
+  pdf.rect(dimensions.margin, highlightY - 5, dimensions.contentWidth, 25, 'S');
 
   pdf.setFontSize(12);
   pdf.setFont('helvetica', 'bold');
   pdf.setTextColor(34, 197, 94);
-  pdf.text('Top 3 Tipe Kepribadian Anda:', dimensions.margin + 5, yPosition + 5);
+  pdf.text('Top 3 Tipe Kepribadian Anda:', dimensions.margin + 5, highlightY + 5);
 
   // Map full names to codes for display
   const keyToCodeMap: { [key: string]: string } = {
@@ -446,8 +598,8 @@ function addRiasecDetailPage(
   pdf.setFontSize(10);
   pdf.setFont('helvetica', 'normal');
   pdf.setTextColor(60, 60, 60);
-  pdf.text(topTypesText, dimensions.margin + 5, yPosition + 15);
-  yPosition += 35;
+  pdf.text(topTypesText, dimensions.margin + 5, highlightY + 15);
+  yPosition = highlightY + 35;
 
   // Reset text color
   pdf.setTextColor(0, 0, 0);
@@ -462,15 +614,13 @@ function addRiasecDetailPage(
     { code: 'C', key: 'conventional', name: 'Conventional (Konvensional)', desc: 'Menyukai struktur, detail, dan aktivitas administratif. Cocok untuk bidang akuntansi, administrasi, atau data entry.', color: [107, 114, 128] }
   ];
 
-  riasecTypes.forEach((type, index) => {
+  riasecTypes.forEach((type) => {
     const score = riasecData[type.key as keyof typeof riasecData] || 0;
-    const isTopScore = sortedRiasec.some(([key]) => key === type.key);
 
-    // Background for top scores
-    if (isTopScore) {
-      pdf.setFillColor(254, 249, 195);
-      pdf.rect(dimensions.margin - 5, yPosition - 3, dimensions.contentWidth + 10, 40, 'F');
-    }
+    // Estimasi tinggi blok (judul+desc+bar) – tanpa background kuning
+    const descLinesTemp = pdf.splitTextToSize(type.desc, dimensions.contentWidth - 10);
+    const blockHeightEstimate = 12 /*title*/ + (descLinesTemp.length * 4 + 8) /*desc*/ + 18 /*bar+label*/;
+    yPosition = ensureSpace(pdf, yPosition, dimensions, blockHeightEstimate, 20);
 
     // Type name and score
     pdf.setFontSize(13);
@@ -483,31 +633,41 @@ function addRiasecDetailPage(
     pdf.setFontSize(9);
     pdf.setFont('helvetica', 'normal');
     pdf.setTextColor(60, 60, 60);
-    const typeDescLines = pdf.splitTextToSize(type.desc, dimensions.contentWidth - 10);
-    pdf.text(typeDescLines, dimensions.margin + 5, yPosition);
-    yPosition += typeDescLines.length * 4 + 8;
+    const typeDescLines = descLinesTemp as string[];
+    typeDescLines.forEach((line) => {
+      yPosition = ensureSpace(pdf, yPosition, dimensions, 5, 20);
+      pdf.text(line, dimensions.margin + 5, yPosition);
+      yPosition += 4;
+    });
+    yPosition += 4;
 
     // Score bar visualization
-    const barWidth = 120;
+    const percentText = `${score}%`;
+    const percentWidth = pdf.getTextWidth(percentText);
+    const labelGap = 6;
+    const barPaddingLeft = 5;
     const barHeight = 8;
-    const barX = dimensions.margin + 5;
+    const barX = dimensions.margin + barPaddingLeft;
+    const maxBarWidth = Math.min(180, dimensions.contentWidth - barPaddingLeft - labelGap - percentWidth - 1);
+    const barWidth = Math.max(90, maxBarWidth);
 
     // Background bar
     pdf.setFillColor(240, 240, 240);
     pdf.rect(barX, yPosition, barWidth, barHeight, 'F');
 
-    // Score bar with gradient effect
-    const scoreWidth = (score / 100) * barWidth;
+    // Score bar
+    const scoreWidth = Math.max(2, (score / 100) * barWidth);
     pdf.setFillColor(type.color[0], type.color[1], type.color[2]);
     pdf.rect(barX, yPosition, scoreWidth, barHeight, 'F');
 
-    // Score percentage text
-    pdf.setFontSize(8);
+    // Score percentage text (kanan bar), pastikan tidak keluar halaman
+    pdf.setFontSize(9);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(type.color[0], type.color[1], type.color[2]);
-    pdf.text(`${score}%`, barX + barWidth + 10, yPosition + 5);
+    const labelX = Math.min(dimensions.margin + dimensions.contentWidth - percentWidth, barX + barWidth + labelGap);
+    pdf.text(percentText, labelX, yPosition + 5);
 
-    yPosition += 25;
+    yPosition += 22;
   });
 
   // Reset text color
@@ -607,9 +767,12 @@ function addOceanDetailPage(
     }
   ];
 
-  oceanTraits.forEach((trait, index) => {
+  oceanTraits.forEach((trait) => {
     const score = oceanData[trait.key as keyof typeof oceanData] || 0;
     const interpretation = trait.interpretation(score);
+
+    // Ensure space for block
+    yPosition = ensureSpace(pdf, yPosition, dimensions, 50);
 
     // Trait name and score
     pdf.setFontSize(13);
@@ -633,25 +796,31 @@ function addOceanDetailPage(
     pdf.text(traitDescLines, dimensions.margin + 5, yPosition);
     yPosition += traitDescLines.length * 4 + 8;
 
-    // Score bar visualization
-    const barWidth = 120;
+    // Score bar visualization (samakan dengan RIASEC)
+    const percentText = `${score}%`;
+    const percentWidth = pdf.getTextWidth(percentText);
+    const labelGap = 6;
+    const barPaddingLeft = 5;
     const barHeight = 8;
-    const barX = dimensions.margin + 5;
+    const barX = dimensions.margin + barPaddingLeft;
+    const maxBarWidth = Math.min(180, dimensions.contentWidth - barPaddingLeft - labelGap - percentWidth - 1);
+    const barWidth = Math.max(90, maxBarWidth);
 
     // Background bar
     pdf.setFillColor(240, 240, 240);
     pdf.rect(barX, yPosition, barWidth, barHeight, 'F');
 
     // Score bar
-    const scoreWidth = (score / 100) * barWidth;
+    const scoreWidth = Math.max(2, (score / 100) * barWidth);
     pdf.setFillColor(trait.color[0], trait.color[1], trait.color[2]);
     pdf.rect(barX, yPosition, scoreWidth, barHeight, 'F');
 
-    // Score percentage text
-    pdf.setFontSize(8);
+    // Score percentage text (kanan bar, clamp agar tidak keluar halaman)
+    pdf.setFontSize(9);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(trait.color[0], trait.color[1], trait.color[2]);
-    pdf.text(`${score}%`, barX + barWidth + 10, yPosition + 5);
+    const labelX = Math.min(dimensions.margin + dimensions.contentWidth - percentWidth, barX + barWidth + labelGap);
+    pdf.text(percentText, labelX, yPosition + 5);
 
     yPosition += 25;
   });
@@ -761,11 +930,10 @@ function addViaDetailPage(
     const description = strengthDescriptions[strength] || 'Kekuatan karakter yang positif';
     const isTop5 = index < 5;
 
-    // Highlight top 5
-    if (isTop5) {
-      pdf.setFillColor(254, 249, 195);
-      pdf.rect(dimensions.margin - 5, yPosition - 3, dimensions.contentWidth + 10, 30, 'F');
-    }
+    // Ensure space for block
+    yPosition = ensureSpace(pdf, yPosition, dimensions, 40);
+
+    // Highlight top 5 dihilangkan (tanpa background)
 
     // Strength name and score
     pdf.setFontSize(11);
@@ -782,10 +950,15 @@ function addViaDetailPage(
     pdf.text(descLines, dimensions.margin + 5, yPosition);
     yPosition += descLines.length * 4 + 5;
 
-    // Score bar visualization
-    const barWidth = 100;
+    // Score bar visualization (samakan dengan RIASEC)
+    const percentText = `${score}%`;
+    const percentWidth = pdf.getTextWidth(percentText);
+    const labelGap = 6;
+    const barPaddingLeft = 5;
     const barHeight = 6;
-    const barX = dimensions.margin + 5;
+    const barX = dimensions.margin + barPaddingLeft;
+    const maxBarWidth = Math.min(180, dimensions.contentWidth - barPaddingLeft - labelGap - percentWidth - 1);
+    const barWidth = Math.max(90, maxBarWidth);
 
     // Background bar
     pdf.setFillColor(240, 240, 240);
@@ -793,7 +966,7 @@ function addViaDetailPage(
 
     // Score bar with gradient colors based on rank
     const colors = [
-      [168, 85, 247], // Purple for top ranks
+      [168, 85, 247],
       [139, 69, 219],
       [124, 58, 237],
       [109, 40, 217],
@@ -802,15 +975,16 @@ function addViaDetailPage(
     const colorIndex = Math.min(index, colors.length - 1);
     const color = colors[colorIndex];
 
-    const scoreWidth = ((score as number) / 100) * barWidth;
+    const scoreWidth = Math.max(2, ((score as number) / 100) * barWidth);
     pdf.setFillColor(color[0], color[1], color[2]);
     pdf.rect(barX, yPosition, scoreWidth, barHeight, 'F');
 
-    // Score percentage text
-    pdf.setFontSize(8);
+    // Score percentage text (kanan bar, clamp)
+    pdf.setFontSize(9);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(color[0], color[1], color[2]);
-    pdf.text(`${score}%`, barX + barWidth + 8, yPosition + 4);
+    const labelX = Math.min(dimensions.margin + dimensions.contentWidth - pdf.getTextWidth(`${score}%`), barX + barWidth + 6);
+    pdf.text(`${score}%`, labelX, yPosition + 4);
 
     yPosition += 18;
   });
@@ -869,8 +1043,27 @@ function addPersonaDetailPage(
   pdf.setFont('helvetica', 'normal');
   const description = getPersonaDescription(result);
   const descLines = pdf.splitTextToSize(description, dimensions.contentWidth);
-  pdf.text(descLines, dimensions.margin, yPosition);
-  yPosition += descLines.length * 5 + 15;
+
+  // Set line-height to 1.5 for persona description
+  const lineHeightFactor = 1.5;
+  if (typeof (pdf as any).setLineHeightFactor === 'function') {
+    (pdf as any).setLineHeightFactor(lineHeightFactor);
+  }
+
+  // Teks deskripsi dibuat justify
+  pdf.text(descLines as any, dimensions.margin, yPosition, { align: 'justify', maxWidth: dimensions.contentWidth } as any);
+
+  // Advance y by the rendered text height (fontSize pt -> mm)
+  const mmPerPt = 0.352777778;
+  const fontSizePt = typeof (pdf as any).getFontSize === 'function' ? (pdf as any).getFontSize() : 10;
+  const lineStepMm = fontSizePt * lineHeightFactor * mmPerPt;
+  const linesCount = Array.isArray(descLines) ? (descLines as string[]).length : 1;
+  yPosition += (linesCount * lineStepMm) + 15;
+
+  // Reset line-height to default (approx 1.15) for subsequent content
+  if (typeof (pdf as any).setLineHeightFactor === 'function') {
+    (pdf as any).setLineHeightFactor(1.15);
+  }
 
   // Strengths
   pdf.setFontSize(12);
@@ -882,6 +1075,7 @@ function addPersonaDetailPage(
   pdf.setFont('helvetica', 'normal');
   const strengths = getPersonaStrengths(result);
   strengths.forEach((strength) => {
+    yPosition = ensureSpace(pdf, yPosition, dimensions, 10);
     pdf.text(`• ${strength}`, dimensions.margin + 5, yPosition);
     yPosition += 8;
   });
@@ -897,6 +1091,7 @@ function addPersonaDetailPage(
   pdf.setFont('helvetica', 'normal');
   const careerRecommendations = getCareerRecommendations(result);
   careerRecommendations.slice(0, 8).forEach((career) => {
+    yPosition = ensureSpace(pdf, yPosition, dimensions, 10);
     const suffix = typeof career.matchPercentage === 'number' ? ` (${career.matchPercentage}% match)` : '';
     pdf.text(`• ${career.careerName}${suffix}`, dimensions.margin + 5, yPosition);
     yPosition += 8;
@@ -918,6 +1113,84 @@ function addPersonaDetailPage(
     pdf.text(roleModelLines, dimensions.margin + 5, yPosition);
   }
 }
+
+/**
+ * Add Industry detail page if industry scores are available
+ */
+function addIndustryDetailPage(
+  pdf: jsPDF,
+  result: AssessmentResult,
+  dimensions: { pageWidth: number; pageHeight: number; contentWidth: number; contentHeight: number; margin: number }
+): void {
+  const industry = result.assessment_data.industryScore;
+  if (!industry) return;
+
+  let y = dimensions.margin + 10;
+
+  // Header decoration
+  pdf.setFillColor(245, 158, 11);
+  pdf.rect(0, 0, dimensions.pageWidth, 6, 'F');
+
+  // Title
+  pdf.setFontSize(20);
+  pdf.setFont('helvetica', 'bold');
+  pdf.setTextColor(245, 158, 11);
+  pdf.text('Detail Kecocokan Industri', dimensions.margin, y);
+  y += 25;
+
+  // Description
+  pdf.setFontSize(11);
+  pdf.setFont('helvetica', 'normal');
+  pdf.setTextColor(80, 80, 80);
+  const description = 'Berikut adalah persentase kecocokan Anda terhadap berbagai industri berdasarkan profil kepribadian dan minat.';
+  const descLines = pdf.splitTextToSize(description, dimensions.contentWidth);
+  pdf.text(descLines, dimensions.margin, y);
+  y += 20;
+
+  // Sort industries by score
+  const sorted = Object.entries(industry).sort(([, a], [, b]) => (b as number) - (a as number));
+
+  // Render as list with bars
+  sorted.forEach(([name, score]) => {
+    y = ensureSpace(pdf, y, dimensions, 16);
+    const pretty = name.charAt(0).toUpperCase() + name.slice(1);
+
+    // Name and score
+    pdf.setFontSize(11);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(245, 158, 11);
+    pdf.text(`${pretty}: ${score}%`, dimensions.margin, y);
+    y += 8;
+
+    // Bar (samakan dengan RIASEC – adaptif terhadap label persen di kanan)
+    const percentText = `${score}%`;
+    const percentWidth = pdf.getTextWidth(percentText);
+    const labelGap = 6;
+    const barPaddingLeft = 5;
+    const barHeight = 6;
+    const barX = dimensions.margin + barPaddingLeft;
+    const maxBarWidth = Math.min(180, dimensions.contentWidth - barPaddingLeft - labelGap - percentWidth - 1);
+    const barWidth = Math.max(90, maxBarWidth);
+
+    pdf.setFillColor(240, 240, 240);
+    pdf.rect(barX, y, barWidth, barHeight, 'F');
+    const scoreWidth = Math.max(2, (Number(score) / 100) * barWidth);
+    pdf.setFillColor(245, 158, 11);
+    pdf.rect(barX, y, scoreWidth, barHeight, 'F');
+
+    // Label persen di kanan bar, clamp agar tidak keluar halaman
+    const labelX = Math.min(dimensions.margin + dimensions.contentWidth - percentWidth, barX + barWidth + labelGap);
+    pdf.setFontSize(9);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(245, 158, 11);
+    pdf.text(percentText, labelX, y + 4);
+
+    y += 10;
+  });
+
+  pdf.setTextColor(0, 0, 0);
+}
+
 
 /**
  * Download PDF blob

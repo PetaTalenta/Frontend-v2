@@ -22,7 +22,7 @@ export default function ChatInterface({ assessmentResult, onBack }: ChatInterfac
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [typingMessage, setTypingMessage] = useState<ChatMessage | null>(null);
-  
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
@@ -84,13 +84,17 @@ export default function ChatInterface({ assessmentResult, onBack }: ChatInterfac
   const handleSendMessage = async (messageContent: string) => {
     if (!conversation || isSending) return;
 
+
+      // Generate a temporary ID for this user message so we can clean it up on error
+      const tempUserId = 'temp-user-' + Date.now();
+
     try {
       setIsSending(true);
       setError(null);
 
       // Add user message immediately
       const userMessage: ChatMessage = {
-        id: 'temp-user-' + Date.now(),
+        id: tempUserId,
         role: 'user',
         content: messageContent,
         timestamp: new Date().toISOString(),
@@ -120,9 +124,9 @@ export default function ChatInterface({ assessmentResult, onBack }: ChatInterfac
       setTypingMessage(null);
       setMessages(prev => {
         // Remove the temporary user message and add both final messages
-        const withoutTemp = prev.filter(msg => msg.id !== userMessage.id);
-        return [...withoutTemp, 
-          { ...userMessage, id: 'user-' + Date.now() }, 
+        const withoutTemp = prev.filter(msg => msg.id !== tempUserId);
+        return [...withoutTemp,
+          { ...userMessage, id: 'user-' + Date.now() },
           aiResponse
         ];
       });
@@ -149,7 +153,7 @@ export default function ChatInterface({ assessmentResult, onBack }: ChatInterfac
       setTypingMessage(null);
 
       // Remove the temporary user message on error
-      setMessages(prev => prev.filter(msg => msg.id !== userMessage.id));
+      setMessages(prev => prev.filter(msg => msg.id !== tempUserId));
     } finally {
       setIsSending(false);
     }
@@ -195,7 +199,7 @@ export default function ChatInterface({ assessmentResult, onBack }: ChatInterfac
       )}
 
       {/* Messages Container */}
-      <div 
+      <div
         ref={messagesContainerRef}
         className="flex-1 overflow-y-auto p-4 space-y-4"
       >
