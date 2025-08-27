@@ -376,11 +376,59 @@ class ApiService {
         throw new Error(response.data.message || 'API returned unsuccessful response');
       }
     } catch (error) {
+      const errorPayload = error.response?.data || { message: error.message };
+      const msg = (errorPayload.error || errorPayload.message || '').toString();
       console.error('Real chatbot API failed:', {
-        error: error.response?.data || error.message,
+        error: errorPayload,
         status: error.response?.status,
         endpoint: API_ENDPOINTS.CHATBOT.CREATE_FROM_ASSESSMENT
       });
+
+      // Gracefully handle "conversation already exists" by fetching the existing one
+      if (msg.toLowerCase().includes('conversation already exists')) {
+        try {
+          console.warn('Conversation already exists for this assessment. Attempting to fetch existing conversation...');
+          // Fetch user's conversations and pick the latest assessment conversation
+          const listResp = await this.axiosInstance.get(`${API_ENDPOINTS.CHATBOT.GET_CONVERSATIONS}?status=active&context=assessment`);
+          if (listResp.data?.success && Array.isArray(listResp.data.data?.conversations) && listResp.data.data.conversations.length > 0) {
+            // Pick the most recent by lastActivity
+            const conversations = listResp.data.data.conversations.slice().sort((a, b) => {
+              const aTime = new Date(a.lastActivity || a.createdAt || 0).getTime();
+              const bTime = new Date(b.lastActivity || b.createdAt || 0).getTime();
+              return bTime - aTime;
+            });
+            const existing = conversations[0];
+            // Get full details including messages
+            const detailResp = await this.axiosInstance.get(API_ENDPOINTS.CHATBOT.GET_CONVERSATION(existing.id));
+            if (detailResp.data?.success) {
+              const conv = detailResp.data.data.conversation;
+              return {
+                success: true,
+                data: {
+                  id: conv.id,
+                  resultId: data.resultId,
+                  messages: Array.isArray(conv.messages)
+                    ? conv.messages.map(msg => ({
+                        id: msg.id,
+                        role: msg.sender === 'ai' ? 'assistant' : msg.sender,
+                        content: msg.content,
+                        timestamp: msg.timestamp,
+                        resultId: data.resultId
+                      }))
+                    : [],
+                  createdAt: conv.createdAt,
+                  updatedAt: conv.lastActivity || conv.createdAt,
+                  assessmentContext: data.assessmentContext
+                }
+              };
+            }
+          }
+          console.warn('Failed to fetch existing conversation after conflict; rethrowing original error.');
+        } catch (recoverErr) {
+          console.warn('Error while trying to recover existing conversation:', recoverErr.response?.data || recoverErr.message);
+        }
+      }
+
       // Throw error to let chat-api.ts handle the fallback to mock implementation
       throw error;
     }
@@ -477,8 +525,8 @@ class ApiService {
       const storedConversation = localStorage.getItem(`chat-${resultId}`);
       if (storedConversation) {
         const conversation = JSON.parse(storedConversation);
-        if (conversation.id && conversation.id.startsWith('550e8400-')) {
-          // This looks like a real API conversation ID, try to fetch from API
+        if (conversation.id && !conversation.id.startsWith('mock-chat-')) {
+          // This looks like a real API conversation (not mock), try to fetch from API
           const response = await this.axiosInstance.get(API_ENDPOINTS.CHATBOT.GET_CONVERSATION(conversation.id));
 
           if (response.data.success) {
