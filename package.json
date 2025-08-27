@@ -5,6 +5,10 @@
   "scripts": {
     "build": "next build",
     "build:analyze": "set ANALYZE=true && next build",
+    "analyze": "node scripts/analyze-bundle.js",
+    "analyze:detailed": "npm run build:analyze",
+    "optimize": "node scripts/optimize-performance.js",
+    "optimize:check": "npm run optimize",
     "dev": "next dev",
     "lint": "next lint",
     "start": "next start",
@@ -16,7 +20,10 @@
     "test:token:concurrent": "node testing/scripts/concurrent-assessment-test.js",
     "test:setup-users": "node testing/scripts/setup-test-users.js",
     "test:high-load": "node testing/scripts/run-concurrent-tests.js",
-    "test:summary": "node testing/scripts/test-summary.js"
+    "test:summary": "node testing/scripts/test-summary.js",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
@@ -56,6 +63,7 @@
     "comlink": "^4.4.2",
     "date-fns": "4.1.0",
     "embla-carousel-react": "8.5.1",
+    "framer-motion": "^12.23.12",
     "geist": "^1.3.1",
     "html2canvas": "^1.4.1",
     "html2pdf.js": "^0.10.3",
@@ -82,11 +90,17 @@
   },
   "devDependencies": {
     "@next/bundle-analyzer": "^15.4.5",
+    "@testing-library/jest-dom": "^6.8.0",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/jest": "^30.0.0",
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "autoprefixer": "^10.4.21",
     "concurrently": "^9.2.0",
+    "jest": "^30.1.0",
+    "jest-environment-jsdom": "^30.1.0",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.17",
     "typescript": "^5"

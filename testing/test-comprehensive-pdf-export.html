@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Comprehensive PDF Export</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #fafafa;
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: #333;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+        .test-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 8px;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+        .test-button:hover {
+            background: #0056b3;
+        }
+        .test-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .test-button.success {
+            background: #28a745;
+        }
+        .test-button.danger {
+            background: #dc3545;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        .code {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            margin: 10px 0;
+            border-left: 4px solid #007bff;
+            font-size: 12px;
+        }
+        .feature-list {
+            list-style-type: none;
+            padding: 0;
+        }
+        .feature-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .feature-list li:before {
+            content: "✅ ";
+            margin-right: 8px;
+        }
+        .progress {
+            width: 100%;
+            height: 20px;
+            background: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .progress-bar {
+            height: 100%;
+            background: #007bff;
+            transition: width 0.3s ease;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Test Comprehensive PDF Export</h1>
+        <p>Halaman ini untuk menguji perbaikan PDF export yang menghasilkan file PDF lengkap dengan semua detail assessment.</p>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-number" id="test-count">0</div>
+                <div class="stat-label">Tests Run</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="success-count">0</div>
+                <div class="stat-label">Successful</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="error-count">0</div>
+                <div class="stat-label">Errors</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="pdf-size">0 KB</div>
+                <div class="stat-label">Last PDF Size</div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>📋 Fitur PDF Export Baru</h3>
+            <ul class="feature-list">
+                <li>Cover page dengan informasi assessment</li>
+                <li>Halaman hasil utama dengan screenshot</li>
+                <li>Detail RIASEC dengan visualisasi bar chart</li>
+                <li>Detail Big Five (OCEAN) dengan penjelasan lengkap</li>
+                <li>Detail VIA Character Strengths (Top 10)</li>
+                <li>Detail profil persona dengan rekomendasi karir</li>
+                <li>Footer dengan nomor halaman</li>
+                <li>Format PDF yang proper (bukan text file)</li>
+            </ul>
+        </div>
+
+        <div class="test-section">
+            <h3>🧪 Test PDF Export dengan Mock Data</h3>
+            <p>Test menggunakan data mock yang lengkap untuk memverifikasi semua fitur PDF.</p>
+            <button class="test-button" onclick="createComprehensiveMockData()">Create Comprehensive Mock Data</button>
+            <button class="test-button" onclick="testComprehensivePDFExport()">Test PDF Export (Mock Data)</button>
+            <button class="test-button danger" onclick="clearAllMockData()">Clear All Mock Data</button>
+            <div id="mock-test-result" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🔍 Test PDF Content Validation</h3>
+            <p>Validasi bahwa PDF berisi semua konten yang diharapkan.</p>
+            <button class="test-button" onclick="validatePDFStructure()">Validate PDF Structure</button>
+            <button class="test-button" onclick="testPDFSizes()">Test Different PDF Sizes</button>
+            <div id="validation-result" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>⚡ Test Performance & Error Handling</h3>
+            <p>Test performa dan error handling untuk berbagai skenario.</p>
+            <button class="test-button" onclick="testPDFPerformance()">Test PDF Performance</button>
+            <button class="test-button" onclick="testErrorScenarios()">Test Error Scenarios</button>
+            <div id="performance-result" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>📊 Test Progress</h3>
+            <div class="progress">
+                <div class="progress-bar" id="progress-bar" style="width: 0%"></div>
+            </div>
+            <div id="progress-text">Ready to start testing...</div>
+        </div>
+
+        <div class="test-section">
+            <h3>📁 Mock Data Management</h3>
+            <p>Kelola data mock untuk testing yang lebih komprehensif.</p>
+            <button class="test-button" onclick="viewAllMockData()">View All Mock Data</button>
+            <button class="test-button" onclick="exportMockDataAsJSON()">Export Mock Data as JSON</button>
+            <button class="test-button" onclick="importMockDataFromJSON()">Import Mock Data from JSON</button>
+            <div id="mock-management-result" class="result" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        let testCount = 0;
+        let successCount = 0;
+        let errorCount = 0;
+
+        function updateStats() {
+            document.getElementById('test-count').textContent = testCount;
+            document.getElementById('success-count').textContent = successCount;
+            document.getElementById('error-count').textContent = errorCount;
+        }
+
+        function updateProgress(percentage, text) {
+            document.getElementById('progress-bar').style.width = percentage + '%';
+            document.getElementById('progress-text').textContent = text;
+        }
+
+        function showResult(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.className = `result ${type}`;
+            element.innerHTML = message;
+            element.style.display = 'block';
+            
+            testCount++;
+            if (type === 'success') successCount++;
+            if (type === 'error') errorCount++;
+            updateStats();
+        }
+
+        function createComprehensiveMockData() {
+            updateProgress(10, 'Creating comprehensive mock data...');
+            
+            const comprehensiveMockResult = {
+                id: 'result-comprehensive-test',
+                userId: 'test-user-comprehensive',
+                createdAt: new Date().toISOString(),
+                status: 'completed',
+                assessment_data: {
+                    riasec: {
+                        R: 85, // Realistic - High
+                        I: 78, // Investigative - High  
+                        A: 65, // Artistic - Medium
+                        S: 72, // Social - Medium-High
+                        E: 90, // Enterprising - Very High
+                        C: 58  // Conventional - Medium
+                    },
+                    ocean: {
+                        O: 82, // Openness - High
+                        C: 75, // Conscientiousness - High
+                        E: 88, // Extraversion - Very High
+                        A: 79, // Agreeableness - High
+                        N: 35  // Neuroticism - Low (good)
+                    },
+                    viaIs: {
+                        creativity: 85,
+                        curiosity: 82,
+                        judgment: 78,
+                        loveOfLearning: 80,
+                        perspective: 75,
+                        bravery: 88,
+                        perseverance: 83,
+                        honesty: 90,
+                        zest: 87,
+                        love: 76,
+                        kindness: 84,
+                        socialIntelligence: 89,
+                        teamwork: 81,
+                        fairness: 86,
+                        leadership: 92,
+                        forgiveness: 72,
+                        humility: 68,
+                        prudence: 74,
+                        selfRegulation: 77,
+                        appreciationOfBeauty: 71,
+                        gratitude: 85,
+                        hope: 88,
+                        humor: 83,
+                        spirituality: 65
+                    },
+                    industryScore: {
+                        technology: 92,
+                        healthcare: 68,
+                        education: 75,
+                        finance: 85,
+                        marketing: 89,
+                        consulting: 87,
+                        entrepreneurship: 94,
+                        research: 78,
+                        arts: 65,
+                        manufacturing: 72
+                    }
+                },
+                persona_profile: {
+                    title: 'The Visionary Leader',
+                    archetype: 'Visionary',
+                    description: 'Anda adalah seorang pemimpin visioner yang memiliki kemampuan luar biasa dalam melihat peluang dan menginspirasi orang lain. Dengan kombinasi kecerdasan strategis dan karisma natural, Anda mampu mengubah ide-ide besar menjadi kenyataan. Anda thrives dalam lingkungan yang dinamis dan penuh tantangan, selalu mencari cara untuk berinovasi dan membuat dampak positif.',
+                    strengths: [
+                        'Kepemimpinan strategis yang kuat',
+                        'Visi jangka panjang yang jelas',
+                        'Kemampuan komunikasi yang excellent',
+                        'Inovasi dan kreativitas tinggi',
+                        'Networking dan relationship building',
+                        'Problem solving yang efektif',
+                        'Adaptabilitas tinggi',
+                        'Motivasi dan inspirasi tim'
+                    ],
+                    careerRecommendation: [
+                        { careerName: 'Chief Executive Officer (CEO)', matchPercentage: 94 },
+                        { careerName: 'Entrepreneur / Startup Founder', matchPercentage: 92 },
+                        { careerName: 'Management Consultant', matchPercentage: 89 },
+                        { careerName: 'Business Development Director', matchPercentage: 87 },
+                        { careerName: 'Product Manager', matchPercentage: 85 },
+                        { careerName: 'Sales Director', matchPercentage: 84 },
+                        { careerName: 'Marketing Director', matchPercentage: 82 },
+                        { careerName: 'Innovation Manager', matchPercentage: 80 },
+                        { careerName: 'Project Manager', matchPercentage: 78 },
+                        { careerName: 'Business Analyst', matchPercentage: 75 }
+                    ],
+                    roleModel: [
+                        'Elon Musk',
+                        'Steve Jobs', 
+                        'Satya Nadella',
+                        'Sheryl Sandberg',
+                        'Reid Hoffman',
+                        'Marc Benioff'
+                    ]
+                }
+            };
+
+            localStorage.setItem('assessment-result-result-comprehensive-test', JSON.stringify(comprehensiveMockResult));
+            
+            updateProgress(100, 'Comprehensive mock data created successfully!');
+            showResult('mock-test-result', 
+                `<h4>✅ Comprehensive Mock Data Created</h4>
+                <div><strong>ID:</strong> result-comprehensive-test</div>
+                <div><strong>Persona:</strong> ${comprehensiveMockResult.persona_profile.title}</div>
+                <div><strong>RIASEC Highest:</strong> Enterprising (${comprehensiveMockResult.assessment_data.riasec.E}%)</div>
+                <div><strong>OCEAN Highest:</strong> Extraversion (${comprehensiveMockResult.assessment_data.ocean.E}%)</div>
+                <div><strong>Career Recommendations:</strong> ${comprehensiveMockResult.persona_profile.careerRecommendation.length} items</div>
+                <div><strong>VIA Strengths:</strong> ${Object.keys(comprehensiveMockResult.assessment_data.viaIs).length} measured</div>
+                <div class="code">Data tersimpan di localStorage dengan key: assessment-result-result-comprehensive-test</div>`, 
+                'success');
+        }
+
+        async function testComprehensivePDFExport() {
+            updateProgress(0, 'Starting comprehensive PDF export test...');
+            
+            try {
+                // Check if mock data exists
+                const mockData = localStorage.getItem('assessment-result-result-comprehensive-test');
+                if (!mockData) {
+                    throw new Error('Mock data not found. Please create comprehensive mock data first.');
+                }
+
+                updateProgress(25, 'Mock data found, simulating PDF export...');
+                
+                // Simulate the PDF export process
+                const result = JSON.parse(mockData);
+                
+                updateProgress(50, 'Validating assessment data structure...');
+                
+                // Validate data structure
+                const validationResults = [];
+                
+                if (result.assessment_data.riasec) {
+                    validationResults.push('✅ RIASEC data present');
+                } else {
+                    validationResults.push('❌ RIASEC data missing');
+                }
+                
+                if (result.assessment_data.ocean) {
+                    validationResults.push('✅ OCEAN data present');
+                } else {
+                    validationResults.push('❌ OCEAN data missing');
+                }
+                
+                if (result.assessment_data.viaIs) {
+                    validationResults.push('✅ VIA data present');
+                } else {
+                    validationResults.push('❌ VIA data missing');
+                }
+                
+                if (result.persona_profile) {
+                    validationResults.push('✅ Persona profile present');
+                } else {
+                    validationResults.push('❌ Persona profile missing');
+                }
+
+                updateProgress(75, 'Simulating PDF generation...');
+                
+                // Simulate PDF generation time
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                // Simulate PDF size calculation
+                const estimatedPDFSize = Math.floor(Math.random() * 500 + 200); // 200-700 KB
+                document.getElementById('pdf-size').textContent = estimatedPDFSize + ' KB';
+                
+                updateProgress(100, 'PDF export test completed successfully!');
+                
+                showResult('mock-test-result', 
+                    `<h4>🎉 PDF Export Test Successful</h4>
+                    <div><strong>Test ID:</strong> result-comprehensive-test</div>
+                    <div><strong>Estimated PDF Size:</strong> ${estimatedPDFSize} KB</div>
+                    <div><strong>Expected Pages:</strong> 6 pages (Cover + Main + RIASEC + OCEAN + VIA + Persona)</div>
+                    <div><strong>Data Validation:</strong></div>
+                    <div class="code">${validationResults.join('<br>')}</div>
+                    <div><strong>Note:</strong> Ini adalah simulasi. Dalam implementasi nyata, PDF akan di-generate menggunakan jsPDF dengan konten lengkap.</div>`, 
+                    'success');
+                    
+            } catch (error) {
+                updateProgress(0, 'PDF export test failed');
+                showResult('mock-test-result', 
+                    `<h4>❌ PDF Export Test Failed</h4>
+                    <div><strong>Error:</strong> ${error.message}</div>
+                    <div class="code">Pastikan mock data sudah dibuat terlebih dahulu dengan tombol "Create Comprehensive Mock Data"</div>`, 
+                    'error');
+            }
+        }
+
+        function validatePDFStructure() {
+            updateProgress(0, 'Validating PDF structure...');
+            
+            const expectedStructure = [
+                'Cover Page dengan title dan info assessment',
+                'Main Results Page dengan screenshot',
+                'RIASEC Detail Page dengan bar charts',
+                'OCEAN Detail Page dengan trait explanations', 
+                'VIA Character Strengths Page dengan top 10 list',
+                'Persona Profile Page dengan career recommendations',
+                'Footer dengan page numbers di setiap halaman'
+            ];
+            
+            updateProgress(50, 'Checking PDF content requirements...');
+            
+            setTimeout(() => {
+                updateProgress(100, 'PDF structure validation completed');
+                
+                showResult('validation-result', 
+                    `<h4>📋 Expected PDF Structure</h4>
+                    <div><strong>Total Expected Pages:</strong> 6 pages</div>
+                    <div><strong>PDF Structure:</strong></div>
+                    <ul>${expectedStructure.map(item => `<li>${item}</li>`).join('')}</ul>
+                    <div><strong>Technical Requirements:</strong></div>
+                    <div class="code">
+                    • Format: A4 Portrait<br>
+                    • Margin: 10mm<br>
+                    • Quality: 95%<br>
+                    • Scale: 1.2x<br>
+                    • File Type: application/pdf<br>
+                    • Expected Size: 200-700 KB
+                    </div>`, 
+                    'info');
+            }, 1000);
+        }
+
+        function clearAllMockData() {
+            const keys = Object.keys(localStorage).filter(key => key.startsWith('assessment-result-'));
+            keys.forEach(key => localStorage.removeItem(key));
+            
+            showResult('mock-test-result', 
+                `<h4>🗑️ Mock Data Cleared</h4>
+                <div>Removed ${keys.length} assessment results from localStorage</div>`, 
+                'warning');
+        }
+
+        function viewAllMockData() {
+            const keys = Object.keys(localStorage).filter(key => key.startsWith('assessment-result-'));
+            
+            if (keys.length === 0) {
+                showResult('mock-management-result', 
+                    '<h4>📭 No Mock Data Found</h4><div>No assessment results found in localStorage</div>', 
+                    'info');
+                return;
+            }
+
+            let results = '<h4>📊 All Mock Data</h4>';
+            keys.forEach(key => {
+                try {
+                    const data = localStorage.getItem(key);
+                    const parsed = JSON.parse(data);
+                    results += `<div><strong>${key}:</strong> ${parsed.persona_profile?.title || 'Unknown'} (${new Date(parsed.createdAt).toLocaleDateString()})</div>`;
+                } catch (e) {
+                    results += `<div><strong>${key}:</strong> Invalid data</div>`;
+                }
+            });
+
+            showResult('mock-management-result', results, 'info');
+        }
+
+        // Initialize
+        updateStats();
+    </script>
+</body>
+</html>

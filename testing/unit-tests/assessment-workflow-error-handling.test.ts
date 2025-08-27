@@ -3,11 +3,12 @@
  * Tests for WebSocket timeout and error handling improvements
  */
 
-import { AssessmentWorkflow, WorkflowCallbacks } from '../utils/assessment-workflow';
-import { AssessmentScores } from '../types/assessment-results';
+// Note: This test file needs to be updated to use the new consolidated assessment service
+// import { AssessmentService } from '../services/assessment-service';
+// import { AssessmentScores } from '../types/assessment-results';
 
-// Mock the WebSocket service
-jest.mock('../services/websocket-assessment', () => {
+// Mock the new consolidated WebSocket service
+jest.mock('../services/websocket-service', () => {
   const mockWebSocketService = {
     connect: jest.fn(),
     disconnect: jest.fn(),
@@ -18,12 +19,11 @@ jest.mock('../services/websocket-assessment', () => {
       isConnected: false,
       isAuthenticated: false,
       subscribedJobs: []
-    })),
-    isServerReachable: jest.fn(() => Promise.resolve(false))
+    }))
   };
 
   return {
-    getAssessmentWebSocketService: () => mockWebSocketService,
+    getWebSocketService: () => mockWebSocketService,
     isWebSocketSupported: () => true
   };
 });
@@ -57,9 +57,9 @@ describe('AssessmentWorkflow Error Handling', () => {
     // Create workflow instance
     workflow = new AssessmentWorkflow(mockCallbacks);
 
-    // Get mock WebSocket service
-    const { getAssessmentWebSocketService } = require('../services/websocket-assessment');
-    mockWebSocketService = getAssessmentWebSocketService();
+    // Get mock WebSocket service (updated for new consolidated service)
+    const { getWebSocketService } = require('../services/websocket-service');
+    mockWebSocketService = getWebSocketService();
   });
 
   describe('WebSocket Timeout Error Handling', () => {

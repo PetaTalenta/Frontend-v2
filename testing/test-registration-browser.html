@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registration Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .response {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Registration Test</h1>
+        <p>Test the registration functionality with different scenarios</p>
+
+        <div class="form-group">
+            <label for="email">Email:</label>
+            <input type="email" id="email" placeholder="test@example.com">
+        </div>
+
+        <div class="form-group">
+            <label for="password">Password:</label>
+            <input type="password" id="password" placeholder="password123">
+        </div>
+
+        <button onclick="testRegistration()">🚀 Test Registration</button>
+        <button onclick="generateRandomEmail()">🎲 Generate Random Email</button>
+        <button onclick="clearResponse()">🧹 Clear Response</button>
+
+        <div id="response"></div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:3000';
+
+        function generateRandomEmail() {
+            const timestamp = Date.now();
+            const randomEmail = `test${timestamp}@example.com`;
+            document.getElementById('email').value = randomEmail;
+            document.getElementById('password').value = 'password123';
+        }
+
+        function clearResponse() {
+            document.getElementById('response').innerHTML = '';
+        }
+
+        function showResponse(data, isError = false) {
+            const responseDiv = document.getElementById('response');
+            responseDiv.className = `response ${isError ? 'error' : 'success'}`;
+            responseDiv.textContent = JSON.stringify(data, null, 2);
+        }
+
+        function showInfo(message) {
+            const responseDiv = document.getElementById('response');
+            responseDiv.className = 'response info';
+            responseDiv.textContent = message;
+        }
+
+        async function testRegistration() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            if (!email || !password) {
+                showResponse({ error: 'Please fill in both email and password' }, true);
+                return;
+            }
+
+            showInfo('Testing registration...');
+
+            try {
+                console.log('Testing registration with:', { email, password: '***' });
+
+                const response = await fetch(`${API_BASE_URL}/api/proxy/auth/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: email,
+                        password: password
+                    }),
+                });
+
+                const data = await response.json();
+
+                console.log('Registration response:', {
+                    status: response.status,
+                    data: data
+                });
+
+                if (response.ok && data.success) {
+                    showResponse({
+                        status: response.status,
+                        success: true,
+                        message: 'Registration successful!',
+                        user: data.data?.user,
+                        hasToken: !!data.data?.token
+                    });
+                } else {
+                    showResponse({
+                        status: response.status,
+                        success: false,
+                        error: data.error || data.message || 'Registration failed',
+                        fullResponse: data
+                    }, true);
+                }
+
+            } catch (error) {
+                console.error('Registration error:', error);
+                showResponse({
+                    error: 'Network error: ' + error.message,
+                    details: error
+                }, true);
+            }
+        }
+
+        // Auto-generate random email on page load
+        window.onload = function() {
+            generateRandomEmail();
+        };
+    </script>
+</body>
+</html>

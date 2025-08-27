@@ -453,19 +453,25 @@ function DashboardContent() {
 
             {/* Right Sidebar */}
             <div className="dashboard-sidebar">
-              <VIAISCard
-                viaScores={viaScores}
-              />
+              {/* VIAIS and Ocean cards side by side on mobile */}
+              <div className="dashboard-sidebar-mobile-grid">
+                <VIAISCard
+                  viaScores={viaScores}
+                />
 
-              <OceanCard
-                oceanScores={oceanScores}
-              />
+                <OceanCard
+                  oceanScores={oceanScores}
+                />
+              </div>
 
-              <ProgressCard
-                title="RIASEC"
-                description="Ketahui di mana Anda dapat tumbuh dan berkontribusi paling banyak."
-                data={progressData}
-              />
+              {/* RIASEC card full width */}
+              <div className="dashboard-sidebar-mobile-full">
+                <ProgressCard
+                  title="RIASEC"
+                  description="Ketahui di mana Anda dapat tumbuh dan berkontribusi paling banyak."
+                  data={progressData}
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -505,7 +511,7 @@ function DashboardContent() {
                 Start Assessment
               </button>
               <button
-                onClick={() => window.location.href = '/results'}
+                onClick={() => window.location.href = '/my-results'}
                 className="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700"
               >
                 View Results

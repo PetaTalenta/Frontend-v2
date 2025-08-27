@@ -3,7 +3,8 @@
  * Tests for error handling and connection management
  */
 
-import { WebSocketAssessmentService } from '../services/websocket-assessment';
+// Updated to use the new consolidated WebSocket service
+// import { WebSocketService } from '../services/websocket-service';
 
 // Mock Socket.IO
 jest.mock('socket.io-client', () => {

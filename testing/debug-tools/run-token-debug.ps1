@@ -165,9 +165,9 @@ function Test-ProjectStructure {
     Write-Step "Checking Project Structure"
     
     $files = @(
-        "app/debug-token-balance/page.tsx",
-        "utils/debug-token-balance.ts",
-        "utils/token-balance-fixes.ts",
+        "src/app/debug-token-balance/page.tsx",
+        "src/utils/debug-token-balance.ts",
+        "src/utils/token-balance-fixes.ts",
         "scripts/debug-token-balance.js",
         "docs/TOKEN_BALANCE_TROUBLESHOOTING.md"
     )

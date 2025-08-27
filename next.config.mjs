@@ -59,8 +59,8 @@ const nextConfig = {
       '@radix-ui/react-tabs',
       '@radix-ui/react-toast',
       '@radix-ui/react-tooltip',
-      'lucide-react',
-      'recharts'
+      'lucide-react'
+      // Removed 'recharts' from optimizePackageImports to prevent dynamic import issues
     ],
   },
 
@@ -161,6 +161,68 @@ const nextConfig = {
         ],
       },
     ];
+  },
+
+  // Webpack configuration for better module loading and error prevention
+  webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {
+    // Handle recharts and chart libraries better
+    config.module.rules.push({
+      test: /[\\/]node_modules[\\/]recharts[\\/]/,
+      sideEffects: false,
+    });
+
+    // Add fallbacks for Node.js modules
+    config.resolve.fallback = {
+      ...config.resolve.fallback,
+      fs: false,
+      net: false,
+      tls: false,
+      crypto: false,
+    };
+
+    // Prevent webpack dynamic import issues
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      // Ensure consistent module resolution (using import.meta.resolve for ES modules)
+      'react': 'react',
+      'react-dom': 'react-dom',
+    };
+
+    // Improve module loading reliability
+    config.optimization = {
+      ...config.optimization,
+      moduleIds: 'deterministic',
+      chunkIds: 'deterministic',
+    };
+
+    // Optimize for production
+    if (!dev) {
+      config.optimization.usedExports = true;
+      config.optimization.sideEffects = false;
+
+      // Better error handling for dynamic imports
+      config.optimization.splitChunks = {
+        ...config.optimization.splitChunks,
+        cacheGroups: {
+          ...config.optimization.splitChunks?.cacheGroups,
+          recharts: {
+            test: /[\\/]node_modules[\\/]recharts[\\/]/,
+            name: 'recharts',
+            chunks: 'all',
+            priority: 10,
+          },
+        },
+      };
+    }
+
+    // Add error handling for module loading
+    config.plugins.push(
+      new webpack.DefinePlugin({
+        'process.env.WEBPACK_BUILD_ID': JSON.stringify(buildId),
+      })
+    );
+
+    return config;
   },
 
   // Proxy configuration - uncomment when external API is working
