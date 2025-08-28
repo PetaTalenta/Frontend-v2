@@ -17,8 +17,8 @@ const protectedRoutes = [
   '/stats-demo'
 ];
 
-// Define routes that don't require authentication (public + results)
-const publicRoutes = ['/auth', '/results'];
+// Define routes that don't require authentication (public + results + archive result)
+const publicRoutes = ['/auth', '/results', '/api/archive/result'];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -32,6 +32,20 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(myResultsUrl);
   }
   
+
+
+  // Allow unauthenticated access to /api/archive/result/{id}
+  if (/^\/api\/archive\/result\/[\w-]+$/.test(pathname)) {
+    console.log(`Middleware: Allowing unauthenticated access to ${pathname}`);
+    return NextResponse.next();
+  }
+
+  // Allow unauthenticated access to /results/{id}
+  if (/^\/results\/[\w-]+$/.test(pathname)) {
+    console.log(`Middleware: Allowing unauthenticated access to ${pathname}`);
+    return NextResponse.next();
+  }
+
   // Check if the current path is a protected route
   const isProtectedRoute = protectedRoutes.some(route => 
     pathname.startsWith(route)

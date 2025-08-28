@@ -12,28 +12,15 @@ export async function GET(
     const { id } = await params;
     console.log(`Archive Result By ID Proxy: Fetching result for ID: ${id}`);
     
-    // Get authorization header
-    const authHeader = request.headers.get('authorization');
-    
-    if (!authHeader) {
-      console.log('Archive Result By ID Proxy: No authorization header found');
-      return NextResponse.json(
-        { success: false, message: 'Authorization header required' },
-        { status: 401 }
-      );
-    }
-
-    console.log('Archive Result By ID Proxy: Authorization header present, forwarding to real API...');
 
     // Build target URL
     const targetUrl = `${ARCHIVE_API_BASE_URL}/api/archive/results/${id}`;
     console.log('Archive Result By ID Proxy: Target URL:', targetUrl);
 
-    // Forward request to real API
+    // Forward request to real API (no auth header required)
     const response = await fetch(targetUrl, {
       method: 'GET',
       headers: {
-        'Authorization': authHeader,
         'Content-Type': 'application/json',
       },
     });

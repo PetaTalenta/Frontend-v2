@@ -309,21 +309,22 @@ export async function getAssessmentResultFromArchiveAPI(resultId: string, maxRet
   let attempt = 1;
   while (true) {
     try {
+
       // Get auth token
       const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-      if (!token) {
-        throw new Error('Authentication token not found');
-      }
 
       console.log(`getAssessmentResultFromArchiveAPI: Attempt ${attempt} (UUID validated)`);
+
+      // Build headers, only add Authorization if token exists
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
 
       // Call the proxy API endpoint
       const response = await fetch(`/api/proxy/archive/results/${resultId}`, {
         method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+        headers,
       });
 
       if (!response.ok) {
