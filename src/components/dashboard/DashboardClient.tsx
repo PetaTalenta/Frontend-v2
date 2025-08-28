@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { Header } from './header';
+import Header from './header';
 import { StatsCard } from './stats-card';
 import { AssessmentTable } from './assessment-table';
 import { VIAISCard } from './viais-card';
@@ -176,7 +176,6 @@ export default function DashboardClient({ staticData }: DashboardClientProps) {
       <div className="dashboard-full-height">
         <div className="dashboard-container">
           <Header 
-            user={user} 
             onRefresh={refreshDashboardData}
             isRefreshing={isRefreshing}
           />
@@ -248,7 +247,6 @@ export default function DashboardClient({ staticData }: DashboardClientProps) {
     <div className="dashboard-full-height">
       <div className="dashboard-container">
         <Header 
-          user={user} 
           onRefresh={refreshDashboardData}
           isRefreshing={isRefreshing}
         />

@@ -265,22 +265,22 @@
   @apply hidden;
 }
 
-@media (min-width: 641px) {
-  .mobile-only {
-    @apply hidden;
-  }
-  
-  .tablet-up {
-    @apply block;
+@media (max-width: 480px) {
+  .dashboard-stats-grid {
+    gap: 0.5rem !important;
+    grid-template-columns: repeat(2, 1fr) !important;
   }
 }
 
-@media (min-width: 1024px) {
-  .desktop-only {
-    @apply block;
+/* Small phones - balanced space saving */
+@media (min-width: 361px) and (max-width: 480px) {
+  .dashboard-responsive-container {
+    padding-left: 0.75rem !important;  /* 12px */
+    padding-right: 0.75rem !important; /* 12px */
+    padding-top: 1.25rem !important;   /* 20px */
+    padding-bottom: 0.75rem !important; /* 12px */
   }
 }
-
 /* Mobile spacing utilities */
 .mobile-space-y-2 {
   @apply space-y-2;

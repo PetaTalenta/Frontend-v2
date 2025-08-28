@@ -1,3 +1,20 @@
+/* Avatar mobile/desktop visibility */
+.dashboard-header__avatar-mobile-wrapper {
+  display: none;
+}
+.dashboard-header__right {
+  display: flex;
+}
+@media (max-width: 640px) {
+  .dashboard-header__avatar-mobile-wrapper {
+    display: inline-flex !important;
+    align-items: center;
+    margin-left: 0.5rem;
+  }
+  .dashboard-header__right {
+    display: none !important;
+  }
+}
 @media (max-width: 640px) {
   .dashboard-header__logo-container {
     display: none !important;

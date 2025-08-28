@@ -97,106 +97,34 @@ function DashboardContent() {
   // Load user data function with better error handling
   const loadUserData = useCallback(async () => {
     if (!user) {
-      console.log('Dashboard: No user found, skipping data load');
       setIsLoading(false);
       return;
     }
-
-    console.log('Dashboard: Loading data for user:', user.id);
     setIsLoading(true);
     setError(null);
-
     try {
-      // OPTIMIZED: Get localStorage data synchronously first
-      let localHistory = [];
-      let localProgress = {};
-      try {
-        const historyRaw = localStorage.getItem('assessment-history');
-        localHistory = historyRaw ? JSON.parse(historyRaw) : [];
-        console.log('Dashboard: assessment-history from localStorage:', localHistory);
-      } catch (err) {
-        console.error('Dashboard: Error parsing assessment-history from localStorage:', err);
-        localHistory = [];
-      }
-      try {
-        const progressRaw = localStorage.getItem('assessment-progress');
-        localProgress = progressRaw ? JSON.parse(progressRaw) : {};
-        console.log('Dashboard: assessment-progress from localStorage:', localProgress);
-      } catch (err) {
-        console.error('Dashboard: Error parsing assessment-progress from localStorage:', err);
-        localProgress = {};
-      }
-
-      // OPTIMIZED: Calculate user statistics and fetch latest assessment in parallel
-      console.log('Dashboard: Starting parallel data loading...');
+      // Hanya ambil data dari API
       const [userStats, latestAssessment] = await Promise.all([
         calculateUserStats(user.id),
-        getLatestAssessmentResult(user.id).catch(error => {
-          console.error('Dashboard: Error fetching latest assessment:', error);
-          return null; // Return null on error to continue with other operations
-        })
+        getLatestAssessmentResult(user.id).catch(() => null)
       ]);
-      console.log('Dashboard: Parallel data loading completed');
-
-      // OPTIMIZED: Format data for dashboard components in parallel
-      console.log('Dashboard: Formatting data for dashboard...');
       const [formattedStats, formattedAssessments, formattedProgress] = await Promise.all([
         formatStatsForDashboard(userStats),
         formatAssessmentHistory(userStats),
         calculateUserProgress(userStats)
       ]);
-
-      // OPTIMIZED: Set all data at once to reduce re-renders
       setStatsData(formattedStats);
-
-      // Fallback if API history is empty
-      if (!formattedAssessments || formattedAssessments.length === 0) {
-        console.warn('Dashboard: No assessment history found, using localStorage fallback');
-        setAssessmentData(localHistory);
-      } else {
-        setAssessmentData(formattedAssessments);
-      }
-
-      // Fallback if formattedProgress is empty
-      if (!formattedProgress || Object.keys(formattedProgress).length === 0) {
-        console.warn('Dashboard: No progress data found, using localStorage fallback');
-        setProgressData(Array.isArray(localProgress) ? localProgress : []);
-      } else {
-        setProgressData(formattedProgress);
-      }
-
-      // OPTIMIZED: Process latest assessment data (already fetched in parallel)
+      setAssessmentData(formattedAssessments);
+      setProgressData(formattedProgress);
       if (latestAssessment && latestAssessment.assessment_data) {
-        if (latestAssessment.assessment_data.ocean) {
-          console.log('Dashboard: Found Ocean scores from latest assessment:', latestAssessment.assessment_data.ocean);
-          setOceanScores(latestAssessment.assessment_data.ocean);
-        } else {
-          console.log('Dashboard: No Ocean scores found in latest assessment, using defaults');
-          setOceanScores(undefined);
-        }
-
-        if (latestAssessment.assessment_data.viaIs) {
-          console.log('Dashboard: Found VIAIS scores from latest assessment:', latestAssessment.assessment_data.viaIs);
-          setViaScores(latestAssessment.assessment_data.viaIs);
-        } else {
-          console.log('Dashboard: No VIAIS scores found in latest assessment, using defaults');
-          setViaScores(undefined);
-        }
+        setOceanScores(latestAssessment.assessment_data.ocean || undefined);
+        setViaScores(latestAssessment.assessment_data.viaIs || undefined);
       } else {
-        console.log('Dashboard: No assessment data found, using defaults');
         setOceanScores(undefined);
         setViaScores(undefined);
       }
-
-      console.log('Dashboard: Data formatted successfully');
-      console.log('Stats:', formattedStats);
-      console.log('Assessments:', formattedAssessments);
-      console.log('Progress:', formattedProgress);
     } catch (error) {
-      console.error('Dashboard: Error loading user data:', error);
       setError(error instanceof Error ? error.message : 'Failed to load dashboard data');
-
-      // Set default data on error
       setStatsData([
         { id: "analysis", value: 0, label: "Total Analysis", color: "#dbeafe", icon: "MagnifyingGlass.svg" },
         { id: "completed", value: 0, label: "Completed", color: "#dbfce7", icon: "Check.svg" },
@@ -212,8 +140,8 @@ function DashboardContent() {
         { label: "Leadership", value: 0 },
         { label: "Analytical", value: 0 },
       ]);
-      setOceanScores(undefined); // Will use defaults in WorldMapCard
-      setViaScores(undefined); // Will use defaults in WorldMapCard
+      setOceanScores(undefined);
+      setViaScores(undefined);
     } finally {
       setIsLoading(false);
     }

@@ -1,8 +1,68 @@
+@media (max-width: 512px) {
+  .space-x-8 > :not([hidden]) ~ :not([hidden]) {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+}
 /* Stats Card Component Styles */
 .stats-card {
   @apply rounded-2xl border text-card-foreground shadow-sm bg-white;
   border-color: #eaecf0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  overflow: hidden;
+  box-sizing: border-box;
+  max-width: 100%;
+  padding: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
 }
+
+.stats-card > * {
+  min-width: 0;
+  flex-shrink: 1;
+  box-sizing: border-box;
+  max-width: 100%;
+  margin-left: 0 !important;
+}
+
+@media (max-width: 640px) {
+  .stats-card {
+    gap: 0.5rem;
+    /* flex-direction: column; Sudah default di root */
+    /* align-items: stretch; Sudah default di root */
+    padding: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+  .stats-card > * {
+    width: 100%;
+    min-width: 0;
+    flex-shrink: 1;
+    max-width: 100%;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+}
+@media (min-width: 641px) {
+  .stats-card {
+    padding: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+}
+
+@media (min-width: 641px) and (max-width: 758px) {
+  .stats-card {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+}
+
 
 .stats-card__content {
   /* Enhanced mobile-first padding */
@@ -107,7 +167,8 @@
   }
 
   .stats-card__container {
-    @apply flex-col items-center text-center gap-2;
+    @apply flex items-center justify-between gap-2;
+  flex-direction: row !important;
   }
 
   .stats-card__value {
@@ -132,6 +193,7 @@
 @media (min-width: 641px) and (max-width: 1023px) {
   .stats-card {
     @apply min-h-[110px];
+    padding: 0 !important;
   }
 
   .stats-card__content {
@@ -153,17 +215,20 @@
   .stats-card__icon {
     @apply w-5 h-5;
   }
+  /* Hapus style .stats-card__container di sini agar selalu sama dengan mobile */
 }
 
 /* Desktop: Preserve original sizes */
 @media (min-width: 1024px) {
+  .stats-card {
+    padding: 0 !important;
+  }
+
   .stats-card__content {
     @apply p-6;
   }
 
-  .stats-card__container {
-    @apply flex items-center justify-between;
-  }
+  /* Hapus style .stats-card__container di sini agar selalu sama dengan mobile */
 
   .stats-card__value {
     @apply text-3xl font-bold;

@@ -392,7 +392,7 @@ export default function AssessmentLoadingPage({
                 </div>
 
                 {index < getProgressSteps().length - 1 && (
-                  <div className={`w-16 h-px mx-4 ${
+                  <div className={`w-10 h-px mx-2 ${
                     step.status === 'completed' ? 'bg-gray-800' : 'bg-gray-200'
                   }`} />
                 )}
@@ -455,7 +455,32 @@ export default function AssessmentLoadingPage({
         <div className="text-center">
           <Button
             variant="outline"
-            onClick={onCancel}
+            onClick={() => {
+              // Simpan ke riwayat jika assessment belum selesai
+              try {
+                const historyRaw = localStorage.getItem('assessment-history');
+                const history = historyRaw ? JSON.parse(historyRaw) : [];
+                // Cek jika assessment ini sudah ada di riwayat dengan status Selesai
+                const exists = history.some((item: any) => item.status === 'Belum Selesai' && item.jobId === workflowState.jobId);
+                if (!exists && workflowState.jobId) {
+                  history.unshift({
+                    id: Date.now(),
+                    nama: 'Assessment Sedang Diproses',
+                    tipe: 'Personality Assessment',
+                    tanggal: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
+                    status: 'Belum Selesai',
+                    resultId: null,
+                    jobId: workflowState.jobId
+                  });
+                  // Batasi maksimal 50 item
+                  if (history.length > 50) history.splice(50);
+                  localStorage.setItem('assessment-history', JSON.stringify(history));
+                }
+              } catch (e) {
+                // ignore
+              }
+              window.location.href = '/dashboard';
+            }}
             className="bg-gray-800 text-white hover:bg-gray-700 border-gray-800 px-6 py-3"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
