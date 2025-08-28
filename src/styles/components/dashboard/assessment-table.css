@@ -135,7 +135,9 @@
 }
 
 .assessment-table__badge--success {
-  @apply bg-green-100 text-green-800 border-green-200;
+  background-color: #d1fadf !important; /* green-100 */
+  color: #027a48 !important; /* green-800 */
+  border: 1px solid #a6f4c5 !important; /* green-200 */
 }
 
 .assessment-table__badge--warning {

@@ -71,8 +71,7 @@ const nextConfig = {
     } : false,
   },
 
-  // Output configuration for better caching - disable for development
-  distDir: 'build',
+
 
   // Headers for better caching and CDN optimization
   async headers() {

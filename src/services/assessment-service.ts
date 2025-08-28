@@ -28,7 +28,7 @@ const CONFIG = {
     POLLING_INTERVAL: 3000, // 3 seconds between polls (per documentation)
     WEBSOCKET_TIMEOUT: 20000, // 20 seconds for WebSocket operations (per documentation)
     WEBSOCKET_FALLBACK: 45000, // 45 seconds before falling back to polling
-    INITIAL_RESULT_DELAY: 2000 // Delay before first result fetch after completion (ms)
+  INITIAL_RESULT_DELAY: 10000 // Delay before first result fetch after completion (ms)
   },
   RETRY: {
     MAX_ATTEMPTS: 5,        // Increased for better reliability

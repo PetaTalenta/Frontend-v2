@@ -297,7 +297,7 @@ export async function deleteAssessmentResult(resultId: string): Promise<void> {
  * This replaces localStorage-based retrieval for real-time data
  */
 export async function getAssessmentResultFromArchiveAPI(resultId: string, maxRetries: number = 3): Promise<AssessmentResult> {
-  console.log(`getAssessmentResultFromArchiveAPI: Fetching result ${resultId} from Archive API (max retries: ${maxRetries})`);
+  console.log(`getAssessmentResultFromArchiveAPI: Fetching result ${resultId} from Archive API (infinite retry mode)`);
 
   // Validate UUID format before making API call
   if (!isValidUUID(resultId)) {
@@ -306,7 +306,8 @@ export async function getAssessmentResultFromArchiveAPI(resultId: string, maxRet
     throw new Error(errorMessage);
   }
 
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+  let attempt = 1;
+  while (true) {
     try {
       // Get auth token
       const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
@@ -314,7 +315,7 @@ export async function getAssessmentResultFromArchiveAPI(resultId: string, maxRet
         throw new Error('Authentication token not found');
       }
 
-      console.log(`getAssessmentResultFromArchiveAPI: Attempt ${attempt}/${maxRetries} for result ${resultId} (UUID validated)`);
+      console.log(`getAssessmentResultFromArchiveAPI: Attempt ${attempt} (UUID validated)`);
 
       // Call the proxy API endpoint
       const response = await fetch(`/api/proxy/archive/results/${resultId}`, {
@@ -329,13 +330,12 @@ export async function getAssessmentResultFromArchiveAPI(resultId: string, maxRet
         const errorText = await response.text();
         console.error(`getAssessmentResultFromArchiveAPI: API request failed with status ${response.status}:`, errorText);
 
-        // If it's a 404 and we have retries left, wait and try again
-        if (response.status === 404 && attempt < maxRetries) {
-          console.log(`getAssessmentResultFromArchiveAPI: Result not found, waiting 3 seconds before retry ${attempt + 1}/${maxRetries}`);
-          await new Promise(resolve => setTimeout(resolve, 3000));
-          continue;
+        // Jika 404, langsung throw error user-friendly, JANGAN retry
+        if (response.status === 404) {
+          throw new Error('Hasil assessment tidak ditemukan. Data mungkin sudah dihapus atau belum tersedia.');
         }
 
+        // Error lain, lempar error untuk di-retry
         throw new Error(`API request failed with status ${response.status}: ${errorText}`);
       }
 
@@ -363,26 +363,23 @@ export async function getAssessmentResultFromArchiveAPI(resultId: string, maxRet
       return result;
 
     } catch (error) {
-      console.error(`getAssessmentResultFromArchiveAPI: Attempt ${attempt}/${maxRetries} failed for result ${resultId}:`, error);
+      console.error(`getAssessmentResultFromArchiveAPI: Attempt ${attempt} failed for result ${resultId}:`, error);
 
-      // If this was the last attempt, throw the error
-      if (attempt === maxRetries) {
+      // Auth errors shouldn't di-retry
+      if (error instanceof Error && error.message.includes('Authentication token not found')) {
+        throw error;
+      }
+      // Jika error 404, jangan retry, lempar error ke atas
+      if (error instanceof Error && error.message.includes('tidak ditemukan')) {
         throw error;
       }
 
-      // Otherwise, wait before next retry (except for auth errors)
-      if (error instanceof Error && !error.message.includes('Authentication token not found')) {
-        console.log(`getAssessmentResultFromArchiveAPI: Waiting 2 seconds before retry ${attempt + 1}/${maxRetries}`);
-        await new Promise(resolve => setTimeout(resolve, 2000));
-      } else {
-        // Auth errors shouldn't be retried
-        throw error;
-      }
+      // Error lain, tunggu 10 detik lalu retry
+      console.log(`getAssessmentResultFromArchiveAPI: Waiting 10 seconds before retry (attempt ${attempt + 1})`);
+      await new Promise(resolve => setTimeout(resolve, 10000));
+      attempt++;
     }
   }
-
-  // This should never be reached, but just in case
-  throw new Error(`Failed to fetch result ${resultId} after ${maxRetries} attempts`);
 }
 
 /**
