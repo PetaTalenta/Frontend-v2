@@ -130,87 +130,88 @@ export function AssessmentTable({ data, onRefresh }: AssessmentTableProps) {
       </CardHeader>
       <CardContent className="assessment-table__content">
         <div className="assessment-table__table-container">
-          <Table>
-          <TableHeader>
-            <TableRow className="assessment-table__table-row">
-              <TableHead className="assessment-table__table-head">No</TableHead>
-              <TableHead className="assessment-table__table-head">Nama</TableHead>
-              <TableHead className="assessment-table__table-head">Tipe Ujian</TableHead>
-              <TableHead className="assessment-table__table-head">Tanggal Ujian</TableHead>
-              <TableHead className="assessment-table__table-head">Status</TableHead>
-              <TableHead className="assessment-table__table-head">Action</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {currentData.map((item, index) => (
-              <TableRow key={item.id} className="assessment-table__table-row">
-                <TableCell className="assessment-table__table-cell">{startIndex + index + 1}</TableCell>
-                <TableCell className="assessment-table__table-cell">{item.nama}</TableCell>
-                <TableCell>
-                  <Badge variant="secondary" className="assessment-table__badge">
-                    {item.tipe}
-                  </Badge>
-                </TableCell>
-                <TableCell className="assessment-table__table-cell--secondary">{item.tanggal}</TableCell>
-                <TableCell>
-                  <Badge
-                    variant="secondary"
-                    className={`assessment-table__badge ${
-                      item.status === "Selesai"
-                        ? "assessment-table__badge--success"
-                        : "assessment-table__badge--warning"
-                    }`}
-                  >
-                    {item.status}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <div className="assessment-table__action-buttons">
-                    <Button variant="ghost" size="icon" className="assessment-table__action-button" onClick={() => handleView(item.id)}>
-                      <ExternalLink className="assessment-table__action-icon" />
-                    </Button>
-
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="assessment-table__action-button"
-                          disabled={isDeleting === item.resultId}
-                        >
-                          <Trash2 className="assessment-table__action-icon" />
+          <div className="dashboard-table-scroll">
+            <Table>
+              <TableHeader>
+                <TableRow className="assessment-table__table-row">
+                  <TableHead className="assessment-table__table-head">No</TableHead>
+                  <TableHead className="assessment-table__table-head">Nama</TableHead>
+                  <TableHead className="assessment-table__table-head text-center">Tipe Ujian</TableHead>
+                  <TableHead className="assessment-table__table-head">Tanggal Ujian</TableHead>
+                  <TableHead className="assessment-table__table-head">Status</TableHead>
+                  <TableHead className="assessment-table__table-head">Action</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {currentData.map((item, index) => (
+                  <TableRow key={item.id} className="assessment-table__table-row">
+                    <TableCell className="assessment-table__table-cell">{startIndex + index + 1}</TableCell>
+                    <TableCell className="assessment-table__table-cell">{item.nama}</TableCell>
+                    <TableCell className="text-center">
+                      <Badge variant="secondary" className="assessment-table__badge" style={{ display: 'inline-block', minWidth: 100 }}>
+                        {item.tipe}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="assessment-table__table-cell--secondary">{item.tanggal}</TableCell>
+                    <TableCell>
+                      <Badge
+                        variant="secondary"
+                        className={`assessment-table__badge ${
+                          item.status === "Selesai"
+                            ? "assessment-table__badge--success"
+                            : "assessment-table__badge--warning"
+                        }`}
+                      >
+                        {item.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="assessment-table__action-buttons">
+                        <Button variant="ghost" size="icon" className="assessment-table__action-button" onClick={() => handleView(item.id)}>
+                          <ExternalLink className="assessment-table__action-icon" />
                         </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Konfirmasi Hapus</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Apakah Anda yakin ingin menghapus assessment "{item.nama}"?
-                            Tindakan ini tidak dapat dibatalkan.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel disabled={isDeleting === item.resultId}>
-                            Batal
-                          </AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => handleDelete(item.id)}
-                            className="bg-red-600 hover:bg-red-700"
-                            disabled={isDeleting === item.resultId}
-                          >
-                            {isDeleting === item.resultId ? 'Menghapus...' : 'Ya, Hapus'}
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-          </Table>
-        </div>
 
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="assessment-table__action-button"
+                              disabled={isDeleting === item.resultId}
+                            >
+                              <Trash2 className="assessment-table__action-icon" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Konfirmasi Hapus</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Apakah Anda yakin ingin menghapus assessment "{item.nama}"?
+                                Tindakan ini tidak dapat dibatalkan.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel disabled={isDeleting === item.resultId}>
+                                Batal
+                              </AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleDelete(item.id)}
+                                className="bg-red-600 hover:bg-red-700"
+                                disabled={isDeleting === item.resultId}
+                              >
+                                {isDeleting === item.resultId ? 'Menghapus...' : 'Ya, Hapus'}
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
         {/* Pagination */}
         <div className="assessment-table__pagination">
           <div className="assessment-table__pagination-left">
@@ -227,7 +228,6 @@ export function AssessmentTable({ data, onRefresh }: AssessmentTableProps) {
             </Select>
             <span className="assessment-table__pagination-text">Data</span>
           </div>
-
           <div className="assessment-table__pagination-right">
             {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
               <Button

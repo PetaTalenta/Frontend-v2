@@ -1,3 +1,8 @@
+@media (max-width: 640px) {
+  .dashboard-header__logo-container {
+    display: none !important;
+  }
+}
 /* Dashboard Header Component Styles */
 .dashboard-header {
   @apply flex items-start justify-between w-full;
@@ -168,40 +173,44 @@
 /* Responsive adjustments for header */
 @media (max-width: 640px) {
   .dashboard-header {
-    @apply flex-col items-start gap-3 w-full;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    width: 100%;
+    margin-bottom: 0.5rem;
   }
-
   .dashboard-header__left {
-    @apply gap-3 w-full;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.75rem;
+    width: auto;
   }
-
   .dashboard-header__logo-container {
-    @apply w-12 h-12;
+    display: none !important;
   }
-
-  .dashboard-header__logo {
-    @apply w-6 h-6;
-    color: white;
-  }
-
   .dashboard-header__text-container {
-    @apply flex-1;
+    flex: 1;
   }
-
   .dashboard-header__title {
-    @apply text-xl font-semibold;
+    font-size: 1.1rem;
+    font-weight: 600;
     color: #1e1e1e;
     margin: 0;
   }
-
   .dashboard-header__description {
-    @apply text-sm mt-1;
+    font-size: 0.85rem;
     color: #64707d;
     margin: 0;
   }
-
   .dashboard-header__right {
-    @apply w-full justify-end;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    width: auto;
+    margin-left: 0.5rem;
   }
 }
 

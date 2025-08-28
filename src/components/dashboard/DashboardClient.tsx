@@ -252,42 +252,46 @@ export default function DashboardClient({ staticData }: DashboardClientProps) {
           onRefresh={refreshDashboardData}
           isRefreshing={isRefreshing}
         />
-        
-        <div className="dashboard-main-grid">
-          {/* Main Content */}
-          <div className="space-y-6">
-            {/* Stats Cards */}
-            <div className="dashboard-stats-grid">
-              {statsData.map((stat) => (
-                <StatsCard key={stat.id} stat={stat} />
-              ))}
+          <div className="dashboard-main-grid">
+            {/* Main Content */}
+            <div
+              className="space-y-6 dashboard-mobile-card-spacing"
+              style={{ maxWidth: '100%', overflowX: 'hidden' }}
+            >
+              {/* Stats Cards */}
+              <div className="dashboard-stats-grid">
+                {statsData.map((stat) => (
+                  <StatsCard key={stat.id} stat={stat} />
+                ))}
+              </div>
+              {/* Assessment History */}
+              <div className="dashboard-table-scroll">
+                <AssessmentTable
+                  data={assessmentData}
+                  onRefresh={refreshDashboardData}
+                />
+              </div>
             </div>
-
-            {/* Assessment History */}
-            <AssessmentTable
-              data={assessmentData}
-              onRefresh={refreshDashboardData}
-            />
+            {/* Right Sidebar */}
+            <div
+              className="dashboard-sidebar"
+              style={{ maxWidth: '100%', overflowX: 'hidden' }}
+            >
+              {/* VIAIS and Ocean cards stack vertically on mobile */}
+              <div className="dashboard-sidebar-mobile-grid dashboard-sidebar-mobile-stack">
+                <VIAISCard viaScores={viaScores} />
+                <OceanCard oceanScores={oceanScores} />
+              </div>
+              {/* RIASEC card full width */}
+              <div className="dashboard-sidebar-mobile-full">
+                <ProgressCard
+                  title="RIASEC"
+                  description="Ketahui di mana Anda dapat tumbuh dan berkontribusi paling banyak."
+                  data={progressData}
+                />
+              </div>
+            </div>
           </div>
-
-          {/* Right Sidebar */}
-          <div className="dashboard-sidebar">
-            {/* VIAIS and Ocean cards side by side on mobile */}
-            <div className="dashboard-sidebar-mobile-grid">
-              <VIAISCard viaScores={viaScores} />
-              <OceanCard oceanScores={oceanScores} />
-            </div>
-
-            {/* RIASEC card full width */}
-            <div className="dashboard-sidebar-mobile-full">
-              <ProgressCard
-                title="RIASEC"
-                description="Ketahui di mana Anda dapat tumbuh dan berkontribusi paling banyak."
-                data={progressData}
-              />
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );
