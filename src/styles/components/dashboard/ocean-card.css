@@ -131,7 +131,7 @@
 /* Desktop: Preserve original layout */
 @media (min-width: 1024px) {
   .ocean-card__content {
-    @apply flex flex-col space-y-1.5 p-6;
+    @apply flex flex-col space-y-1.5 p-4;
   }
 
   .ocean-card__title {

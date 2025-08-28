@@ -114,7 +114,7 @@ export function AssessmentTable({ data, onRefresh }: AssessmentTableProps) {
 
   return (
     <Card className="assessment-table">
-      <CardHeader className="assessment-table__header">
+      <CardHeader className="assessment-table__header sm:flex-row sm:items-center sm:justify-between space-y-0">
         <div className="assessment-table__header-text">
           <CardTitle className="assessment-table__title">Riwayat Asesmen</CardTitle>
           <p className="assessment-table__description">

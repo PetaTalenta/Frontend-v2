@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { GeistSans } from 'geist/font/sans'
 import { GeistMono } from 'geist/font/mono'
 import { Plus_Jakarta_Sans } from 'next/font/google'
@@ -28,8 +28,7 @@ export const metadata: Metadata = {
   description: 'AI-Driven Talent Mapping Assessment Platform',
   generator: 'By PetaTalenta',
   manifest: '/manifest.json',
-  themeColor: '#6475e9',
-  viewport: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no',
+
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
@@ -49,6 +48,15 @@ export const metadata: Metadata = {
       { url: '/icon-180x180.png', sizes: '180x180', type: 'image/png' },
     ],
   },
+}
+
+
+export const viewport: Viewport = {
+  themeColor: '#6475e9',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 }
 
 export default function RootLayout({

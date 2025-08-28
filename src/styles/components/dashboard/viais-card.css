@@ -1,5 +1,5 @@
 /* VIAIS Card Component Styles */
-.viais-card {
+.viais-card.viais-card {
   border-color: #eaecf0;
   background-color: #6475e9;
 }

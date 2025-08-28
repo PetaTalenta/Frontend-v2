@@ -72,7 +72,7 @@ const nextConfig = {
   },
 
   // Output configuration for better caching - disable for development
-  // output: 'standalone',
+  distDir: 'build',
 
   // Headers for better caching and CDN optimization
   async headers() {

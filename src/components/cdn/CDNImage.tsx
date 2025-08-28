@@ -4,10 +4,10 @@ import { useState, useEffect } from 'react';
 import Image, { ImageProps } from 'next/image';
 import { getCDNUrl, getOptimizedImageUrl, checkCDNHealth } from '../../config/cdn-config';
 
-interface CDNImageProps extends Omit<ImageProps, 'src'> {
+interface CDNImageProps extends Omit<ImageProps, 'src' | 'quality'> {
   src: string;
   fallbackSrc?: string;
-  quality?: 'high' | 'medium' | 'low' | 'thumbnail';
+  cdnQuality?: 'high' | 'medium' | 'low' | 'thumbnail';
   enableCDN?: boolean;
   onCDNError?: (error: Error) => void;
 }
@@ -15,7 +15,7 @@ interface CDNImageProps extends Omit<ImageProps, 'src'> {
 export default function CDNImage({
   src,
   fallbackSrc,
-  quality = 'medium',
+  cdnQuality = 'medium',
   enableCDN = true,
   onCDNError,
   ...props
@@ -38,14 +38,14 @@ export default function CDNImage({
       const optimizedUrl = getOptimizedImageUrl(src, {
         width: props.width as number,
         height: props.height as number,
-        quality,
+        quality: cdnQuality,
         format: 'webp'
       });
       setImageSrc(optimizedUrl);
     } else {
       setImageSrc(src);
     }
-  }, [src, enableCDN, cdnAvailable, quality, props.width, props.height]);
+  }, [src, enableCDN, cdnAvailable, cdnQuality, props.width, props.height]);
 
   const handleError = () => {
     setHasError(true);
@@ -147,7 +147,7 @@ export function CDNAvatar({
       alt={alt}
       width={size}
       height={size}
-      quality="medium"
+      cdnQuality="medium"
       className={`rounded-full ${className}`}
       fallbackSrc="/images/default-avatar.png"
       {...props}
@@ -183,7 +183,7 @@ export function CDNLogo({
       alt="PetaTalenta Logo"
       width={dimensions.width}
       height={dimensions.height}
-      quality="high"
+      cdnQuality="high"
       className={className}
       priority
       {...props}
