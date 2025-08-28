@@ -427,34 +427,36 @@ function DashboardContent() {
           autoHideDelay={5000}
         />
 
-        <div className="dashboard-responsive-container space-y-6">
+        <div className="dashboard-responsive-container space-y-6 mobile-space-y-2 px-2 sm:px-4 md:px-8">
           {/* Header */}
           <Header
             title={`Welcome, ${getUserDisplayName()}!`}
             description="Track your progress here, You almost reach your goal."
           />
 
-          <div className="dashboard-main-grid">
+          <div className="dashboard-main-grid grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6 mobile-gap-2">
             {/* Main Content */}
-            <div className="space-y-6">
+            <div className="space-y-6 mobile-space-y-2">
               {/* Stats Cards */}
-              <div className="dashboard-stats-grid">
+              <div className="dashboard-stats-grid grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-4 mobile-gap-2">
                 {statsData.map((stat) => (
                   <StatsCard key={stat.id} stat={stat} />
                 ))}
               </div>
 
               {/* Assessment History */}
-              <AssessmentTable
-                data={assessmentData}
-                onRefresh={refreshAssessmentData}
-              />
+              <div className="assessment-table__mobile-wrapper">
+                <AssessmentTable
+                  data={assessmentData}
+                  onRefresh={refreshAssessmentData}
+                />
+              </div>
             </div>
 
             {/* Right Sidebar */}
-            <div className="dashboard-sidebar">
+            <div className="dashboard-sidebar flex flex-col gap-4 mobile-gap-2">
               {/* VIAIS and Ocean cards side by side on mobile */}
-              <div className="dashboard-sidebar-mobile-grid">
+              <div className="dashboard-sidebar-mobile-grid grid grid-cols-2 gap-2 mobile-gap-2">
                 <VIAISCard
                   viaScores={viaScores}
                 />
@@ -465,7 +467,7 @@ function DashboardContent() {
               </div>
 
               {/* RIASEC card full width */}
-              <div className="dashboard-sidebar-mobile-full">
+              <div className="dashboard-sidebar-mobile-full mt-2">
                 <ProgressCard
                   title="RIASEC"
                   description="Ketahui di mana Anda dapat tumbuh dan berkontribusi paling banyak."

@@ -185,6 +185,7 @@ export interface AssessmentResult {
   status: 'queued' | 'processing' | 'completed' | 'failed';
   assessment_data: ApiAssessmentData;
   persona_profile: PersonaProfile;
+  is_public?: boolean; // Tambahan untuk status publikasi
 }
 
 // API Response Types based on Assessment Service documentation

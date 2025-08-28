@@ -169,21 +169,21 @@ export default function VisualSummary({ scores }: VisualSummaryProps) {
     const strokeDasharray = circumference;
     const strokeDashoffset = circumference - (percentage / 100) * circumference;
 
-    // Calculate rotation for each ring to create the spiral effect
-    const rotation = index * 30; // Rotate each ring by 30 degrees for better spacing
-
+    // Hilangkan spiralRotation agar concentric circle selalu terpusat dan proporsional
     return (
       <div
         className="absolute inset-0 flex items-center justify-center cursor-pointer"
+        style={{ zIndex: 100 - index }}
         onMouseEnter={() => setHoveredIndex(index)}
         onMouseLeave={() => setHoveredIndex(null)}
       >
         <svg
           width={size}
           height={size}
-          className="transform transition-all duration-300"
+          className="transition-all duration-300"
           style={{
-            transform: `rotate(${rotation - 90}deg) scale(${isHovered ? 1.05 : 1})`,
+            // Hapus rotasi spiral, hanya scale saat hover
+            transform: `rotate(-90deg) scale(${isHovered ? 1.05 : 1})`,
             filter: isHovered ? 'drop-shadow(0 4px 8px rgba(0,0,0,0.2))' : 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))'
           }}
         >
@@ -214,8 +214,6 @@ export default function VisualSummary({ scores }: VisualSummaryProps) {
             }}
           />
         </svg>
-
-
       </div>
     );
   };
@@ -244,17 +242,22 @@ export default function VisualSummary({ scores }: VisualSummaryProps) {
       </CardHeader>
 
       <CardContent className="space-y-6">
-        {/* Circular Progress Chart */}
-        <div className="flex items-center justify-between">
-          {/* Left side - Circular Chart */}
+        {/* Responsive: radial bar on top, grid below on mobile */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+          {/* Radial bar - responsive size and alignment */}
           <div
-            className="relative flex items-center justify-center transition-all duration-300"
+            className="relative flex items-center justify-center mx-auto sm:mx-0 transition-all duration-300"
             style={{
-              width: '300px',
-              height: '300px',
+              width: '280px', // diperbesar dari 220px
+              height: '280px',
+              maxWidth: '100%',
               filter: hoveredIndex !== null ? 'brightness(1.05)' : 'brightness(1)'
             }}
           >
+            <div
+              className="hidden sm:block absolute -inset-10" // diperbesar paddingnya
+              aria-hidden="true"
+            />
             {/* Background glow effect when hovering */}
             {hoveredIndex !== null && (
               <div
@@ -266,13 +269,13 @@ export default function VisualSummary({ scores }: VisualSummaryProps) {
               />
             )}
 
-            {/* Concentric circles */}
+            {/* Concentric circles - responsive size */}
             {sortedCompetencies.map((competency, index) => (
               <div
                 key={index}
                 className="absolute inset-0"
                 style={{
-                  zIndex: hoveredIndex === index ? 1000 : sortedCompetencies.length - index,
+                  zIndex: hoveredIndex === index ? 1000 : 100 - index,
                   opacity: hoveredIndex !== null && hoveredIndex !== index ? 0.6 : 1,
                   transition: 'opacity 0.3s ease'
                 }}
@@ -280,8 +283,10 @@ export default function VisualSummary({ scores }: VisualSummaryProps) {
                 <CircularProgress
                   percentage={competency.score}
                   color={competency.color}
-                  size={280 - index * 40}
-                  strokeWidth={20}
+                  size={
+                    200 - index * 30
+                  }
+                  strokeWidth={16}
                   index={index}
                   category={competency}
                   isHovered={hoveredIndex === index}
@@ -290,8 +295,8 @@ export default function VisualSummary({ scores }: VisualSummaryProps) {
             ))}
           </div>
 
-          {/* Right side - Legend */}
-          <div className="flex-1 ml-8 space-y-6">
+          {/* Kompetensi grid: 2x2 on mobile, vertical on desktop */}
+          <div className="w-full sm:w-auto grid grid-cols-2 sm:grid-cols-1 gap-3 sm:gap-6 mt-4 sm:mt-0">
             {sortedCompetencies.map((competency, index) => (
               <div
                 key={index}
