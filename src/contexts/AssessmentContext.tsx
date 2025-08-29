@@ -17,6 +17,7 @@ interface AssessmentContextType {
   setCurrentAssessmentIndex: (index: number) => void;
   setCurrentSectionIndex: (index: number) => void;
   setAnswer: (questionId: number, value: number) => void;
+  resetAnswers: () => void;
   toggleFlag: (questionId: number) => void;
   getFlaggedQuestions: () => number[];
   isFlagged: (questionId: number) => boolean;
@@ -137,6 +138,9 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
     setAnswers(prev => ({ ...prev, [questionId]: value }));
   };
 
+  // Reset all answers
+  const resetAnswers = () => setAnswers({});
+
   // Toggle flag for a question
   const toggleFlag = (questionId: number) => {
     setFlaggedQuestions(prev => {
@@ -245,6 +249,7 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
       setCurrentAssessmentIndex,
       setCurrentSectionIndex,
       setAnswer,
+      resetAnswers,
       toggleFlag,
       getFlaggedQuestions,
       isFlagged,

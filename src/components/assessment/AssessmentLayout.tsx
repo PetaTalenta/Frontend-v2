@@ -1,14 +1,33 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+// Reset state answers jika localStorage assessment-answers sudah kosong
+import { useAssessment } from '../../contexts/AssessmentContext';
+// Reset state answers jika localStorage assessment-answers sudah kosong
+function useSyncAnswersWithLocalStorage() {
+  const { answers, resetAnswers } = useAssessment();
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = window.localStorage.getItem('assessment-answers');
+      if (!saved || saved === '{}' || saved === 'null') {
+        if (Object.keys(answers).length > 0) {
+          resetAnswers();
+        }
+      }
+    }
+    // Jalankan hanya saat mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+}
 import AssessmentSidebar from "./AssessmentSidebar";
 import AssessmentHeader from "./AssessmentHeader";
 import AssessmentProgressBar from "./AssessmentProgressBar";
 import AssessmentQuestionsList from "./AssessmentQuestionsList";
-import { AssessmentProvider, useAssessment } from '../../contexts/AssessmentContext';
+import { AssessmentProvider } from '../../contexts/AssessmentContext';
 import { TokenWarning } from '../ui/TokenBalance';
 
 function AssessmentContent() {
+  useSyncAnswersWithLocalStorage();
   const { getCurrentAssessment, currentSectionIndex, getProgress } = useAssessment();
   const currentAssessment = getCurrentAssessment();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
