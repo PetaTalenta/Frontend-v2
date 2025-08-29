@@ -158,13 +158,35 @@ export interface ApiAssessmentData {
 }
 
 // Helper function to convert AssessmentScores to ApiAssessmentData
-export function convertScoresToApiData(scores: AssessmentScores, assessmentName: string = 'AI-Driven Talent Mapping'): ApiAssessmentData {
+
+import { riasecQuestions, bigFiveQuestions, viaQuestions } from '../data/assessmentQuestions';
+
+export function convertScoresToApiData(
+  scores: AssessmentScores,
+  assessmentName: string = 'AI-Driven Talent Mapping',
+  answers?: Record<number, number | null>
+): ApiAssessmentData & { rawResponses?: any } {
+  let rawResponses;
+  if (answers) {
+    rawResponses = {
+      riasec: riasecQuestions
+        .filter(q => answers[q.id] !== undefined && answers[q.id] !== null)
+        .map(q => ({ questionId: `RIASEC-${q.category[0].toUpperCase()}-${String(q.id).padStart(2, '0')}`, value: answers[q.id] })),
+      ocean: bigFiveQuestions
+        .filter(q => answers[q.id] !== undefined && answers[q.id] !== null)
+        .map(q => ({ questionId: `O-${String(q.id).padStart(2, '0')}`, value: answers[q.id] })),
+      viaIs: viaQuestions
+        .filter(q => answers[q.id] !== undefined && answers[q.id] !== null)
+        .map(q => ({ questionId: `VIA-${String(q.id).padStart(2, '0')}`, value: answers[q.id] })),
+    };
+  }
   return {
     assessmentName,
     riasec: scores.riasec,
     ocean: scores.ocean,
     viaIs: scores.viaIs,
-    industryScore: scores.industryScore
+    industryScore: scores.industryScore,
+    ...(rawResponses ? { rawResponses } : {})
   };
 }
 

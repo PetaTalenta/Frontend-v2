@@ -101,8 +101,8 @@ class AssessmentService {
     // Calculate scores
     const scores = calculateAllScores(answers);
 
-    // Submit assessment
-    return this.submitAssessment(scores, assessmentName, options);
+    // Submit assessment, pass answers for rawResponses
+    return this.submitAssessment(scores, assessmentName, { ...options, answers });
   }
 
   /**
@@ -111,7 +111,7 @@ class AssessmentService {
   async submitAssessment(
     scores: AssessmentScores,
     assessmentName: string = 'AI-Driven Talent Mapping',
-    options: AssessmentOptions = {}
+    options: AssessmentOptions & { answers?: Record<number, number|null> } = {}
   ): Promise<AssessmentResult> {
     console.log('Assessment Service: Submitting assessment...');
 
@@ -125,7 +125,7 @@ class AssessmentService {
     this.currentSubmissionPromise = (async () => {
       try {
         // Submit to API
-        const submitResponse = await this.submitToAPI(scores, assessmentName, options.onTokenBalanceUpdate);
+  const submitResponse = await this.submitToAPI(scores, assessmentName, options.onTokenBalanceUpdate, options.answers);
         const jobId = submitResponse.data.jobId;
 
         console.log(`Assessment Service: Submitted with jobId: ${jobId}`);
@@ -151,7 +151,8 @@ class AssessmentService {
   private async submitToAPI(
     scores: AssessmentScores,
     assessmentName: string,
-    onTokenBalanceUpdate?: () => Promise<void>
+    onTokenBalanceUpdate?: () => Promise<void>,
+    answers?: Record<number, number|null>
   ): Promise<{ data: { jobId: string; status: string } }> {
     const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
 
@@ -159,7 +160,7 @@ class AssessmentService {
       throw createSafeError('No authentication token found', 'AUTH_ERROR');
     }
 
-    const apiData = convertScoresToApiData(scores, assessmentName);
+  const apiData = convertScoresToApiData(scores, assessmentName, answers);
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), CONFIG.TIMEOUTS.SUBMISSION);

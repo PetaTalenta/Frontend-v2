@@ -31,22 +31,17 @@ export function AssessmentTable({ data, onRefresh }: AssessmentTableProps) {
   const router = useRouter();
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
-  const [assessmentData, setAssessmentData] = useState(data)
   const [isDeleting, setIsDeleting] = useState<string | null>(null)
 
-  // Update assessment data when prop changes
-  useEffect(() => {
-    setAssessmentData(data)
-  }, [data])
-
-  const totalPages = Math.ceil(assessmentData.length / itemsPerPage)
+  // Gunakan langsung data dari props
+  const totalPages = Math.ceil(data.length / itemsPerPage)
   const startIndex = (currentPage - 1) * itemsPerPage
   const endIndex = startIndex + itemsPerPage
-  const currentData = assessmentData.slice(startIndex, endIndex)
+  const currentData = data.slice(startIndex, endIndex)
 
   const handleDelete = async (id: number) => {
     // Find the assessment item to get the resultId
-    const assessmentItem = assessmentData.find(item => item.id === id);
+    const assessmentItem = data.find(item => item.id === id);
     if (!assessmentItem?.resultId) {
       console.error('No resultId found for assessment item:', id);
       return;
@@ -63,8 +58,8 @@ export function AssessmentTable({ data, onRefresh }: AssessmentTableProps) {
 
       console.log('Assessment deleted successfully:', assessmentItem.resultId);
 
-  // Always refresh the page after deletion to update the assessment history
-  window.location.reload();
+      // Always refresh the page after deletion to update the assessment history
+      window.location.reload();
     } catch (error) {
       console.error('Error deleting assessment:', error);
       // You might want to show a toast notification here
@@ -77,7 +72,7 @@ export function AssessmentTable({ data, onRefresh }: AssessmentTableProps) {
   const handleView = async (id: number) => {
     try {
       // Find the assessment item to get the correct resultId
-      const assessmentItem = assessmentData.find(item => item.id === id);
+      const assessmentItem = data.find(item => item.id === id);
 
       if (!assessmentItem) {
         console.error('Assessment item not found for ID:', id);

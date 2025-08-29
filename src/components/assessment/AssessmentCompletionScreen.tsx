@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
 import {
@@ -31,6 +32,7 @@ export default function AssessmentCompletionScreen({
   className = ''
 }: AssessmentCompletionScreenProps) {
   const [showCelebration, setShowCelebration] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     // Trigger celebration animation after component mounts
@@ -123,6 +125,12 @@ export default function AssessmentCompletionScreen({
                     <CheckCircle className="w-4 h-4 text-green-500" />
                     Analisis kepribadian yang mendalam dan akurat
                   </p>
+                  <button
+                    className="mt-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
+                    onClick={() => router.push('/dashboard?refresh=1')}
+                  >
+                    Lihat Riwayat Assessment
+                  </button>
                   <p className="flex items-center gap-2">
                     <CheckCircle className="w-4 h-4 text-green-500" />
                     Rekomendasi karir yang sesuai dengan profil Anda

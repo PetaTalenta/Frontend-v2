@@ -8,6 +8,7 @@ import { AssessmentTable } from './assessment-table';
 import { VIAISCard } from './viais-card';
 import { OceanCard } from './ocean-card';
 import { ProgressCard } from './progress-card';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { calculateUserStats, formatStatsForDashboard, formatAssessmentHistory, calculateUserProgress } from '../../services/user-stats';
 import { getLatestAssessmentResult } from '../../services/assessment-api';
 import { generateDemoAssessmentResult } from '../../utils/demo-data-generator';
@@ -46,6 +47,8 @@ export default function DashboardClient({ staticData }: DashboardClientProps) {
   const { user, isLoading: authLoading } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const router = useRouter();
+  const searchParams = useSearchParams();
   
   // Local state for dashboard data
   const [statsData, setStatsData] = useState<StatCard[]>([]);
@@ -62,6 +65,7 @@ export default function DashboardClient({ staticData }: DashboardClientProps) {
       revalidateOnFocus: false,
       revalidateOnReconnect: true,
       dedupingInterval: 60000, // 1 minute
+      refreshInterval: 5000, // refetch otomatis setiap 5 detik
     }
   );
 
@@ -73,6 +77,7 @@ export default function DashboardClient({ staticData }: DashboardClientProps) {
       revalidateOnFocus: false,
       revalidateOnReconnect: true,
       dedupingInterval: 300000, // 5 minutes
+      refreshInterval: 5000, // refetch otomatis setiap 5 detik agar riwayat assessment selalu up-to-date
       fallbackData: null,
     }
   );
@@ -111,35 +116,31 @@ export default function DashboardClient({ staticData }: DashboardClientProps) {
       setStatsData([
         {
           id: 'assessments',
-          title: 'Total Assessment',
-          value: staticData.defaultStats.totalAssessments.toString(),
-          change: '0%',
-          trend: 'up' as const,
-          icon: 'assessment'
+          label: 'Total Assessment',
+          value: staticData.defaultStats.totalAssessments,
+          color: '#888',
+          icon: 'assessment',
         },
         {
           id: 'completion',
-          title: 'Tingkat Penyelesaian',
-          value: `${staticData.defaultStats.completionRate}%`,
-          change: '0%',
-          trend: 'up' as const,
-          icon: 'completion'
+          label: 'Tingkat Penyelesaian',
+          value: staticData.defaultStats.completionRate,
+          color: '#888',
+          icon: 'completion',
         },
         {
           id: 'score',
-          title: 'Rata-rata Skor',
-          value: staticData.defaultStats.averageScore.toString(),
-          change: '0%',
-          trend: 'up' as const,
-          icon: 'score'
+          label: 'Rata-rata Skor',
+          value: staticData.defaultStats.averageScore,
+          color: '#888',
+          icon: 'score',
         },
         {
           id: 'growth',
-          title: 'Pertumbuhan',
-          value: '0%',
-          change: '0%',
-          trend: 'up' as const,
-          icon: 'growth'
+          label: 'Pertumbuhan',
+          value: 0,
+          color: '#888',
+          icon: 'growth',
         }
       ]);
       // Do not show mock row in the table on error; leave it empty
@@ -157,6 +158,25 @@ export default function DashboardClient({ staticData }: DashboardClientProps) {
     }
   }, [loadDashboardData]);
 
+  // Effect: Refetch data jika ada query param ?refresh=1, lalu jika assessment terbaru selesai, redirect ke hasil
+  useEffect(() => {
+    if (searchParams?.get('refresh') === '1') {
+      mutateStats();
+      // Cek jika assessment terbaru sudah selesai, redirect ke hasil
+      if (assessmentData && assessmentData.length > 0) {
+        const latest = assessmentData[0];
+        if (latest.status === 'Selesai' && latest.resultId) {
+          router.replace(`/results/${latest.resultId}`);
+          return;
+        }
+      }
+      // Hapus param refresh dari URL agar tidak refetch terus-menerus
+      const params = new URLSearchParams(window.location.search);
+      params.delete('refresh');
+      const newUrl = window.location.pathname + (params.toString() ? `?${params}` : '');
+      window.history.replaceState({}, '', newUrl);
+    }
+  }, [searchParams, mutateStats, assessmentData, router]);
   // Refresh function
   const refreshDashboardData = async () => {
     setIsRefreshing(true);
@@ -175,11 +195,7 @@ export default function DashboardClient({ staticData }: DashboardClientProps) {
     return (
       <div className="dashboard-full-height">
         <div className="dashboard-container">
-          <Header 
-            onRefresh={refreshDashboardData}
-            isRefreshing={isRefreshing}
-          />
-          
+          <Header logout={useAuth().logout} />
           <div className="dashboard-main-grid">
             <div className="space-y-6">
               {/* Stats Cards Loading */}
@@ -191,7 +207,6 @@ export default function DashboardClient({ staticData }: DashboardClientProps) {
                   </div>
                 ))}
               </div>
-
               {/* Assessment Table Loading */}
               <div className="bg-white rounded-lg p-6 animate-pulse">
                 <div className="h-6 bg-gray-200 rounded mb-4"></div>
@@ -202,7 +217,6 @@ export default function DashboardClient({ staticData }: DashboardClientProps) {
                 </div>
               </div>
             </div>
-
             {/* Sidebar Loading */}
             <div className="dashboard-sidebar space-y-6">
               {[1, 2, 3].map((i) => (
@@ -246,50 +260,46 @@ export default function DashboardClient({ staticData }: DashboardClientProps) {
   return (
     <div className="dashboard-full-height">
       <div className="dashboard-container">
-        <Header 
-          onRefresh={refreshDashboardData}
-          isRefreshing={isRefreshing}
-        />
-          <div className="dashboard-main-grid">
-            {/* Main Content */}
-            <div
-              className="space-y-6 dashboard-mobile-card-spacing"
-              style={{ maxWidth: '100%', overflowX: 'hidden' }}
-            >
-              {/* Stats Cards */}
-              <div className="dashboard-stats-grid">
-                {statsData.map((stat) => (
-                  <StatsCard key={stat.id} stat={stat} />
-                ))}
-              </div>
-              {/* Assessment History */}
-              <div className="dashboard-table-scroll">
-                <AssessmentTable
-                  data={assessmentData}
-                  onRefresh={refreshDashboardData}
-                />
-              </div>
+        <Header logout={useAuth().logout} />
+        <div className="dashboard-main-grid">
+          {/* Main Content */}
+          <div
+            className="space-y-6 dashboard-mobile-card-spacing"
+            style={{ maxWidth: '100%', overflowX: 'hidden' }}
+          >
+            {/* Stats Cards */}
+            <div className="dashboard-stats-grid">
+              {statsData.map((stat) => (
+                <StatsCard key={stat.id} stat={stat} />
+              ))}
             </div>
-            {/* Right Sidebar */}
-            <div
-              className="dashboard-sidebar"
-              style={{ maxWidth: '100%', overflowX: 'hidden' }}
-            >
-              {/* VIAIS and Ocean cards stack vertically on mobile */}
-              <div className="dashboard-sidebar-mobile-grid dashboard-sidebar-mobile-stack">
-                <VIAISCard viaScores={viaScores} />
-                <OceanCard oceanScores={oceanScores} />
-              </div>
-              {/* RIASEC card full width */}
-              <div className="dashboard-sidebar-mobile-full">
-                <ProgressCard
-                  title="RIASEC"
-                  description="Ketahui di mana Anda dapat tumbuh dan berkontribusi paling banyak."
-                  data={progressData}
-                />
-              </div>
+            {/* Assessment History */}
+            <div className="dashboard-table-scroll">
+              <AssessmentTable
+                data={assessmentData}
+              />
             </div>
           </div>
+          {/* Right Sidebar */}
+          <div
+            className="dashboard-sidebar"
+            style={{ maxWidth: '100%', overflowX: 'hidden' }}
+          >
+            {/* VIAIS and Ocean cards stack vertically on mobile */}
+            <div className="dashboard-sidebar-mobile-grid dashboard-sidebar-mobile-stack">
+              <VIAISCard viaScores={viaScores} />
+              <OceanCard oceanScores={oceanScores} />
+            </div>
+            {/* RIASEC card full width */}
+            <div className="dashboard-sidebar-mobile-full">
+              <ProgressCard
+                title="RIASEC"
+                description="Ketahui di mana Anda dapat tumbuh dan berkontribusi paling banyak."
+                data={progressData}
+              />
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
