@@ -247,8 +247,14 @@ export async function fetchAssessmentHistoryFromAPI() {
 
     // Transform API data to match AssessmentData interface
     const assessmentHistory = allResults.map((result: any, index: number) => {
-      let personaTitle = 'Assessment Result';
+      // Map status to readable label for dashboard table
+  let status: 'Selesai' | 'Belum Selesai' | 'Proses' | 'Gagal' | 'Batal' = 'Belum Selesai';
+  if (result.status === 'completed') status = 'Selesai';
+  else if (result.status === 'processing' || result.status === 'queued') status = 'Proses';
+  else if (result.status === 'failed' || result.status === 'error') status = 'Gagal';
+  else if (result.status === 'cancelled' || result.status === 'canceled') status = 'Batal';
 
+      let personaTitle = 'Assessment Result';
       // First, try to get persona title from localStorage (most accurate for recent assessments)
       if (typeof window !== 'undefined' && result.id) {
         try {
@@ -271,18 +277,11 @@ export async function fetchAssessmentHistoryFromAPI() {
         console.log(`Archive API: Assessment ${result.id} - Using API persona title: "${personaTitle}" (from ${result.persona_profile?.archetype ? 'archetype' : result.persona_profile?.title ? 'title' : 'fallback'})`);
       }
 
-      // Map status to readable label for dashboard table
-      let status: 'Selesai' | 'Belum Selesai' | 'Proses' | 'Gagal' | 'Batal' = 'Belum Selesai';
-      if (result.status === 'completed') status = 'Selesai';
-      else if (
-        result.status === 'processing' ||
-        result.status === 'queued' ||
-        result.status === 'in_progress') status = 'Proses';
-      else if (
-        result.status === 'failed' ||
-        result.status === 'error') status = 'Gagal';
-      else if (
-        result.status === 'cancelled' || result.status === 'canceled') status = 'Batal';
+      // Ubah nama jika status gagal, apapun titlenya 'Assessment Result'
+      if (status === 'Gagal' && (personaTitle === 'Assessment Result' || !personaTitle)) {
+        personaTitle = 'Assessment Gagal';
+      }
+
       return {
         id: index + 1,
         nama: personaTitle,
@@ -390,65 +389,9 @@ export async function getAssessmentResultFromAPI(resultId: string): Promise<any>
  * Now uses Archive Service API instead of localStorage
  */
 export async function formatAssessmentHistory(userStats: UserStats) {
-  // First try to get data from the Archive Service API
+  // Hanya gunakan hasil dari API/caching (apiHistory) untuk mapping data dashboard
   const apiHistory = await fetchAssessmentHistoryFromAPI();
-
-  if (apiHistory.length > 0) {
-    console.log('Using assessment history from Archive Service API');
-    return apiHistory;
-  }
-
-  // Fallback to localStorage if API fails or returns no data
-  console.warn('Falling back to localStorage for assessment history');
-  const localHistory = JSON.parse(localStorage.getItem('assessment-history') || '[]');
-
-  // Combine with existing assessment results from userStats
-  const assessmentHistory = userStats.assessmentResults.map((result, index) => ({
-    id: index + 1,
-    nama: result.persona_profile.title,
-    tipe: "Personality Assessment" as const,
-    tanggal: new Date(result.createdAt).toLocaleDateString('id-ID', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
-    }),
-    status: result.status === 'completed' ? "Selesai" as const : "Belum Selesai" as const,
-    resultId: result.id
-  }));
-
-  // Update local history items with persona profile titles if available
-  const updatedLocalHistory = localHistory.map((item: any) => {
-    if (item.resultId && item.status === "Selesai") {
-      // Try to get the assessment result to extract persona profile title
-      const assessmentResult = JSON.parse(localStorage.getItem(`assessment-result-${item.resultId}`) || '{}');
-      const personaTitle = assessmentResult.persona_profile?.archetype || assessmentResult.persona_profile?.title;
-      if (personaTitle) {
-        console.log(`LocalStorage: Assessment ${item.resultId} - Updated nama from "${item.nama}" to "${personaTitle}"`);
-        return {
-          ...item,
-          nama: personaTitle
-        };
-      } else {
-        console.log(`LocalStorage: Assessment ${item.resultId} - No persona profile title found, keeping original nama: "${item.nama}"`);
-      }
-    }
-    return item;
-  });
-
-  // Add updated local history items
-  const combinedHistory = [...updatedLocalHistory, ...assessmentHistory];
-
-  // Remove duplicates based on resultId and sort by date (newest first)
-  const uniqueHistory = combinedHistory.filter((item, index, self) =>
-    index === self.findIndex(t => t.resultId === item.resultId)
-  ).sort((a, b) => {
-    // Convert tanggal back to Date for sorting
-    const dateA = new Date(a.tanggal.split(' ').reverse().join('-'));
-    const dateB = new Date(b.tanggal.split(' ').reverse().join('-'));
-    return dateB.getTime() - dateA.getTime();
-  });
-
-  return uniqueHistory;
+  return apiHistory;
 }
 
 /**
