@@ -1,6 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { getWebSocketService, WebSocketEvent, isWebSocketSupported } from '../../services/websocket-service';
+import { getAssessmentResult } from '../../services/assessment-api';
 import { useAuth } from '../../contexts/AuthContext';
 import Header from './header';
 import { StatsCard } from './stats-card';
@@ -49,6 +51,43 @@ export default function DashboardClient({ staticData }: DashboardClientProps) {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
+  const wsInitialized = useRef(false);
+  // Effect: Listen to WebSocket for assessment completion and redirect
+  useEffect(() => {
+    if (!user || wsInitialized.current || !isWebSocketSupported()) return;
+    const wsService = getWebSocketService();
+    wsInitialized.current = true;
+
+    // Get token from localStorage (same as in ai-analysis)
+    const token = localStorage.getItem('token') || localStorage.getItem('auth_token') || '';
+    if (!token) return;
+
+    // Connect and listen
+
+    wsService.connect(token).then(() => {
+      wsService.setCallbacks({
+        onEvent: async (event: WebSocketEvent) => {
+          // Pastikan event completed dan ada resultId
+          if ((event.status === 'completed' || event.type === 'analysis-complete') && event.resultId) {
+            // Jeda 10 detik (sama seperti assessment-loading)
+            await new Promise(res => setTimeout(res, 10000));
+            try {
+              await getAssessmentResult(event.resultId);
+              router.replace(`/results/${event.resultId}`);
+            } catch (err) {
+              const errorMsg = err instanceof Error ? err.message : String(err);
+              alert('Hasil assessment belum tersedia. Silakan cek beberapa saat lagi.\n' + errorMsg);
+            }
+          }
+        }
+      });
+    }).catch(() => {});
+
+    // Cleanup on unmount
+    return () => {
+      wsService.setCallbacks({ onEvent: null });
+    };
+  }, [user, router]);
   
   // Local state for dashboard data
   const [statsData, setStatsData] = useState<StatCard[]>([]);
