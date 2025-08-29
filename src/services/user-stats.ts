@@ -64,8 +64,9 @@ export async function calculateUserStats(userId?: string): Promise<UserStats> {
     if (assessmentHistory.length > 0) {
       // Use Archive API data (same as assessment table)
       totalAnalysis = assessmentHistory.length;
-      completed = assessmentHistory.filter(item => item.status === "Selesai").length;
-      processing = assessmentHistory.filter(item => item.status === "Belum Selesai").length;
+  completed = assessmentHistory.filter(item => item.status === "Selesai").length;
+  // Hitung semua status proses dan batal
+  processing = assessmentHistory.filter(item => item.status === "Proses" || item.status === "Batal").length;
       console.log(`UserStats: Using Archive API data - Total: ${totalAnalysis}, Completed: ${completed}, Processing: ${processing}`);
       console.log('UserStats: Sample assessment items:', assessmentHistory.slice(0, 3));
     } else {
@@ -170,6 +171,27 @@ export async function fetchAssessmentHistoryFromAPI() {
     console.log('Archive API: Starting to fetch assessment history...');
     const { apiService } = await import('./apiService');
 
+    // --- LOG RAW RESPONSE /api/archive/jobs ---
+    try {
+      const jobsRaw = await fetch('/api/archive/jobs', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(typeof window !== 'undefined' && localStorage.getItem('token') ? { 'Authorization': `Bearer ${localStorage.getItem('token')}` } : {})
+        }
+      });
+      const contentType = jobsRaw.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        const jobsRawJson = await jobsRaw.json();
+        console.log('RAW /api/archive/jobs response:', jobsRawJson);
+      } else {
+        const text = await jobsRaw.text();
+        console.warn('RAW /api/archive/jobs response is not JSON:', text.slice(0, 200));
+      }
+    } catch (err) {
+      console.warn('Failed to fetch raw /api/archive/jobs:', err);
+    }
+
     // First, get the first page to understand total count
     console.log('Archive API: Calling apiService.getResults for first page...');
     const firstResponse = await apiService.getResults({
@@ -249,6 +271,18 @@ export async function fetchAssessmentHistoryFromAPI() {
         console.log(`Archive API: Assessment ${result.id} - Using API persona title: "${personaTitle}" (from ${result.persona_profile?.archetype ? 'archetype' : result.persona_profile?.title ? 'title' : 'fallback'})`);
       }
 
+      // Map status to readable label for dashboard table
+      let status: 'Selesai' | 'Belum Selesai' | 'Proses' | 'Gagal' | 'Batal' = 'Belum Selesai';
+      if (result.status === 'completed') status = 'Selesai';
+      else if (
+        result.status === 'processing' ||
+        result.status === 'queued' ||
+        result.status === 'in_progress') status = 'Proses';
+      else if (
+        result.status === 'failed' ||
+        result.status === 'error') status = 'Gagal';
+      else if (
+        result.status === 'cancelled' || result.status === 'canceled') status = 'Batal';
       return {
         id: index + 1,
         nama: personaTitle,
@@ -258,7 +292,7 @@ export async function fetchAssessmentHistoryFromAPI() {
           month: 'long',
           year: 'numeric'
         }),
-        status: result.status === 'completed' ? "Selesai" as const : "Belum Selesai" as const,
+        status,
         resultId: result.id
       };
     });

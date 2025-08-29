@@ -450,7 +450,7 @@ export default function AssessmentSidebar({ isOpen = false, onToggle }: Assessme
                         {questionsInSection.map((question: any) => (
                           <div
                             key={question.id}
-                            className={`w-8 h-8 rounded-md flex items-center justify-center text-xs font-medium border cursor-pointer transition-all hover:scale-105 ${
+                            className={`w-8 h-8 rounded-md flex items-center justify-center text-xs font-medium border cursor-pointer transition-all hover:scale-105 relative ${
                               question.isAnswered
                                 ? 'bg-green-100 text-green-700 border-green-300 hover:bg-green-200'
                                 : 'bg-gray-100 text-gray-500 border-gray-300 hover:bg-gray-200'
@@ -459,6 +459,9 @@ export default function AssessmentSidebar({ isOpen = false, onToggle }: Assessme
                             onClick={() => handleQuestionClick(question.id)}
                           >
                             {question.questionNumber}
+                            {getFlaggedQuestions().includes(question.id) && (
+                              <span className="absolute top-0 right-0 w-2 h-2 bg-amber-400 rounded-full border-2 border-white" title="Soal ini ditandai (flag)"></span>
+                            )}
                           </div>
                         ))}
                       </div>

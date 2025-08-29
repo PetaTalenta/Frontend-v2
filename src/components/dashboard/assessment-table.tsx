@@ -146,10 +146,24 @@ export function AssessmentTable({ data, onRefresh }: AssessmentTableProps) {
                       className={`assessment-table__badge ${
                         item.status === "Selesai"
                           ? "assessment-table__badge--success"
-                          : "assessment-table__badge--warning"
+                          : item.status === "Proses"
+                            ? "assessment-table__badge--processing"
+                            : item.status === "Gagal"
+                              ? "assessment-table__badge--danger"
+                              : item.status === "Batal"
+                                ? "assessment-table__badge--cancelled"
+                                : "assessment-table__badge--warning"
                       }`}
                     >
-                      {item.status}
+                      {item.status === "Selesai"
+                        ? "Selesai"
+                        : item.status === "Proses"
+                          ? "Sedang Diproses"
+                          : item.status === "Gagal"
+                            ? "Gagal"
+                            : item.status === "Batal"
+                              ? "Dibatalkan"
+                              : "Belum Selesai"}
                     </Badge>
                   </TableCell>
                   <TableCell>

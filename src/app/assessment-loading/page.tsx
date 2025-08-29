@@ -238,7 +238,7 @@ export default function AssessmentLoadingPageRoute() {
     // Clear saved data
     localStorage.removeItem('assessment-answers');
     localStorage.removeItem('assessment-name');
-    router.push('/assessment');
+  router.push('/dashboard');
   };
 
   // Cleanup on unmount

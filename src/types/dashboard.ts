@@ -3,7 +3,7 @@ export interface AssessmentData {
   nama: string
   tipe: "PG" | "Essay" | "Personality Assessment"
   tanggal: string
-  status: "Belum Selesai" | "Selesai"
+  status: "Belum Selesai" | "Selesai" | "Proses" | "Gagal" | "Batal"
   resultId?: string
 }
 
