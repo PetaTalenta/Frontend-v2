@@ -39,18 +39,99 @@ const AssessmentContext = createContext<AssessmentContextType | undefined>(undef
 
 export function AssessmentProvider({ children }: { children: ReactNode }) {
   const [currentAssessmentIndex, setCurrentAssessmentIndex] = useState(0);
-  const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
+  const [currentSectionIndex, setCurrentSectionIndex] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = window.localStorage.getItem('assessment-current-section-index');
+      if (saved !== null) {
+        const parsed = parseInt(saved, 10);
+        if (!isNaN(parsed)) return parsed;
+      }
+    }
+    return 0;
+  });
   const [answers, setAnswers] = useState<Record<number, number | null>>({});
   const [flaggedQuestions, setFlaggedQuestions] = useState<Record<number, boolean>>({});
 
-  // Load flagged questions from storage on mount
+
+  // Load flagged questions and answers from storage on mount
   useEffect(() => {
     const loadedFlags = loadFlaggedQuestions();
     setFlaggedQuestions(loadedFlags);
 
     // Migrate unencrypted data if needed
     migrateFlaggedQuestionsToEncrypted();
+
+    if (typeof window !== 'undefined') {
+      // Load answers from localStorage
+      try {
+        const savedAnswers = window.localStorage.getItem('assessment-answers');
+        if (savedAnswers) {
+          const parsed = JSON.parse(savedAnswers);
+          if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+            setAnswers(parsed);
+          }
+        }
+      } catch (e) {
+        // ignore
+      }
+
+      // Validate and restore currentSectionIndex from localStorage
+      try {
+        const totalAssessments = assessmentTypes.length;
+        let shouldResetSection = false;
+        if (currentAssessmentIndex >= totalAssessments || currentAssessmentIndex < 0) {
+          setCurrentAssessmentIndex(0);
+          window.localStorage.removeItem('assessment-answers');
+          shouldResetSection = true;
+        } else {
+          const assessment = assessmentTypes[currentAssessmentIndex];
+          const categories = getOrderedCategories(assessment.id, assessment.questions);
+          // Try to restore section index from localStorage
+          const savedSection = window.localStorage.getItem('assessment-current-section-index');
+          let sectionIdx = 0;
+          if (savedSection !== null) {
+            const parsedSection = parseInt(savedSection, 10);
+            if (!isNaN(parsedSection) && parsedSection >= 0 && parsedSection < categories.length) {
+              sectionIdx = parsedSection;
+            }
+          }
+          if (sectionIdx >= categories.length || sectionIdx < 0) {
+            setCurrentSectionIndex(0);
+            window.localStorage.removeItem('assessment-answers');
+          } else {
+            setCurrentSectionIndex(sectionIdx);
+          }
+        }
+        if (shouldResetSection) {
+          setCurrentSectionIndex(0);
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
   }, []);
+
+  // Save currentSectionIndex to localStorage whenever it changes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        window.localStorage.setItem('assessment-current-section-index', String(currentSectionIndex));
+      } catch (e) {
+        // ignore
+      }
+    }
+  }, [currentSectionIndex]);
+
+  // Save answers to localStorage whenever answers change
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        window.localStorage.setItem('assessment-answers', JSON.stringify(answers));
+      } catch (e) {
+        // ignore
+      }
+    }
+  }, [answers]);
 
   const setAnswer = (questionId: number, value: number) => {
     setAnswers(prev => ({ ...prev, [questionId]: value }));

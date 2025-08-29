@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { scaleConfigurations, assessmentTypes } from '../../data/assessmentQuestions';
+import { scaleConfigurations, assessmentTypes, AssessmentType, Question } from '../../data/assessmentQuestions';
 import AssessmentQuestionCard from './AssessmentQuestionCard';
 import { useAssessment } from '../../contexts/AssessmentContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -25,18 +25,26 @@ export default function AssessmentQuestionsList() {
     setAnswer
   } = useAssessment();
 
-  const currentAssessment = getCurrentAssessment();
-  const scaleConfig = scaleConfigurations[currentAssessment.scaleType];
 
+  const currentAssessment: AssessmentType = getCurrentAssessment();
+  if (!currentAssessment || !currentAssessment.scaleType || !currentAssessment.questions) {
+    return <div className="text-red-500">Data assessment tidak valid. Silakan refresh halaman atau hubungi admin.</div>;
+  }
+  const scaleConfig = scaleConfigurations[currentAssessment.scaleType as keyof typeof scaleConfigurations];
+  if (!scaleConfig) {
+    return <div className="text-red-500">Konfigurasi skala assessment tidak ditemukan.</div>;
+  }
   // Group questions by category
-  const grouped = currentAssessment.questions.reduce((acc: any, q: any) => {
+  const grouped: Record<string, Question[]> = currentAssessment.questions.reduce((acc: Record<string, Question[]>, q: Question) => {
     acc[q.category] = acc[q.category] || [];
     acc[q.category].push(q);
     return acc;
   }, {});
-
   // Use ordered categories instead of Object.keys to ensure consistency
-  const categories = getOrderedCategories(currentAssessment.id, currentAssessment.questions);
+  const categories: string[] = getOrderedCategories(currentAssessment.id, currentAssessment.questions);
+  if (!categories || !Array.isArray(categories) || categories.length === 0) {
+    return <div className="text-red-500">Kategori assessment tidak ditemukan.</div>;
+  }
 
   // Handler to update answer for a question
   const handleAnswer = (questionId: number, value: number) => {
@@ -141,7 +149,7 @@ export default function AssessmentQuestionsList() {
         </div>
         {/* Progress bar removed, use sidebar only */}
         <div className="flex flex-col ">
-          {questions.map((question, idx) => {
+          {questions.map((question: Question, idx: number) => {
             const isLast = idx === questions.length - 1;
             return (
               <div key={question.id} data-question-id={question.id}>

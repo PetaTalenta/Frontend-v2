@@ -107,14 +107,31 @@ export default function AssessmentQuestionCard({
               <span className={`text-lg sm:text-xl font-bold text-[${scaleConfig.colors[idx]}]`}>{value}</span>
             </div>
 
-            <div className="hidden sm:block">
+            <div className="hidden sm:flex sm:items-center sm:justify-center mt-2">
+              <button
+                type="button"
+                onClick={() => onAnswer && onAnswer(value)}
+                className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-200 flex-shrink-0 ${
+                  selectedAnswer === value
+                    ? 'border-[#6475e9] bg-[#6475e9]'
+                    : 'border-gray-300 bg-white hover:border-[#6475e9]'
+                }`}
+                aria-label={`Select answer ${value}`}
+              >
+                {selectedAnswer === value && (
+                  <div className="w-3 h-3 bg-white rounded-full"></div>
+                )}
+              </button>
+              {/* Hidden actual radio input for accessibility */}
               <input
                 type="radio"
                 name={`answer-${question.id}`}
                 value={value}
                 checked={selectedAnswer === value}
                 onChange={() => onAnswer && onAnswer(value)}
-                className="mt-2 w-6 h-6 accent-[#6475e9]"
+                className="sr-only"
+                tabIndex={-1}
+                aria-hidden="true"
               />
             </div>
           </div>
