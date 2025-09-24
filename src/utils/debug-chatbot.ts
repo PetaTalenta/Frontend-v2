@@ -32,7 +32,7 @@ export async function testChatbotHealth(): Promise<ChatbotDebugResult> {
       return {
         success: false,
         message: 'Chatbot API health check failed',
-        details: result.error,
+        details: (result && (result as any).error) ? (result as any).error : undefined,
         timestamp
       };
     }
@@ -192,7 +192,7 @@ export async function testCreateConversation(assessmentId: string): Promise<Chat
       return {
         success: false,
         message: 'Failed to create conversation',
-        details: result.error,
+        details: (result && (result as any).error) ? (result as any).error : undefined,
         timestamp
       };
     }
@@ -252,7 +252,7 @@ export async function runChatbotDiagnostics(assessmentId?: string): Promise<{
  */
 export function getChatbotApiConfig() {
   return {
-    baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.chhrone.web.id',
+    baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.futureguide.id',
     timeout: 30000,
     token: localStorage.getItem('token') || localStorage.getItem('auth_token') || localStorage.getItem('authToken'),
     endpoints: {

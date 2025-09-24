@@ -11,12 +11,12 @@ import {
   convertScoresToApiData
 } from '../types/assessment-results';
 import { calculateAllScores, validateAnswers } from '../utils/assessment-calculations';
-import { generateApiOnlyAnalysis } from './ai-analysis';
+import { generateApiOnlyAnalysis } from '../utils/ai-analysis';
 import { createSafeError, safeErrorCallback, validateApiResponse } from '../utils/safe-error-handling';
 
 // Consolidated configuration - Updated to match documentation
 const CONFIG = {
-  API_BASE_URL: 'https://api.chhrone.web.id',
+  API_BASE_URL: 'https://api.futureguide.id',
   ENDPOINTS: {
     SUBMIT: '/api/assessment/submit',
     STATUS: (jobId: string) => `/api/assessment/status/${jobId}`,
@@ -390,7 +390,7 @@ class AssessmentService {
   ) {
     try {
       if (!this.wsInitialized) {
-        const { getWebSocketService, isWebSocketSupported } = await import('./websocket-service');
+        const { getWebSocketService, isWebSocketSupported } = await import('./notificationService');
 
         if (!isWebSocketSupported()) {
           throw new Error('WebSocket not supported');
@@ -765,9 +765,13 @@ class AssessmentService {
    * Get assessment result
    */
   private async getAssessmentResult(resultId: string): Promise<AssessmentResult> {
-    // Import the existing function to get results
-    const { getAssessmentResult } = await import('./assessment-api');
-    return getAssessmentResult(resultId);
+    // Use API proxy via apiService to fetch full result
+    const { apiService } = await import('./apiService');
+    const full = await apiService.getResultById(resultId);
+    if (!full.success || !full.data) {
+      throw new Error(full.message || 'Failed to fetch assessment result');
+    }
+    return full.data as AssessmentResult;
   }
 
   /**
@@ -793,7 +797,7 @@ class AssessmentService {
     try {
       const response = await fetch(`${CONFIG.API_BASE_URL}${CONFIG.ENDPOINTS.HEALTH}`, {
         method: 'GET',
-        timeout: 5000
+        signal: AbortSignal.timeout(5000)
       });
       return response.ok;
     } catch {

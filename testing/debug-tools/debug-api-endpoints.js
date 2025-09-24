@@ -10,7 +10,7 @@ const http = require('http');
 
 // API Configuration
 const API_CONFIG = {
-  BASE_URL: 'https://api.chhrone.web.id',
+  BASE_URL: 'https://api.futureguide.id',
   PROXY_URL: 'http://localhost:3000/api/proxy',
   TIMEOUT: 30000
 };

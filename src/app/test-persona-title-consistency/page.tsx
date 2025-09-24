@@ -6,7 +6,7 @@ import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { AssessmentTable } from '../../components/dashboard/assessment-table';
 import PersonaProfileCard from '../../components/results/PersonaProfileCard';
-import { formatAssessmentHistory, calculateUserStats } from '../../services/user-stats';
+import { fetchAssessmentHistoryFromAPI as formatAssessmentHistory, calculateUserStats } from '../../utils/user-stats';
 import { PersonaProfile, AssessmentResult } from '../../types/assessment-results';
 import { ArrowLeft, CheckCircle, XCircle, RefreshCw } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -39,7 +39,7 @@ export default function TestPersonaTitleConsistency() {
     try {
       // Get user stats and assessment history
       const userStats = await calculateUserStats();
-      const history = await formatAssessmentHistory(userStats);
+      const history = await formatAssessmentHistory();
       
       setAssessmentHistory(history);
       setAssessmentResults(userStats.assessmentResults);
@@ -190,7 +190,7 @@ export default function TestPersonaTitleConsistency() {
         {/* Assessment History Table */}
         <div className="mb-8">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Assessment History Table</h2>
-          <AssessmentTable data={assessmentHistory} />
+          <AssessmentTable data={assessmentHistory as any} />
         </div>
 
         {/* Sample Personality Profile Cards */}
@@ -202,7 +202,7 @@ export default function TestPersonaTitleConsistency() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {assessmentResults.slice(0, 3).map((result) => (
                 <div key={result.id}>
-                  <PersonaProfileCard profile={result.persona_profile} />
+                  <PersonaProfileCard persona={result.persona_profile} />
                   <div className="mt-2 text-sm text-gray-600 text-center">
                     Result ID: {result.id}
                   </div>

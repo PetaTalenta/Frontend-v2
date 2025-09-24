@@ -9,7 +9,11 @@ import { AssessmentResult } from '../../types/assessment-results';
 import { useUserAssessmentResults } from '../../hooks/useAssessmentData';
 import { AssessmentListLoading } from '../../components/ui/loading-states';
 import { DataFetchError } from '../../components/ui/error-states';
-import { formatDate } from '../../utils/formatters';
+// Local formatter to avoid global utils dependency
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+};
 import {
   Eye,
   Calendar,

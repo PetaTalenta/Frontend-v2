@@ -14,12 +14,50 @@ import {
   clearChatbotData,
   ChatbotDebugResult
 } from '../../utils/debug-chatbot';
-import {
-  testUUIDMapping,
-  clearUUIDMappings,
-  getAllUUIDMappings,
-  validateUUIDMappings
-} from '../../utils/test-uuid-mapping';
+
+
+function getAllUUIDMappings(): Array<{ resultId: string; uuid: string }> {
+  const mappings: Array<{ resultId: string; uuid: string }> = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i)!;
+    if (key.startsWith('uuid-mapping-')) {
+      const resultId = key.replace('uuid-mapping-', '');
+      const uuid = localStorage.getItem(key) || '';
+      mappings.push({ resultId, uuid });
+    }
+  }
+  return mappings;
+}
+
+function clearUUIDMappings(): { cleared: string[] } {
+  const cleared: string[] = [];
+  const keys: string[] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i)!;
+    if (key.startsWith('uuid-mapping-')) keys.push(key);
+  }
+  keys.forEach(k => { localStorage.removeItem(k); cleared.push(k); });
+  return { cleared };
+}
+
+function testUUIDMapping() {
+  // Minimal self-check: create a mapping and verify retrieval
+  const sampleId = 'result-001';
+  const uuid = crypto.randomUUID ? crypto.randomUUID() : '00000000-0000-4000-8000-000000000000';
+  localStorage.setItem(`uuid-mapping-${sampleId}`, uuid);
+  const mappings = getAllUUIDMappings();
+  const found = mappings.some(m => m.resultId === sampleId && m.uuid === uuid);
+  return {
+    success: found,
+    results: { created: { sampleId, uuid }, totalMappings: mappings.length }
+  };
+}
+
+function validateUUIDMappings() {
+  const mappings = getAllUUIDMappings();
+  const invalid = mappings.filter(m => !/^[0-9a-f-]{36}$/i.test(m.uuid));
+  return { success: invalid.length === 0, results: { invalid } };
+}
 import { CheckCircle, XCircle, AlertCircle, Loader2, RefreshCw } from 'lucide-react';
 
 // UUID validation and generation

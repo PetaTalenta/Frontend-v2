@@ -9,10 +9,10 @@ import { OceanCard } from "./components/dashboard/ocean-card"
 import { AssessmentStatusIndicator } from "./components/dashboard/AssessmentStatusIndicator"
 
 import { ProgressCard } from "./components/dashboard/progress-card"
-import { chartData } from "./data/mockData"
+
 import { useAuth } from "./contexts/AuthContext"
-import { calculateUserStats, formatStatsForDashboard, formatAssessmentHistory, calculateUserProgress } from "./services/user-stats"
-import { getLatestAssessmentResult } from "./services/assessment-api"
+import { calculateUserStats, formatStatsForDashboard, fetchAssessmentHistoryFromAPI as formatAssessmentHistory, calculateUserProgress } from "./utils/user-stats"
+import apiService from "./services/apiService"
 import { useState, useEffect, useCallback } from "react"
 import type { StatCard, ProgressItem } from "./types/dashboard"
 import type { OceanScores, ViaScores } from "./types/assessment-results"
@@ -111,7 +111,16 @@ function DashboardContent() {
       try {
         const [userStats, latestAssessment] = await Promise.all([
           calculateUserStats(user.id),
-          getLatestAssessmentResult(user.id).catch(() => null)
+          (async () => {
+            try {
+              const archive = await apiService.getResults({ limit: 1, status: 'completed', sort: 'created_at', order: 'DESC' });
+              if (!archive?.success || !archive?.data?.results?.[0]) return null;
+              const full = await apiService.getResultById(archive.data.results[0].id);
+              return full?.success ? full.data : null;
+            } catch {
+              return null;
+            }
+          })()
         ]);
         const [formattedStats, formattedAssessments, formattedProgress] = await Promise.all([
           formatStatsForDashboard(userStats),

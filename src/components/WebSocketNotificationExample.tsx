@@ -1,13 +1,13 @@
 /**
  * Example React Component for WebSocket Notifications
- * Following API documentation: https://api.chhrone.web.id
+ * Following API documentation: https://api.futureguide.id
  * 
  * This component demonstrates proper WebSocket implementation
  * according to the ATMA API documentation
  */
 
 import React, { useEffect, useState } from 'react';
-import { io, Socket } from 'socket.io-client';
+import { getWebSocketService } from '../services/notificationService';
 import { useAuth } from '../contexts/AuthContext';
 
 interface AnalysisEvent {
@@ -31,13 +31,10 @@ interface AuthenticatedData {
   email: string;
 }
 
-interface AuthError {
-  message: 'Token required' | 'Authentication timeout' | 'Invalid token';
-}
+// Using service-level error typing
 
 export const WebSocketNotificationExample: React.FC = () => {
   const { token } = useAuth();
-  const [socket, setSocket] = useState<Socket | null>(null);
   const [connected, setConnected] = useState(false);
   const [authenticated, setAuthenticated] = useState(false);
   const [events, setEvents] = useState<AnalysisEvent[]>([]);
@@ -47,81 +44,43 @@ export const WebSocketNotificationExample: React.FC = () => {
   useEffect(() => {
     if (!token) return;
 
-    console.log('🔌 Connecting to WebSocket API...');
-    
-    // Create socket connection following API documentation
-    const newSocket = io('https://api.chhrone.web.id', {
-      autoConnect: false,
-      transports: ['websocket', 'polling']
+    console.log('🔌 Connecting to WebSocket API via service...');
+    const ws = getWebSocketService();
+
+    ws.setCallbacks({
+      onConnected: () => {
+        setConnected(true);
+        setConnectionError(null);
+      },
+      onDisconnected: () => {
+        setConnected(false);
+        setAuthenticated(false);
+        setUserInfo(null);
+      },
+      onEvent: (evt: any) => {
+        if (evt.type === 'authenticated') {
+          setAuthenticated(true);
+          setUserInfo({ success: true, userId: evt.userId, email: evt.email });
+        } else if (evt.type === 'analysis-started') {
+          setEvents(prev => [...prev, { ...(evt as any), status: 'started' }]);
+        } else if (evt.type === 'analysis-complete') {
+          setEvents(prev => [...prev, { ...(evt as any), status: 'completed' }]);
+        } else if (evt.type === 'analysis-failed') {
+          setEvents(prev => [...prev, { ...(evt as any), status: 'failed' }]);
+        }
+      },
+      onError: (error: Error) => {
+        setConnectionError(error.message);
+      }
     });
 
-    // Connection events
-    newSocket.on('connect', () => {
-      console.log('✅ Connected to notification service');
-      setConnected(true);
-      setConnectionError(null);
-      
-      // Authenticate with JWT token within 10 seconds (API requirement)
-      console.log('🔐 Authenticating...');
-      newSocket.emit('authenticate', { token });
-    });
+    const authToken = localStorage.getItem('token') || localStorage.getItem('auth_token') || '';
+    if (!authToken) return;
 
-    newSocket.on('disconnect', (reason) => {
-      console.log('❌ Disconnected:', reason);
-      setConnected(false);
-      setAuthenticated(false);
-      setUserInfo(null);
-    });
+    ws.connect(authToken).catch(err => setConnectionError(err.message));
 
-    newSocket.on('connect_error', (error) => {
-      console.error('❌ Connection error:', error);
-      setConnectionError(error.message);
-    });
-
-    // Authentication events (following API documentation)
-    newSocket.on('authenticated', (data: AuthenticatedData) => {
-      console.log('✅ Authenticated successfully:', data);
-      setAuthenticated(true);
-      setUserInfo(data);
-      console.log(`📋 Joined to notification room: user:${data.userId}`);
-    });
-
-    newSocket.on('auth_error', (error: AuthError) => {
-      console.error('❌ Authentication failed:', error);
-      setConnectionError(`Authentication failed: ${error.message}`);
-      setAuthenticated(false);
-    });
-
-    // Analysis events (following API documentation)
-    newSocket.on('analysis-started', (data: AnalysisEvent) => {
-      console.log('🔄 Analysis started:', data);
-      setEvents(prev => [...prev, { ...data, status: 'started' }]);
-    });
-
-    newSocket.on('analysis-complete', (data: AnalysisEvent) => {
-      console.log('✅ Analysis completed:', data);
-      setEvents(prev => [...prev, { ...data, status: 'completed' }]);
-    });
-
-    newSocket.on('analysis-failed', (data: AnalysisEvent) => {
-      console.log('❌ Analysis failed:', data);
-      setEvents(prev => [...prev, { ...data, status: 'failed' }]);
-    });
-
-    // Error handling
-    newSocket.on('error', (error) => {
-      console.error('❌ Socket error:', error);
-      setConnectionError(error.message || 'Unknown socket error');
-    });
-
-    // Connect to server
-    newSocket.connect();
-    setSocket(newSocket);
-
-    // Cleanup
     return () => {
-      console.log('🧹 Cleaning up WebSocket connection');
-      newSocket.close();
+      ws.disconnect();
     };
   }, [token]);
 
@@ -165,7 +124,7 @@ export const WebSocketNotificationExample: React.FC = () => {
           </div>
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 rounded-full bg-blue-500"></span>
-            <span className="text-sm">API: api.chhrone.web.id</span>
+            <span className="text-sm">API: futureguide.id</span>
           </div>
         </div>
         
@@ -250,7 +209,7 @@ export const WebSocketNotificationExample: React.FC = () => {
       <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
         <h4 className="font-semibold text-blue-800 mb-2">API Documentation</h4>
         <p className="text-sm text-blue-700">
-          This component follows the WebSocket implementation as documented in the ATMA API.
+          This component follows the WebSocket implementation as documented in the Future Guide API.
           Events are automatically received when user is authenticated and joined to room <code>user:{'{userId}'}</code>.
         </p>
       </div>

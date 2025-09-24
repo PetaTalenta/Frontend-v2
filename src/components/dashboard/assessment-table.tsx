@@ -117,8 +117,8 @@ export function AssessmentTable({ data, onRefresh }: AssessmentTableProps) {
             <TableHeader>
               <TableRow className="assessment-table__table-row">
                 <TableHead className="assessment-table__table-head">No</TableHead>
-                <TableHead className="assessment-table__table-head">Nama</TableHead>
-                <TableHead className="assessment-table__table-head text-center dashboard-hide-mobile">Tipe Ujian</TableHead>
+                <TableHead className="assessment-table__table-head">Archetype</TableHead>
+
                 <TableHead className="assessment-table__table-head dashboard-hide-mobile">Tanggal Ujian</TableHead>
                 <TableHead className="assessment-table__table-head">Status</TableHead>
                 <TableHead className="assessment-table__table-head">Action</TableHead>
@@ -129,11 +129,7 @@ export function AssessmentTable({ data, onRefresh }: AssessmentTableProps) {
                 <TableRow key={item.id} className="assessment-table__table-row">
                   <TableCell className="assessment-table__table-cell">{startIndex + index + 1}</TableCell>
                   <TableCell className="assessment-table__table-cell">{item.nama}</TableCell>
-                  <TableCell className="text-center dashboard-hide-mobile">
-                    <Badge variant="secondary" className="assessment-table__badge" style={{ display: 'inline-block', minWidth: 100 }}>
-                      {item.tipe}
-                    </Badge>
-                  </TableCell>
+
                   <TableCell className="assessment-table__table-cell--secondary dashboard-hide-mobile">{item.tanggal}</TableCell>
                   <TableCell>
                     <Badge

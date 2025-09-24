@@ -7,7 +7,7 @@ import { Button } from '../../../../components/ui/button';
 import { Skeleton } from '../../../../components/ui/skeleton';
 import { toast } from '../../../../components/ui/use-toast';
 import { AssessmentResult } from '../../../../types/assessment-results';
-import { getAssessmentResult } from '../../../../services/assessment-api';
+import apiService from '../../../../services/apiService';
 import { ArrowLeft, Grid3X3 } from 'lucide-react';
 import CombinedAssessmentGrid from '../../../../components/results/CombinedAssessmentGrid';
 
@@ -26,8 +26,8 @@ export default function CombinedDetailPage() {
 
       try {
         setLoading(true);
-        const data = await getAssessmentResult(resultId);
-        setResult(data);
+        const resp = await apiService.getResultById(resultId);
+        if (resp?.success) setResult(resp.data); else throw new Error('Failed to load');
       } catch (err) {
         console.error('Error fetching assessment result:', err);
         setError('Failed to load assessment result');

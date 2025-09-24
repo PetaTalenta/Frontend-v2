@@ -5,7 +5,29 @@ import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
 import { toast } from '../../hooks/use-toast';
-import { runPDFTest, testPDFGeneration, downloadTestPDF } from '../../utils/test-pdf-generation';
+// Note: test-pdf-generation utilities have been removed.
+// Provide minimal in-page helpers to keep this debug page functional without mocks.
+function testPDFGeneration(): Promise<Blob> {
+  const content = `%PDF-1.4\n% Minimal placeholder PDF generated for debug page after mock removal.`;
+  const blob = new Blob([content], { type: 'application/pdf' });
+  return Promise.resolve(blob);
+}
+
+function downloadTestPDF(blob: Blob, filename = `test-pdf-${Date.now()}.pdf`) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+async function runPDFTest(): Promise<void> {
+  const blob = await testPDFGeneration();
+  downloadTestPDF(blob);
+}
 import { Download, FileText, CheckCircle, AlertCircle } from 'lucide-react';
 
 export default function TestPDFImprovedPage() {

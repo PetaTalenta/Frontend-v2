@@ -147,19 +147,9 @@ function reportMetric(name: string, value: number) {
 export function optimizeBundleLoading() {
   if (typeof window === 'undefined') return;
 
-  // Preload critical chunks
-  const criticalChunks = [
-    '/_next/static/chunks/main.js',
-    '/_next/static/chunks/pages/_app.js'
-  ];
-
-  criticalChunks.forEach(chunk => {
-    const link = document.createElement('link');
-    link.rel = 'preload';
-    link.href = chunk;
-    link.as = 'script';
-    document.head.appendChild(link);
-  });
+  // App Router (Next.js 13+): avoid preloading hard-coded legacy chunks (main.js, pages/_app.js)
+  // Next handles chunk preloads automatically; doing it manually often causes 404s in dev.
+  // Intentionally left as a no-op.
 }
 
 // Service Worker registration for caching

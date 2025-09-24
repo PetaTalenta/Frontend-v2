@@ -1,5 +1,7 @@
 import axios from 'axios';
 import { API_CONFIG, API_ENDPOINTS } from '../config/api';
+import { getToken, clearAuth } from '../utils/token-storage';
+import { logger } from '../utils/env-logger';
 
 /**
  * API Service for handling all API calls
@@ -16,31 +18,30 @@ class ApiService {
       },
     });
 
+    // Allow host apps to register side-effect handlers (e.g., redirect on 401)
+    this.handlers = {
+      onAuthError: (error) => {
+        // default: no redirect, only clear auth
+        clearAuth();
+        delete axios.defaults.headers.common['Authorization'];
+      }
+    };
+
     // Add request interceptor to include auth token
     this.axiosInstance.interceptors.request.use(
       (config) => {
-        // Try multiple token storage keys for compatibility
-        const token = localStorage.getItem('token') ||
-                     localStorage.getItem('auth_token') ||
-                     localStorage.getItem('authToken');
-
+        const token = getToken();
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
-          console.log('API Request: Adding Bearer token to headers');
+          logger.debug('API Request: add bearer token');
         } else {
-          console.warn('API Request: No authentication token found');
+          logger.warn('API Request: no auth token');
         }
-
-        // Log the request for debugging
-        console.log(`API Request: ${config.method?.toUpperCase()} ${config.url}`, {
-          headers: config.headers,
-          data: config.data
-        });
-
+        logger.debug(`API Request: ${config.method?.toUpperCase()} ${config.url}`);
         return config;
       },
       (error) => {
-        console.error('API Request Interceptor Error:', error);
+        logger.error('API Request Interceptor Error:', error);
         return Promise.reject(error);
       }
     );
@@ -48,46 +49,109 @@ class ApiService {
     // Add response interceptor for error handling
     this.axiosInstance.interceptors.response.use(
       (response) => {
-        console.log(`API Response: ${response.status} ${response.config.method?.toUpperCase()} ${response.config.url}`);
+        logger.debug(`API Response: ${response.status} ${response.config.method?.toUpperCase()} ${response.config.url}`);
         return response;
       },
       (error) => {
-        // Log detailed error information
-        console.error('API Response Error:', {
+        // Log detailed error information (compact in production)
+        logger.error('API Response Error', {
           status: error.response?.status,
-          statusText: error.response?.statusText,
           url: error.config?.url,
           method: error.config?.method,
-          data: error.response?.data,
           message: error.message
         });
 
-        if (error.response?.status === 401) {
-          // Token expired, clear auth data
-          console.warn('Authentication failed - clearing tokens and redirecting');
-          localStorage.removeItem('token');
-          localStorage.removeItem('auth_token');
-          localStorage.removeItem('authToken');
-          localStorage.removeItem('user');
-          delete axios.defaults.headers.common['Authorization'];
-          // Redirect to auth page
-          window.location.href = '/auth';
-        } else if (error.response?.status === 402) {
-          // Payment required - insufficient token balance
-          console.error('Insufficient token balance for API request');
-          // You can add custom handling here, like showing a modal or notification
-        } else if (error.response?.status === 404) {
-          console.error('API endpoint not found:', error.config?.url);
-        } else if (error.response?.status >= 500) {
-          console.error('Server error:', error.response?.status);
+        const status = error.response?.status;
+        if (status === 401) {
+          // Delegate side-effects to registered handler
+          try { this.handlers.onAuthError?.(error); } catch (_) {}
+        } else if (status === 402) {
+          logger.error('Insufficient token balance for API request');
+        } else if (status === 404) {
+          logger.warn('API endpoint not found:', error.config?.url);
+        } else if (status >= 500) {
+          logger.error('Server error:', status);
         } else if (error?.code === 'NETWORK_ERROR' || !error.response) {
-          console.error('Network error - API might be unreachable');
+          logger.error('Network error - API might be unreachable');
         }
 
         return Promise.reject(error);
       }
     );
+
+      // In-flight requests map and a tiny TTL cache to dedupe rapid duplicate calls (e.g., React StrictMode re-mounts)
+      this._inflight = new Map();
+      this._cache = new Map();
+
   }
+
+  // Allow host app to set side-effect handlers (e.g., redirect on 401)
+  setAuthHandlers(handlers) {
+    this.handlers = { ...this.handlers, ...handlers };
+  }
+
+	  // Build a stable request key for deduplication
+	  _requestKey(url, options = {}) {
+	    const method = (options.method || 'GET').toUpperCase();
+	    let bodyKey = '';
+	    try {
+	      if (options.body) {
+	        bodyKey = typeof options.body === 'string' ? options.body : JSON.stringify(options.body);
+	      }
+	    } catch (_) {
+	      bodyKey = '';
+	    }
+	    return `${method}|${url}|${bodyKey}`;
+	  }
+
+	  /**
+	   * Fetch with in-flight deduplication and tiny TTL cache
+	   * Prevents duplicate requests on StrictMode re-mounts and fast route transitions
+	   * @param {string} url
+	   * @param {RequestInit} options
+	   * @param {number} ttlMs - cache TTL in milliseconds
+	   */
+	  async _fetchWithDedupe(url, options = {}, ttlMs = 1000) {
+	    const key = this._requestKey(url, options);
+	    const now = Date.now();
+
+	    // Return cached result if still fresh
+	    const cached = this._cache.get(key);
+	    if (cached && (now - cached.time) < ttlMs) {
+	      return cached.data;
+	    }
+
+	    // Share the same in-flight promise
+	    if (this._inflight.has(key)) {
+	      return this._inflight.get(key);
+	    }
+
+	    const p = (async () => {
+	      const resp = await fetch(url, options);
+	      if (!resp.ok) {
+	        let message = `Request failed: ${resp.status}`;
+	        try {
+	          const errJson = await resp.clone().json();
+	          if (errJson?.message) message = errJson.message;
+	        } catch (_) {}
+	        const err = new Error(message);
+	        err.status = resp.status;
+	        throw err;
+	      }
+	      const data = await resp.json();
+	      this._cache.set(key, { time: Date.now(), data });
+	      return data;
+	    })();
+
+	    this._inflight.set(key, p);
+	    try {
+	      return await p;
+	    } finally {
+	      this._inflight.delete(key);
+	    }
+	  }
+
+
 
   // ==================== GATEWAY INFO ====================
 
@@ -108,9 +172,8 @@ class ApiService {
    * @param {string} userData.password - User password
    */
   async register(userData) {
-    // Use enhanced authentication service
-    const { registerUser } = await import('./enhanced-auth-api');
-    return await registerUser(userData);
+    const response = await this.axiosInstance.post(API_ENDPOINTS.AUTH.REGISTER, userData);
+    return response.data;
   }
 
   /**
@@ -120,9 +183,8 @@ class ApiService {
    * @param {string} credentials.password - User password
    */
   async login(credentials) {
-    // Use enhanced authentication service
-    const { loginUser } = await import('./enhanced-auth-api');
-    return await loginUser(credentials);
+    const response = await this.axiosInstance.post(API_ENDPOINTS.AUTH.LOGIN, credentials);
+    return response.data;
   }
 
   /**
@@ -165,17 +227,54 @@ class ApiService {
    * Get user token balance
    */
   async getTokenBalance() {
-    // Use enhanced authentication service
-    const token = localStorage.getItem('token');
-    if (!token) {
-      return {
-        success: false,
-        error: { message: 'No authentication token found' }
-      };
-    }
+    const response = await this.axiosInstance.get(API_ENDPOINTS.AUTH.TOKEN_BALANCE);
+    return response.data;
+  }
 
-    const { getTokenBalance } = await import('./enhanced-auth-api');
-    return await getTokenBalance(token);
+
+  // ==================== SCHOOLS ====================
+
+  async getSchools() {
+    // Use local proxy to avoid CORS and keep consistency with auth routes
+    const url = `/api/proxy/auth${API_ENDPOINTS.AUTH.SCHOOLS.replace('/api/auth', '')}`;
+
+    const token = getToken();
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` })
+      }
+    });
+    if (!response.ok) throw new Error(`Schools API failed: ${response.status}`);
+    return await response.json();
+  }
+
+  async getSchoolsByLocation({ location, province } = {}) {
+    const qs = new URLSearchParams();
+    if (location) qs.append('location', location);
+    if (province) qs.append('province', province);
+    const base = `/api/proxy/auth${API_ENDPOINTS.AUTH.SCHOOLS_BY_LOCATION.replace('/api/auth', '')}`;
+
+    const token = getToken();
+    const response = await fetch(`${base}${qs.toString() ? `?${qs.toString()}` : ''}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` })
+      }
+    });
+    if (!response.ok) throw new Error(`Schools by location API failed: ${response.status}`);
+    return await response.json();
+  }
+
+  async validateSchoolId(schoolId) {
+    try {
+      const resp = await this.getSchools();
+      return !!(resp.success && Array.isArray(resp.data) && resp.data.some(s => s.id === Number(schoolId)));
+    } catch (_) {
+      return false;
+    }
   }
 
   // ==================== ASSESSMENTS ====================
@@ -214,96 +313,45 @@ class ApiService {
    * @param {Function} onTokenBalanceUpdate - Token balance update callback
    */
   async submitAssessmentWithMonitoring(assessmentData, assessmentName = 'AI-Driven Talent Mapping', onProgress, onTokenBalanceUpdate) {
-    console.log('ApiService: Using consolidated assessment service with intelligent monitoring');
-
     const { assessmentService } = await import('./assessment-service');
-
-    return await assessmentService.submitAssessment(assessmentData, assessmentName, {
+    return assessmentService.submitAssessment(assessmentData, assessmentName, {
       onProgress,
       onTokenBalanceUpdate,
-      preferWebSocket: true
+      preferWebSocket: true,
     });
   }
 
-  /**
-   * CONSOLIDATED: Fast assessment submission from answers
-   * @param {Record<number, number | null>} answers - Raw assessment answers
-   * @param {string} assessmentName - Assessment type name
-   * @param {Function} onProgress - Progress callback
-   * @param {Function} onTokenBalanceUpdate - Token balance update callback
-   */
   async submitAssessmentFromAnswers(answers, assessmentName = 'AI-Driven Talent Mapping', onProgress, onTokenBalanceUpdate) {
-    console.log('ApiService: Using consolidated assessment service for answers submission');
-
-    const { assessmentService } = await import('./assessment-service');
-
-    return await assessmentService.submitFromAnswers(answers, assessmentName, {
-      onProgress,
-      onTokenBalanceUpdate,
-      preferWebSocket: true
-    });
+    // Use consolidated submission via proxy endpoints with WebSocket-first monitoring
+    return this.processAssessmentUnified(answers, assessmentName, { onProgress, onTokenBalanceUpdate, preferWebSocket: true });
   }
 
-  /**
-   * CONSOLIDATED: Assessment processing with the new consolidated service
-   * @param {Record<number, number | null>} answers - Raw assessment answers
-   * @param {string} assessmentName - Assessment type name
-   * @param {Object} options - Processing options
-   */
   async processAssessmentUnified(answers, assessmentName = 'AI-Driven Talent Mapping', options = {}) {
-    console.log('ApiService: Using consolidated assessment service for processing');
-
+    // Use consolidated assessment-service directly
     const { assessmentService } = await import('./assessment-service');
-
-    return await assessmentService.submitFromAnswers(answers, assessmentName, {
-      onProgress: options.onProgress,
-      onTokenBalanceUpdate: options.onTokenBalanceUpdate,
-      preferWebSocket: options.preferWebSocket !== false
-    });
+    return assessmentService.submitFromAnswers(answers, assessmentName, options);
   }
 
-  /**
-   * Get service status and recommendations
-   */
   async getAssessmentServiceStatus() {
     const { assessmentService } = await import('./assessment-service');
     return {
       isHealthy: await assessmentService.isHealthy(),
       stats: assessmentService.getStats(),
-      recommendations: ['Use the consolidated assessment service for better performance']
+      recommendations: ['Use the consolidated assessment service for better performance'],
     };
   }
 
-  /**
-   * DEPRECATED: Use submitAssessmentWithMonitoring instead
-   * @deprecated
-   */
   async submitAssessmentWithWebSocket(assessmentData, assessmentName, onProgress, onTokenBalanceUpdate) {
-    console.warn('ApiService: submitAssessmentWithWebSocket is deprecated, use submitAssessmentWithMonitoring');
     return this.submitAssessmentWithMonitoring(assessmentData, assessmentName, onProgress, onTokenBalanceUpdate);
   }
 
-  /**
-   * DEPRECATED: Use submitAssessmentWithMonitoring instead
-   * @deprecated
-   */
   async submitAssessmentWithPolling(assessmentData, assessmentName, onProgress) {
-    console.warn('ApiService: submitAssessmentWithPolling is deprecated, use submitAssessmentWithMonitoring');
     return this.submitAssessmentWithMonitoring(assessmentData, assessmentName, onProgress);
   }
 
-  /**
-   * Get assessment queue status
-   */
   async getAssessmentQueueStatus() {
-    try {
-      // Use direct API call since enhanced-assessment-api was removed
-      const response = await this.axiosInstance.get(API_ENDPOINTS.ASSESSMENT.QUEUE_STATUS);
-      return response.data;
-    } catch (error) {
-      console.error('Failed to get queue status:', error);
-      throw error;
-    }
+    const response = await this.axiosInstance.get(API_ENDPOINTS.ASSESSMENT.QUEUE_STATUS);
+    return response.data;
   }
 
   /**
@@ -329,189 +377,8 @@ class ApiService {
    * @param {Object} data.assessmentContext - Assessment result context
    */
   async startChatConversation(data) {
-    try {
-      // Debug logging
-      console.log('Starting chat conversation:', {
-        endpoint: API_ENDPOINTS.CHATBOT.CREATE_FROM_ASSESSMENT,
-        payload: {
-          assessment_id: data.resultId,
-          conversation_type: 'career_guidance',
-          include_suggestions: true
-        }
-      });
-      // First attempt: use generic conversations endpoint as per latest API docs
-      try {
-        const genericResponse = await this.axiosInstance.post(API_ENDPOINTS.CHATBOT.CREATE_CONVERSATION, {
-          title: 'Career Guidance Session',
-          context: 'assessment',
-          initialMessage: "I'd like to discuss my recent assessment results"
-        });
-
-        console.log('Generic conversation creation response:', genericResponse.data);
-
-        if (genericResponse.data?.success) {
-          const apiData = genericResponse.data.data;
-          const ai = apiData.aiResponse;
-          return {
-            success: true,
-            data: {
-              id: apiData.conversationId,
-              resultId: data.resultId,
-              messages: ai ? [
-                {
-                  id: ai.id || ai.messageId || `msg-${Date.now()}`,
-                  role: 'assistant',
-                  content: ai.content,
-                  timestamp: ai.timestamp || new Date().toISOString(),
-                  resultId: data.resultId
-                }
-              ] : [],
-              createdAt: apiData.createdAt,
-              updatedAt: apiData.lastActivity || apiData.createdAt,
-              assessmentContext: data.assessmentContext
-            }
-          };
-        }
-      } catch (genericErr) {
-        const gp = genericErr.response?.data || { message: genericErr.message };
-        const gm = (gp.error || gp.message || '').toString().toLowerCase();
-        console.warn('Generic conversation creation failed, will try fallback:', gp);
-
-        // If server indicates conversation already exists, try to recover it immediately
-        if (gm.includes('conversation already exists')) {
-          try {
-            const listResp = await this.axiosInstance.get(`${API_ENDPOINTS.CHATBOT.GET_CONVERSATIONS}?status=active&context=assessment`);
-            if (listResp.data?.success && Array.isArray(listResp.data.data?.conversations) && listResp.data.data.conversations.length > 0) {
-              const conversations = listResp.data.data.conversations.slice().sort((a, b) => {
-                const aTime = new Date(a.lastActivity || a.createdAt || 0).getTime();
-                const bTime = new Date(b.lastActivity || b.createdAt || 0).getTime();
-                return bTime - aTime;
-              });
-              const existing = conversations[0];
-              const detailResp = await this.axiosInstance.get(API_ENDPOINTS.CHATBOT.GET_CONVERSATION(existing.id));
-              if (detailResp.data?.success) {
-                const conv = detailResp.data.data.conversation;
-                return {
-                  success: true,
-                  data: {
-                    id: conv.id,
-                    resultId: data.resultId,
-                    messages: Array.isArray(conv.messages)
-                      ? conv.messages.map(msg => ({
-                          id: msg.id,
-                          role: msg.sender === 'ai' ? 'assistant' : msg.sender,
-                          content: msg.content,
-                          timestamp: msg.timestamp,
-                          resultId: data.resultId
-                        }))
-                      : [],
-                    createdAt: conv.createdAt,
-                    updatedAt: conv.lastActivity || conv.createdAt,
-                    assessmentContext: data.assessmentContext
-                  }
-                };
-              }
-            }
-          } catch (recoverErr) {
-            console.warn('Recovery after generic conflict failed:', recoverErr.response?.data || recoverErr.message);
-          }
-        }
-        // Continue to fallback to from-assessment
-      }
-
-
-      // Try the real chatbot API first
-      const response = await this.axiosInstance.post(API_ENDPOINTS.CHATBOT.CREATE_FROM_ASSESSMENT, {
-        assessment_id: data.resultId,
-        conversation_type: 'career_guidance',
-        include_suggestions: true
-      });
-
-      console.log('Chat conversation creation response:', response.data);
-
-      if (response.data.success) {
-        // Transform the response to match our expected structure
-        const apiData = response.data.data;
-        return {
-          success: true,
-          data: {
-            id: apiData.conversationId,
-            resultId: data.resultId,
-            messages: apiData.personalizedWelcome ? [
-              {
-                id: apiData.personalizedWelcome.messageId,
-                role: 'assistant',
-                content: apiData.personalizedWelcome.content,
-                timestamp: apiData.personalizedWelcome.timestamp,
-                resultId: data.resultId
-              }
-            ] : [],
-            createdAt: apiData.createdAt,
-            updatedAt: apiData.createdAt,
-            assessmentContext: data.assessmentContext,
-            suggestions: apiData.suggestions
-          }
-        };
-      } else {
-        throw new Error(response.data.message || 'API returned unsuccessful response');
-      }
-    } catch (error) {
-      const errorPayload = error.response?.data || { message: error.message };
-      const msg = (errorPayload.error || errorPayload.message || '').toString();
-      console.error('Real chatbot API failed:', {
-        error: errorPayload,
-        status: error.response?.status,
-        endpoint: API_ENDPOINTS.CHATBOT.CREATE_FROM_ASSESSMENT
-      });
-
-      // Gracefully handle "conversation already exists" by fetching the existing one
-      if (msg.toLowerCase().includes('conversation already exists')) {
-        try {
-          console.warn('Conversation already exists for this assessment. Attempting to fetch existing conversation...');
-          // Fetch user's conversations and pick the latest assessment conversation
-          const listResp = await this.axiosInstance.get(`${API_ENDPOINTS.CHATBOT.GET_CONVERSATIONS}?status=active&context=assessment`);
-          if (listResp.data?.success && Array.isArray(listResp.data.data?.conversations) && listResp.data.data.conversations.length > 0) {
-            // Pick the most recent by lastActivity
-            const conversations = listResp.data.data.conversations.slice().sort((a, b) => {
-              const aTime = new Date(a.lastActivity || a.createdAt || 0).getTime();
-              const bTime = new Date(b.lastActivity || b.createdAt || 0).getTime();
-              return bTime - aTime;
-            });
-            const existing = conversations[0];
-            // Get full details including messages
-            const detailResp = await this.axiosInstance.get(API_ENDPOINTS.CHATBOT.GET_CONVERSATION(existing.id));
-            if (detailResp.data?.success) {
-              const conv = detailResp.data.data.conversation;
-              return {
-                success: true,
-                data: {
-                  id: conv.id,
-                  resultId: data.resultId,
-                  messages: Array.isArray(conv.messages)
-                    ? conv.messages.map(msg => ({
-                        id: msg.id,
-                        role: msg.sender === 'ai' ? 'assistant' : msg.sender,
-                        content: msg.content,
-                        timestamp: msg.timestamp,
-                        resultId: data.resultId
-                      }))
-                    : [],
-                  createdAt: conv.createdAt,
-                  updatedAt: conv.lastActivity || conv.createdAt,
-                  assessmentContext: data.assessmentContext
-                }
-              };
-            }
-          }
-          console.warn('Failed to fetch existing conversation after conflict; rethrowing original error.');
-        } catch (recoverErr) {
-          console.warn('Error while trying to recover existing conversation:', recoverErr.response?.data || recoverErr.message);
-        }
-      }
-
-      // Throw error to let chat-api.ts handle the fallback to mock implementation
-      throw error;
-    }
+    const { startConversation } = await import('./helpers/chat');
+    return startConversation(this.axiosInstance, API_ENDPOINTS, data);
   }
 
   /**
@@ -522,52 +389,8 @@ class ApiService {
    * @param {string} data.message - User message
    */
   async sendChatMessage(data) {
-    try {
-      // Debug logging
-      console.log('Sending chat message:', {
-        conversationId: data.conversationId,
-        endpoint: API_ENDPOINTS.CHATBOT.SEND_MESSAGE(data.conversationId),
-        payload: {
-          content: data.message,
-          type: 'text'
-        }
-      });
-
-      // Try the real chatbot API first
-      const response = await this.axiosInstance.post(API_ENDPOINTS.CHATBOT.SEND_MESSAGE(data.conversationId), {
-        content: data.message,
-        type: 'text'
-      });
-
-      console.log('Chat API response:', response.data);
-
-      if (response.data.success) {
-        // Transform the response to match our expected structure
-        const apiData = response.data.data;
-        return {
-          success: true,
-          data: {
-            message: {
-              id: apiData.aiResponse.id || `msg-${Date.now()}`,
-              role: 'assistant',
-              content: apiData.aiResponse.content,
-              timestamp: apiData.aiResponse.timestamp || new Date().toISOString(),
-              resultId: data.resultId
-            }
-          }
-        };
-      } else {
-        throw new Error(response.data.message || 'API returned unsuccessful response');
-      }
-    } catch (error) {
-      console.error('Real chatbot API failed:', {
-        error: error.response?.data || error.message,
-        status: error.response?.status,
-        conversationId: data.conversationId
-      });
-      // Throw error to let chat-api.ts handle the fallback to mock implementation
-      throw error;
-    }
+    const { sendMessage } = await import('./helpers/chat');
+    return sendMessage(this.axiosInstance, API_ENDPOINTS, data);
   }
 
   /**
@@ -575,19 +398,12 @@ class ApiService {
    */
   async testChatbotHealth() {
     try {
-      console.log('Testing chatbot API health...');
       const response = await this.axiosInstance.get(API_ENDPOINTS.CHATBOT.HEALTH);
-
-      console.log('Chatbot health check response:', response.data);
       return {
         success: true,
         data: response.data
       };
     } catch (error) {
-      console.error('Chatbot health check failed:', {
-        error: error.response?.data || error.message,
-        status: error.response?.status
-      });
       return {
         success: false,
         error: error.response?.data || { message: error.message }
@@ -600,45 +416,8 @@ class ApiService {
    * @param {string} resultId - Assessment result ID
    */
   async getChatConversation(resultId) {
-    try {
-      // First, try to get the conversation ID from localStorage
-      const storedConversation = localStorage.getItem(`chat-${resultId}`);
-      if (storedConversation) {
-        const conversation = JSON.parse(storedConversation);
-        if (conversation.id && !conversation.id.startsWith('mock-chat-')) {
-          // This looks like a real API conversation (not mock), try to fetch from API
-          const response = await this.axiosInstance.get(API_ENDPOINTS.CHATBOT.GET_CONVERSATION(conversation.id));
-
-          if (response.data.success) {
-            const apiData = response.data.data.conversation;
-            return {
-              success: true,
-              data: {
-                id: apiData.id,
-                resultId: resultId,
-                messages: apiData.messages.map(msg => ({
-                  id: msg.id,
-                  role: msg.sender === 'ai' ? 'assistant' : msg.sender,
-                  content: msg.content,
-                  timestamp: msg.timestamp,
-                  resultId: resultId
-                })),
-                createdAt: apiData.createdAt,
-                updatedAt: apiData.lastActivity,
-                assessmentContext: conversation.assessmentContext
-              }
-            };
-          }
-        }
-      }
-
-      // If no stored conversation or API call failed, return null to trigger new conversation
-      return null;
-    } catch (error) {
-      console.warn('Real chatbot API failed:', error.response?.data || error.message);
-      // Return null to trigger new conversation creation
-      return null;
-    }
+    const { getConversation } = await import('./helpers/chat');
+    return getConversation(this.axiosInstance, API_ENDPOINTS, resultId);
   }
 
   /**
@@ -668,7 +447,7 @@ class ApiService {
         };
       }
     } catch (error) {
-      console.warn('Failed to get conversations from real API:', error);
+      logger.warn('Failed to get conversations from real API');
     }
 
     // Return empty result for fallback
@@ -705,7 +484,7 @@ class ApiService {
         };
       }
     } catch (error) {
-      console.warn('Failed to update conversation:', error);
+      logger.warn('Failed to update conversation');
     }
 
     return {
@@ -717,7 +496,40 @@ class ApiService {
   // ==================== ARCHIVE ====================
 
   /**
-   * Get user's analysis results with pagination
+   * Get user's analysis jobs with pagination (NEW endpoint)
+   * @param {Object} params - Query parameters
+   * @param {number} params.page - Page number
+   * @param {number} params.limit - Items per page
+   * @param {string} params.status - Filter by status
+   * @param {string} params.sort - Sort field (e.g., created_at)
+   * @param {string} params.order - Sort order (ASC|DESC)
+   */
+  async getJobs(params = {}) {
+    const queryParams = new URLSearchParams();
+
+    if (params.page) queryParams.append('page', params.page);
+    if (params.limit) queryParams.append('limit', params.limit);
+    if (params.status) queryParams.append('status', params.status);
+    if (params.sort) queryParams.append('sort', params.sort);
+    if (params.order) queryParams.append('order', params.order);
+
+    // Call new archive jobs endpoint directly via axios (same-origin API gateway)
+    const url = `${API_ENDPOINTS.ARCHIVE.JOBS}${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
+    const response = await this.axiosInstance.get(url);
+    return response.data;
+  }
+
+  /**
+   * Get single job detail by ID (may include result reference)
+   */
+  async getJobById(jobId) {
+    const url = API_ENDPOINTS.ARCHIVE.JOB_BY_ID(jobId);
+    const response = await this.axiosInstance.get(url);
+    return response.data;
+  }
+
+  /**
+   * Get user's analysis results with pagination (legacy; still used by Results page)
    * @param {Object} params - Query parameters
    * @param {number} params.page - Page number
    * @param {number} params.limit - Items per page
@@ -742,19 +554,19 @@ class ApiService {
                  localStorage.getItem('auth_token') ||
                  localStorage.getItem('authToken');
 
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token && { 'Authorization': `Bearer ${token}` })
-      }
-    });
+    const data = await this._fetchWithDedupe(
+      url,
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` })
+        }
+      },
+      1200
+    );
 
-    if (!response.ok) {
-      throw new Error(`Archive API request failed: ${response.status}`);
-    }
-
-    return await response.json();
+    return data;
   }
 
   /**
@@ -770,19 +582,19 @@ class ApiService {
                  localStorage.getItem('auth_token') ||
                  localStorage.getItem('authToken');
 
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token && { 'Authorization': `Bearer ${token}` })
-      }
-    });
+    const data = await this._fetchWithDedupe(
+      url,
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` })
+        }
+      },
+      1200
+    );
 
-    if (!response.ok) {
-      throw new Error(`Archive API request failed: ${response.status}`);
-    }
-
-    return await response.json();
+    return data;
   }
 
   /**

@@ -54,7 +54,7 @@ const Register = ({ onRegister }) => {
     <div className="space-y-6">
       <div className="text-center">
         <h2 className="text-2xl font-bold text-gray-900 mb-2">Create your account</h2>
-        <p className="text-gray-600">Join ATMA Platform today</p>
+        <p className="text-gray-600">Join Future Guide Platform today</p>
       </div>
 
       <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>

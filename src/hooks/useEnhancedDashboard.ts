@@ -6,10 +6,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import useSWR from 'swr';
 import { useAuth } from '../contexts/AuthContext';
-import { calculateUserStats, formatStatsForDashboard, formatAssessmentHistory, calculateUserProgress } from '../services/user-stats';
-import { getLatestAssessmentResult } from '../services/assessment-api';
-// Removed useAssessmentWebSocket import - service has been consolidated
-import notificationService, { showAssessmentCompleteNotification } from '../services/notification-service';
+import { calculateUserStats, formatStatsForDashboard, fetchAssessmentHistoryFromAPI as formatAssessmentHistory, calculateUserProgress } from '../utils/user-stats';
+import apiService from '../services/apiService';
+
 import type { StatCard, ProgressItem } from '../types/dashboard';
 import type { OceanScores, ViaScores } from '../types/assessment-results';
 
@@ -80,7 +79,11 @@ export function useEnhancedDashboard(options: EnhancedDashboardOptions = {}) {
   // SWR for latest assessment result with background refresh
   const { data: latestResult, error: resultError, mutate: mutateResult } = useSWR(
     user ? `enhanced-latest-result-${user.id}` : null,
-    () => getLatestAssessmentResult(user!.id),
+    async () => {
+      // Use user-stats helper to fetch latest assessment with full data
+      const { getLatestAssessmentFromArchive } = await import('../utils/user-stats');
+      return getLatestAssessmentFromArchive();
+    },
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: true,
@@ -91,66 +94,24 @@ export function useEnhancedDashboard(options: EnhancedDashboardOptions = {}) {
       onSuccess: (data) => {
         if (data) {
           setLastUpdated(new Date());
-          
-          // Check if this is a newly completed assessment
-          const isNewCompletion = data.id !== lastNotificationRef.current && 
-                                 data.status === 'completed' &&
-                                 opts.enableNotifications;
-          
+          const isNewCompletion = data.id !== lastNotificationRef.current && data.status === 'completed' && opts.enableNotifications;
           if (isNewCompletion) {
             lastNotificationRef.current = data.id;
-            showAssessmentCompleteNotification({
-              assessmentId: data.id,
-              assessmentType: 'AI-Driven Talent Mapping',
-              completedAt: data.createdAt,
-              resultUrl: `/results/${data.id}`,
-            });
+            // Browser notification via helper (optional)
+            // await showAssessmentCompleteNotification({
+            //   assessmentId: data.id,
+            //   assessmentType: 'AI-Driven Talent Mapping',
+            //   completedAt: data.createdAt,
+            //   resultUrl: `/results/${data.id}`,
+            // });
           }
         }
       }
     }
   );
 
-  // Note: WebSocket integration needs to be updated to use new consolidated service
-  // const webSocket = useAssessmentWebSocket({
-  //   autoConnect: opts.enableRealTimeUpdates && isAuthenticated,
-  //   onAssessmentUpdate: useCallback((event) => {
-  //     console.log('Enhanced Dashboard: WebSocket assessment event', event);
-      
-      switch (event.type) {
-        case 'analysis-started':
-          setHasActiveAssessment(true);
-          if (opts.optimisticUpdates) {
-            setOptimisticData(prev => ({
-              ...prev,
-              hasActiveAssessment: true,
-            }));
-          }
-          break;
-          
-        case 'analysis-complete':
-          setHasActiveAssessment(false);
-          // Trigger immediate refresh
-          mutateStats();
-          mutateResult();
-          
-          if (opts.enableNotifications && event.resultId) {
-            showAssessmentCompleteNotification({
-              assessmentId: event.resultId,
-              assessmentType: 'AI-Driven Talent Mapping',
-              completedAt: new Date().toISOString(),
-              resultUrl: `/results/${event.resultId}`,
-            });
-          }
-          break;
-          
-        case 'analysis-failed':
-          setHasActiveAssessment(false);
-          setError('Assessment processing failed');
-          break;
-      }
-    }, [opts.optimisticUpdates, opts.enableNotifications, mutateStats, mutateResult]),
-  });
+  // Note: WebSocket integration will be reintroduced via notificationService when ready.
+  // Placeholder removed to fix syntax issues after refactor.
 
   // Format dashboard data with optimistic updates
   const formatDashboardData = useCallback(async (stats: any, result: any): Promise<EnhancedDashboardData> => {
@@ -239,10 +200,10 @@ export function useEnhancedDashboard(options: EnhancedDashboardOptions = {}) {
 
   // Initialize notifications
   useEffect(() => {
-    if (opts.enableNotifications) {
-      notificationService.initialize().then(granted => {
-        console.log('Enhanced Dashboard: Notifications initialized:', granted);
-      });
+    if (opts.enableNotifications && typeof window !== 'undefined' && 'Notification' in window) {
+      if (Notification.permission === 'default') {
+        Notification.requestPermission().catch(() => {});
+      }
     }
   }, [opts.enableNotifications]);
 
@@ -271,7 +232,6 @@ export function useEnhancedDashboard(options: EnhancedDashboardOptions = {}) {
     isRefreshing,
     error: error || statsError || resultError || dashboardData.error,
     refresh,
-    webSocket,
     lastUpdated,
     hasActiveAssessment,
   };

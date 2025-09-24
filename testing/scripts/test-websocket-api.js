@@ -1,6 +1,6 @@
 /**
  * Test script for WebSocket connection following API documentation
- * Tests connection to https://api.chhrone.web.id with proper event handling
+ * Tests connection to https://api.futureguide.id with proper event handling
  * Run with: node testing/scripts/test-websocket-api.js
  */
 
@@ -8,7 +8,7 @@ const { io } = require('socket.io-client');
 
 // Test configuration following API documentation
 const TEST_CONFIG = {
-  url: 'https://api.chhrone.web.id',
+  url: 'https://api.futureguide.id',
   token: 'your-actual-jwt-token-here', // Replace with real token for testing
   timeout: 15000,
   authTimeout: 10000 // Authentication must happen within 10 seconds

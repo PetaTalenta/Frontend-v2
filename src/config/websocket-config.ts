@@ -17,7 +17,7 @@ export const WEBSOCKET_CONFIG = {
   HEARTBEAT_INTERVAL: 15000, // 15 seconds (more frequent heartbeat)
 
   // URLs
-  PRODUCTION_URL: 'https://api.chhrone.web.id',
+  PRODUCTION_URL: 'https://api.futureguide.id',
   DEVELOPMENT_URL: 'http://localhost:3001',
 
   // Fallback settings

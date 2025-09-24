@@ -6,14 +6,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/ca
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { useAuth } from '../../contexts/AuthContext';
-import { 
-  calculateUserStats, 
-  formatStatsForDashboard, 
+import {
+  calculateUserStats,
+  formatStatsForDashboard,
   getUserActivitySummary,
-  simulateNewAssessment,
-  updateAssessmentStatus,
   UserStats
-} from '../../services/user-stats';
+} from '../../utils/user-stats';
 import { 
   BarChart3, 
   CheckCircle, 
@@ -56,18 +54,9 @@ export default function StatsDemoPage() {
     
     setIsSimulating(true);
     try {
-      // Create a new processing assessment
-      const resultId = await simulateNewAssessment(user.id);
-      
-      // Simulate processing time (3 seconds)
-      setTimeout(async () => {
-        await updateAssessmentStatus(resultId, 'completed');
-        await loadUserStats(); // Refresh stats
-        setIsSimulating(false);
-      }, 3000);
-      
-      // Refresh stats immediately to show processing
+      // Demo actions removed in utils version; just refetch stats
       await loadUserStats();
+      setIsSimulating(false);
     } catch (error) {
       console.error('Error simulating assessment:', error);
       setIsSimulating(false);
@@ -147,7 +136,7 @@ export default function StatsDemoPage() {
                 <p><strong>Email:</strong> {user?.email}</p>
               </div>
               <div>
-                <p><strong>Last Assessment:</strong> {activitySummary.lastAssessmentDate}</p>
+                <p><strong>Active Assessments:</strong> {activitySummary.activeAssessments}</p>
                 <p><strong>Completion Rate:</strong> {activitySummary.completionRate}%</p>
               </div>
             </div>
@@ -191,32 +180,23 @@ export default function StatsDemoPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="text-center">
                 <div className="text-2xl font-bold text-[#1e1e1e] mb-1">
-                  {activitySummary.tokensEarned}
+                  {userStats.completed}
                 </div>
-                <div className="text-sm text-[#64707d]">Tokens Earned</div>
-                <div className="text-xs text-green-600 mt-1">
-                  +5 per completed assessment
-                </div>
+                <div className="text-sm text-[#64707d]">Completed Assessments</div>
               </div>
-              
+
               <div className="text-center">
                 <div className="text-2xl font-bold text-[#1e1e1e] mb-1">
-                  {activitySummary.tokensSpent}
+                  {userStats.processing}
                 </div>
-                <div className="text-sm text-[#64707d]">Tokens Spent</div>
-                <div className="text-xs text-orange-600 mt-1">
-                  -2 per processing assessment
-                </div>
+                <div className="text-sm text-[#64707d]">Processing Assessments</div>
               </div>
-              
+
               <div className="text-center">
                 <div className="text-2xl font-bold text-[#1e1e1e] mb-1">
-                  {activitySummary.currentBalance}
+                  {userStats.tokenBalance}
                 </div>
                 <div className="text-sm text-[#64707d]">Current Balance</div>
-                <div className="text-xs text-blue-600 mt-1">
-                  Started with 10 tokens
-                </div>
               </div>
             </div>
           </CardContent>

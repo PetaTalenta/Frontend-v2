@@ -7,7 +7,7 @@ import { Card, CardContent } from '../ui/card';
 import { Skeleton } from '../ui/skeleton';
 import { toast } from '../ui/use-toast';
 import { AssessmentResult, AssessmentScores, ApiAssessmentData } from '../../types/assessment-results';
-import { exportResultAsPDF } from '../../services/assessment-api';
+import apiService from '../../services/apiService';
 // Toggle public API
 async function toggleResultPublic(resultId: string, isPublic: boolean): Promise<{success: boolean, is_public: boolean}> {
   // Use proxy endpoint to avoid CORS issues if needed
@@ -36,8 +36,6 @@ import {
   getBrowserLimitations
 } from '../../utils/screenshot-utils';
 import { exportCompletePDF, downloadPDF } from '../../utils/pdf-export-utils';
-import { exportAdvancedPDF, downloadAdvancedPDF } from '../../utils/advanced-pdf-export';
-import { exportMultiPagePDF, downloadMultiPagePDF } from '../../utils/multi-page-pdf-export';
 import PersonaProfileSummary from './PersonaProfileSummary';
 import AssessmentScoresChart from './AssessmentScoresChart';
 import AssessmentScoresSummary from './AssessmentScoresSummary';
@@ -266,7 +264,7 @@ export default function ResultsPageClient({ initialResult, resultId }: ResultsPa
       setExportType('pdf');
 
       console.log('Starting PDF export for result ID:', result.id);
-      const pdfBlob = await exportResultAsPDF(result.id);
+      const pdfBlob = await exportCompletePDF(result.id, result);
 
       // Create download link for the PDF
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);

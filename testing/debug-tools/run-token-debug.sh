@@ -101,7 +101,7 @@ test_api_endpoints() {
     
     # Real API
     echo "Testing real API..."
-    if curl -s -o /dev/null -w "%{http_code}" https://api.chhrone.web.id/api/health | grep -q "200"; then
+    if curl -s -o /dev/null -w "%{http_code}" https://api.futureguide.id/api/health | grep -q "200"; then
         print_success "Real API is accessible"
     else
         print_warning "Real API is not accessible or down"

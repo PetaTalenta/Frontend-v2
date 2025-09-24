@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Login from "./Login";
 import Register from "./Register";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../contexts/AuthContext";
 
 const AuthPage = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -113,7 +113,7 @@ const AuthPage = () => {
             {/* Title with Enhanced Typography */}
             <div className="mb-8">
               <h1 className="text-6xl font-bold mb-4 bg-gradient-to-r from-white via-blue-100 to-cyan-200 bg-clip-text text-transparent leading-tight">
-                ATMA
+                Future Guide
               </h1>
               <div className="w-20 h-0.5 bg-gradient-to-r from-transparent via-cyan-400 to-transparent mx-auto mb-6"></div>
             </div>
@@ -193,7 +193,7 @@ const AuthPage = () => {
             {/* Additional Professional Touch */}
             <div className="mt-16">
               <p className="text-blue-200/60 text-sm font-light italic">
-                "Find your calling in life with ATMA."
+                "Find your calling in life with Future Guide."
               </p>
             </div>
           </div>
@@ -221,7 +221,7 @@ const AuthPage = () => {
           {/* Mobile Header (visible only on small screens) */}
           <div className="lg:hidden text-center mb-8">
             <h1 className="text-3xl font-bold text-gray-800 mb-2">
-              ATMA Platform
+              Future Guide Platform
             </h1>
             <p className="text-gray-500">AI-Driven Talent Mapping Assessment</p>
           </div>
@@ -262,7 +262,7 @@ const AuthPage = () => {
           {/* Footer */}
           <div className="text-center mt-8">
             <p className="text-sm text-gray-400">
-              © 2024 ATMA Platform. All rights reserved.
+              © 2025 Future Guide Platform. All rights reserved.
             </p>
           </div>
         </div>

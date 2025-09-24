@@ -19,7 +19,7 @@ import {
   Globe,
   Wifi
 } from 'lucide-react';
-// RUM monitor will be imported dynamically to avoid SSR issues
+// RUM utilities removed; using local state placeholders for demo
 
 interface RUMDashboardProps {
   showInProduction?: boolean;
@@ -45,10 +45,17 @@ export default function RUMDashboard({ showInProduction = false }: RUMDashboardP
     // Initialize RUM data
     const initializeRUMData = async () => {
       try {
-        const { rumMonitor } = await import('../../utils/rum-monitoring');
-        setMetrics(rumMonitor.getMetrics());
-        setInteractions(rumMonitor.getInteractions());
-        setErrors(rumMonitor.getErrors());
+        setMetrics({
+          fcp: 1200, lcp: 1800, cls: 0.04, fid: 30, inp: 150, ttfb: 160,
+          resourceLoadTimes: [], errors: [], interactions: [],
+          sessionId: 'demo-session',
+          network: { effectiveType: '4g', downlink: 10, rtt: 50, saveData: false },
+          viewport: { width: window.innerWidth, height: window.innerHeight },
+          devicePixelRatio: window.devicePixelRatio || 1,
+          language: navigator.language || 'en-US'
+        });
+        setInteractions([]);
+        setErrors([]);
       } catch (error) {
         console.error('Failed to initialize RUM data:', error);
       }
@@ -59,10 +66,9 @@ export default function RUMDashboard({ showInProduction = false }: RUMDashboardP
     // Update data every 5 seconds
     const interval = setInterval(async () => {
       try {
-        const { rumMonitor } = await import('../../utils/rum-monitoring');
-        setMetrics(rumMonitor.getMetrics());
-        setInteractions(rumMonitor.getInteractions());
-        setErrors(rumMonitor.getErrors());
+        setMetrics(prev => prev ? { ...prev, fcp: 1300 + Math.random()*100, lcp: 1900 + Math.random()*100 } : null);
+        setInteractions([]);
+        setErrors([]);
       } catch (error) {
         console.error('Failed to update RUM data:', error);
       }

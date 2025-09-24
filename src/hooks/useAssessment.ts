@@ -129,11 +129,11 @@ export function useAssessment(options: AssessmentOptions = {}): UseAssessmentRet
         result: undefined
       });
 
-      // Import the consolidated service
-      const { assessmentService } = await import('../services/assessment-service');
+      // Use the public ApiService facade (keeps only 3 public services)
+      const apiService = (await import('../services/apiService')).default;
 
-      // Submit assessment
-      const result = await assessmentService.submitFromAnswers(answers, assessmentName, {
+      // Submit assessment with unified monitoring via facade
+      const result = await apiService.processAssessmentUnified(answers, assessmentName, {
         onProgress: handleProgress,
         onTokenBalanceUpdate: options.onTokenBalanceUpdate,
         preferWebSocket: options.preferWebSocket,

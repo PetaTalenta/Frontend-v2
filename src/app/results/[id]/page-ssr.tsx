@@ -7,7 +7,7 @@ import ResultsPageClient from '../../../components/results/ResultsPageClient';
 async function getAssessmentResult(id: string): Promise<AssessmentResult | null> {
   try {
     // Use the same API endpoint but from server-side
-    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.chhrone.web.id';
+    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.futureguide.id';
     const response = await fetch(`${baseUrl}/api/assessment/archive/${id}`, {
       headers: {
         'Content-Type': 'application/json',

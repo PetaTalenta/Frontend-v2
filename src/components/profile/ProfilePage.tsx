@@ -25,7 +25,7 @@ import {
   CheckCircle,
   AlertCircle
 } from 'lucide-react';
-import { getUserProfile, updateUserProfile, changeUserPassword } from '../../services/profile-api';
+import apiService from '../../services/apiService';
 
 interface UserProfile {
   user: {
@@ -100,7 +100,7 @@ export default function ProfilePage() {
     setError('');
 
     try {
-      const profileData = await getUserProfile(token);
+      const profileData = await apiService.getProfile();
       console.log('Profile data received:', profileData);
 
       if (profileData && profileData.success) {
@@ -239,7 +239,7 @@ export default function ProfilePage() {
         return;
       }
 
-      const result = await updateUserProfile(token, updateData);
+      const result = await apiService.updateProfile(updateData);
 
       if (result && result.success) {
         setSuccess('Profile updated successfully');
@@ -294,7 +294,7 @@ export default function ProfilePage() {
     setSuccess('');
 
     try {
-      const result = await changeUserPassword(token, {
+      const result = await apiService.changePassword({
         currentPassword: passwordData.currentPassword,
         newPassword: passwordData.newPassword
       });

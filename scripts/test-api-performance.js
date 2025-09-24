@@ -10,7 +10,7 @@ const http = require('http');
 
 // Configuration
 const API_CONFIG = {
-  BASE_URL: 'https://api.chhrone.web.id',
+  BASE_URL: 'https://api.futureguide.id',
   TIMEOUT: 15000,
   MAX_RETRIES: 3,
 };

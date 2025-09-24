@@ -1,7 +1,7 @@
 import useSWR from 'swr';
 import { useAuth } from '../contexts/AuthContext';
-import { calculateUserStats, formatStatsForDashboard, formatAssessmentHistory, calculateUserProgress } from '../services/user-stats';
-import { getLatestAssessmentResult } from '../services/assessment-api';
+import { calculateUserStats, formatStatsForDashboard, fetchAssessmentHistoryFromAPI as formatAssessmentHistory, calculateUserProgress } from '../utils/user-stats';
+import apiService from '../services/apiService';
 
 // Hook for user statistics
 export function useUserStats() {
@@ -42,7 +42,7 @@ export function useDashboardData() {
       
       const [stats, assessments, progress] = await Promise.all([
         formatStatsForDashboard(userStats),
-        formatAssessmentHistory(userStats),
+        formatAssessmentHistory(),
         calculateUserProgress(userStats)
       ]);
       
@@ -76,7 +76,11 @@ export function useLatestAssessmentResult() {
   
   const { data, error, isLoading, mutate } = useSWR(
     user ? `latest-result-${user.id}` : null,
-    () => getLatestAssessmentResult(user!.id),
+    async () => {
+      // @ts-ignore: api accepts sort/order
+      const resp = await apiService.getResults({ limit: 1, status: 'completed', sort: 'created_at', order: 'DESC' } as any);
+      return resp.success && resp.data?.results?.length ? resp.data.results[0] : null;
+    },
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: true,

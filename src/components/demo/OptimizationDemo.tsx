@@ -20,6 +20,8 @@ import {
 } from 'lucide-react';
 
 // Optimization status will be managed locally
+// NOTE: Demo-only performance utils (ab-testing, cdn-performance, rum-monitoring) have been removed.
+// Minimal in-component placeholders are used instead to keep this demo functional without extra utils.
 
 interface DemoState {
   cdnInitialized: boolean;
@@ -61,9 +63,8 @@ export default function OptimizationDemo() {
     try {
       if (typeof window === 'undefined') return;
 
-      // Get A/B test variant
-      const { getTestVariant } = await import('../../utils/ab-testing');
-      const testVariant = getTestVariant('assessment_calculation_method');
+      // Demo-only: set a static test variant without importing ab-testing util
+      const testVariant = 'web_workers';
       setState(prev => ({
         ...prev,
         currentTest: testVariant
@@ -79,15 +80,37 @@ export default function OptimizationDemo() {
     try {
       if (typeof window === 'undefined') return;
 
-      // CDN Stats
-      const { cdnPerformanceMonitor } = await import('../../utils/cdn-performance');
-      const cdnPerformance = cdnPerformanceMonitor.getPerformanceSummary();
-      setCdnStats(cdnPerformance);
+      // CDN Stats - demo placeholder
+      setCdnStats({
+        averageResponseTime: 120,
+        averageCacheHitRate: 85,
+        averageBandwidth: 42,
+        averageErrorRate: 0.2,
+        availability: 99.9
+      });
 
-      // RUM Stats
-      const { rumMonitor } = await import('../../utils/rum-monitoring');
-      const rumMetrics = rumMonitor.getMetrics();
-      setRumStats(rumMetrics);
+      // RUM Stats - demo placeholder
+      setRumStats({
+        fcp: 1200,
+        lcp: 1800,
+        cls: 0.03,
+        fid: 40,
+        inp: 180,
+        ttfb: 180,
+        resourceLoadTimes: [],
+        errors: [],
+        interactions: [],
+        sessionId: 'demo-session',
+        network: {
+          effectiveType: '4g',
+          downlink: 10,
+          rtt: 50,
+          saveData: false
+        },
+        viewport: { width: 1440, height: 900 },
+        devicePixelRatio: window.devicePixelRatio || 1,
+        language: navigator.language || 'en-US'
+      });
 
       // Worker Stats
       const { getComlinkWorkerStatistics } = await import('../../utils/comlink-worker-manager');

@@ -7,7 +7,7 @@ const { io } = require('socket.io-client');
 
 // Test configuration - Updated to match API documentation
 const TEST_CONFIG = {
-  url: 'https://api.chhrone.web.id', // Production API URL as per documentation
+  url: 'https://api.futureguide.id', // Production API URL as per documentation
   token: 'test-jwt-token-123', // Mock token for testing
   timeout: 15000 // Increased timeout for production API
 };

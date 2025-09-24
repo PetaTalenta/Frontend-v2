@@ -59,7 +59,7 @@ export default function ResultsDemoPage() {
               Demo Hasil Assessment
             </h1>
             <p className="text-lg text-[#64707d] max-w-2xl mx-auto">
-              Jelajahi contoh hasil assessment ATMA untuk memahami bagaimana sistem menganalisis 
+              Jelajahi contoh hasil assessment Future Guide untuk memahami bagaimana sistem menganalisis 
               kepribadian dan memberikan rekomendasi karir yang personal.
             </p>
           </div>
@@ -190,7 +190,7 @@ export default function ResultsDemoPage() {
             </h3>
             <p className="text-white/90 mb-6 max-w-2xl mx-auto">
               Dapatkan analisis kepribadian yang personal dan rekomendasi karir yang sesuai 
-              dengan potensi unik Anda melalui assessment ATMA.
+              dengan potensi unik Anda melalui assessment Future Guide.
             </p>
             <div className="flex gap-4 justify-center">
               <Button 

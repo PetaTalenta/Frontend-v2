@@ -3,7 +3,7 @@
  * Tests connectivity to the real API and manages fallback logic
  */
 
-const REAL_API_BASE_URL = 'https://api.chhrone.web.id';
+const REAL_API_BASE_URL = 'https://api.futureguide.id';
 const PROXY_API_BASE_URL = '/api/proxy'; // Use Next.js API proxy to avoid CORS
 const HEALTH_CHECK_TIMEOUT = 10000; // 10 seconds
 const HEALTH_CHECK_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes

@@ -229,7 +229,7 @@ const nextConfig = {
   //   return [
   //     {
   //       source: '/api/:path*',
-  //       destination: 'https://api.chhrone.web.id/api/:path*',
+  //       destination: 'https://futureguide.id/api/:path*',
   //     },
   //   ];
   // },

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const ARCHIVE_API_BASE_URL = 'https://api.chhrone.web.id';
+const ARCHIVE_API_BASE_URL = 'https://api.futureguide.id';
 
 export async function GET(
   request: NextRequest,

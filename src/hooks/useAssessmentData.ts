@@ -1,12 +1,12 @@
 import useSWR from 'swr';
 import { AssessmentResult } from '../types/assessment-results';
-import { getAssessmentResultFromArchiveAPI, getUserAssessmentResults } from '../services/assessment-api';
+import { getLatestAssessmentFromArchive as getAssessmentResultFromAPI, fetchAssessmentHistoryFromAPI as getUserAssessmentResults } from '../utils/user-stats';
 
 // Hook for fetching single assessment result
 export function useAssessmentResult(resultId: string | null) {
   const { data, error, isLoading, mutate } = useSWR(
     resultId ? `assessment-result-${resultId}` : null,
-    () => getAssessmentResultFromArchiveAPI(resultId!, 3),
+    () => getAssessmentResultFromAPI(resultId!),
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: true,
@@ -56,7 +56,7 @@ export function useUserAssessmentResults() {
 export function useAssessmentResultOptimistic(resultId: string | null) {
   const { data, error, isLoading, mutate } = useSWR(
     resultId ? `assessment-result-optimistic-${resultId}` : null,
-    () => getAssessmentResultFromArchiveAPI(resultId!, 3),
+    () => getAssessmentResultFromAPI(resultId!),
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: true,
@@ -89,7 +89,7 @@ export function usePreloadAssessmentResults() {
     // Preload the data without subscribing to it
     mutate(
       `assessment-result-${resultId}`,
-      getAssessmentResultFromArchiveAPI(resultId, 3),
+      getAssessmentResultFromAPI(resultId),
       false
     );
   };

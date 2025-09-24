@@ -1,10 +1,10 @@
 // API Configuration - OPTIMIZED for faster response
 export const API_CONFIG = {
   // API Gateway URL - Always use real API
-  BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.chhrone.web.id',
+  BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.futureguide.id',
 
   // WebSocket/Notification URL
-  NOTIFICATION_URL: process.env.NEXT_PUBLIC_NOTIFICATION_URL || 'https://api.chhrone.web.id',
+  NOTIFICATION_URL: process.env.NEXT_PUBLIC_NOTIFICATION_URL || 'https://api.futureguide.id',
 
   // Request timeout - OPTIMIZED for faster failure detection
   TIMEOUT: 15000, // 15 seconds (reduced from 30s)

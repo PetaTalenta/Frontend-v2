@@ -172,7 +172,7 @@ function displayConfigurationInfo() {
   
   console.log('🌐 API Endpoints:');
   console.log('   Proxy: http://localhost:3000/api/proxy');
-  console.log('   Direct: https://api.chhrone.web.id');
+  console.log('   Direct: https://api.futureguide.id');
   console.log('');
 }
 

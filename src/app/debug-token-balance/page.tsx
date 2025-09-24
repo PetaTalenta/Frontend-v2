@@ -13,11 +13,11 @@ import {
   quickDiagnostic
 } from '../../utils/debug-token-balance';
 import {
-  forceRefreshTokenBalance,
+  forceRefreshTokenBalanceFix as forceRefreshTokenBalance,
   fixAuthenticationIssues,
   fixApiEndpointIssues,
   runAllQuickFixes
-} from '../../utils/token-balance-fixes';
+} from '../../utils/token-balance';
 
 interface DebugResult {
   step: string;

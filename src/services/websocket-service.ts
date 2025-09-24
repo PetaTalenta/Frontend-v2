@@ -29,7 +29,7 @@ export type ErrorCallback = (error: Error) => void;
 
 // Configuration - Updated to match documentation
 const WS_CONFIG = {
-  URL: 'https://api.chhrone.web.id',
+  URL: 'https://api.futureguide.id',
   RECONNECTION_ATTEMPTS: 5,
   RECONNECTION_DELAY: 1000,        // Reduced from 2000ms
   CONNECTION_TIMEOUT: 15000,       // Reduced from 20000ms for better UX

@@ -86,7 +86,7 @@ export default function AuthDemoPage() {
             </h1>
             <p className="text-lg text-[#64707d] max-w-2xl mx-auto">
               Explore the complete authentication flow with secure login, registration, 
-              and route protection for the ATMA platform.
+              and route protection for the Future Guide platform.
             </p>
           </div>
         </div>

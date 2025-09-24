@@ -6,14 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../..
 import { Badge } from '../../components/ui/badge';
 import { Alert, AlertDescription } from '../../components/ui/alert';
 import { Loader2, CheckCircle, XCircle, AlertCircle, RefreshCw } from 'lucide-react';
-import { checkApiHealth, getApiStatus, clearHealthCheckCache } from '../../utils/api-health';
-import {
-  loginUser,
-  registerUser,
-  getApiStatus as getEnhancedApiStatus,
-  loginUserRealApiOnly,
-  registerUserRealApiOnly
-} from '../../services/enhanced-auth-api';
+import { checkApiHealth, clearHealthCheckCache, getApiBaseUrl } from '../../utils/api-health';
+
 
 interface TestResult {
   id: number;
@@ -64,10 +58,15 @@ export default function ApiTestPage() {
   const runApiStatusCheck = async () => {
     setIsLoading(true);
     try {
-      const status = await getEnhancedApiStatus();
+      // Simplified status: use proxy health
+      const health = await checkApiHealth();
+      const status = {
+        isRealApiAvailable: health.isAvailable,
+        currentApiSource: health.isAvailable ? 'real' : 'mock'
+      };
       setApiStatus(status);
       addTestResult(
-        'Enhanced API Status',
+        'API Status',
         true,
         `Using ${status.currentApiSource} API`,
         status
@@ -82,18 +81,21 @@ export default function ApiTestPage() {
   const testLogin = async () => {
     setIsLoading(true);
     try {
-      const result = await loginUser({
-        email: 'test@example.com',
-        password: 'testpassword'
+      const baseUrl = await getApiBaseUrl();
+      const response = await fetch(`${baseUrl}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: 'test@example.com', password: 'testpassword' })
       });
-      
+      const data = await response.json();
+
       addTestResult(
         'Login Test',
-        result.success,
-        result.success 
-          ? `Login successful via ${result.apiSource} API` 
-          : `Login failed: ${result.error?.message}`,
-        result
+        response.ok,
+        response.ok
+          ? `Login responded with ${response.status}`
+          : `Login failed: ${data?.message || response.statusText}`,
+        data
       );
     } catch (error: any) {
       addTestResult('Login Test', false, `Error: ${error?.message || 'Unknown error'}`);
@@ -105,18 +107,21 @@ export default function ApiTestPage() {
   const testRegister = async () => {
     setIsLoading(true);
     try {
-      const result = await registerUser({
-        email: `test-${Date.now()}@example.com`,
-        password: 'testpassword'
+      const baseUrl = await getApiBaseUrl();
+      const response = await fetch(`${baseUrl}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: `test-${Date.now()}@example.com`, password: 'testpassword' })
       });
+      const data = await response.json();
 
       addTestResult(
         'Register Test',
-        result.success,
-        result.success
-          ? `Registration successful via ${result.apiSource} API`
-          : `Registration failed: ${result.error?.message}`,
-        result
+        response.ok,
+        response.ok
+          ? `Register responded with ${response.status}`
+          : `Register failed: ${data?.message || response.statusText}`,
+        data
       );
     } catch (error: any) {
       addTestResult('Register Test', false, `Error: ${error?.message || 'Unknown error'}`);
@@ -251,7 +256,7 @@ export default function ApiTestPage() {
                 </div>
                 <div className="text-sm text-gray-600">
                   {apiStatus.isRealApiAvailable 
-                    ? 'Connected to api.chhrone.web.id' 
+                    ? 'Connected to futureguide.id' 
                     : 'Using local mock API for development'
                   }
                 </div>

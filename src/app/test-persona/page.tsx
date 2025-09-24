@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { generateApiOnlyAnalysis } from '../../services/ai-analysis';
+import { generateApiOnlyAnalysis } from '../../utils/ai-analysis';
 import { AssessmentScores } from '../../types/assessment-results';
 
 export default function TestPersonaPage() {

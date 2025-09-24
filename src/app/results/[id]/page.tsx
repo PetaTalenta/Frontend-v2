@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { AssessmentResult } from '../../../types/assessment-results';
-import { getAssessmentResult } from '../../../services/assessment-api';
+import apiService from '../../../services/apiService';
 import ResultsPageClient from '../../../components/results/ResultsPageClient';
 
 // Comprehensive results page using ResultsPageClient
@@ -22,7 +22,8 @@ export default function ResultsPage() {
         setLoading(true);
         setError(null);
 
-        const assessmentResult = await getAssessmentResult(resultId);
+        const resp = await apiService.getResultById(resultId);
+        const assessmentResult = resp?.success ? resp.data : null;
         console.log('ResultsPage: Result loaded:', assessmentResult);
 
         if (!assessmentResult) {

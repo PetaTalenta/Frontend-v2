@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Check, ChevronsUpDown, Search, School as SchoolIcon } from "lucide-react"
+import { Check, ChevronsUpDown, School as SchoolIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
@@ -19,7 +19,8 @@ import {
 } from "@/components/ui/popover"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { getSchools, getSchoolsByLocation, validateSchoolId, type School } from "@/services/school-api"
+import apiService from "@/services/apiService";
+export type School = { id: number; name: string; location?: string; province?: string; city?: string; type?: string }
 
 interface SchoolSelectorProps {
   value?: string
@@ -58,8 +59,8 @@ export function SchoolSelector({
     setError('')
     
     try {
-      const response = await getSchools(token)
-      
+      const response = await apiService.getSchools()
+
       if (response.success && response.data) {
         setSchools(response.data)
       } else {
@@ -124,8 +125,8 @@ export function SchoolSelector({
     setValidationError('')
 
     try {
-      const isValid = await validateSchoolId(schoolId, token)
-      
+      const isValid = await apiService.validateSchoolId(schoolId)
+
       if (isValid) {
         onValueChange(schoolId.toString())
         setManualEntry(false)

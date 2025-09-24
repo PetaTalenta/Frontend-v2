@@ -85,7 +85,7 @@ export async function testAllTokenBalanceEndpoints(token: string): Promise<Debug
   // Test endpoints (Mock API removed)
   const endpoints = [
     { url: '/api/proxy/auth/token-balance', description: 'Proxy API' },
-    { url: 'https://api.chhrone.web.id/api/auth/token-balance', description: 'Real API Direct' }
+    { url: 'https://api.futureguide.id/api/auth/token-balance', description: 'Real API Direct' }
   ];
 
   for (const endpoint of endpoints) {
@@ -112,7 +112,7 @@ function generateRecommendations(tests: TokenBalanceDebugInfo[]): string[] {
   const recommendations: string[] = [];
 
   const proxyApiTest = tests.find(t => t.endpoint.includes('/api/proxy/auth/token-balance'));
-  const realApiTest = tests.find(t => t.endpoint.includes('https://api.chhrone.web.id'));
+  const realApiTest = tests.find(t => t.endpoint.includes('https://api.futureguide.id'));
 
   // Check proxy API
   if (proxyApiTest?.status === 200) {

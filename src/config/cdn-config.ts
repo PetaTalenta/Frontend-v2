@@ -100,7 +100,7 @@ export const CDN_CONFIG = {
     // Resource hints
     DNS_PREFETCH: [
       'https://fonts.googleapis.com',
-      'https://api.chhrone.web.id'
+      'https://api.futureguide.id'
     ],
     
     // Preconnect to critical origins

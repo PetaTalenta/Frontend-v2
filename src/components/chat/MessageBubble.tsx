@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { ChatMessage } from '../../services/chat-api';
+import type { ChatMessage } from '../../services/helpers/chat-types';
 import { Avatar, AvatarFallback } from '../ui/avatar';
 import { Card, CardContent } from '../ui/card';
 import { Bot, User } from 'lucide-react';

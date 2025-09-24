@@ -2,8 +2,8 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { clearDemoAssessmentData } from '../services/user-stats';
-import { getUserProfile } from '../services/profile-api';
+import { clearDemoAssessmentData } from '../utils/user-stats';
+import apiService from '../services/apiService';
 
 interface User {
   id: string;
@@ -157,7 +157,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const fetchUsernameFromProfile = async (token: string) => {
     try {
       console.log('AuthContext: Fetching username from profile...');
-      const profileData = await getUserProfile(token);
+      const profileData = await apiService.getProfile();
       console.log('AuthContext: Profile data received:', profileData);
 
       if (profileData && profileData.success && profileData.data?.user) {

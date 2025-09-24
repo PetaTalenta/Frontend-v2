@@ -1,5 +1,7 @@
 import axios from 'axios';
 import { API_CONFIG, API_ENDPOINTS } from '../config/api';
+import { logger } from '../utils/env-logger';
+
 
 // Admin API Service - Terpisah dari user authentication
 class AdminService {
@@ -28,16 +30,13 @@ class AdminService {
 
     try {
       const response = await axios(config);
-      // Remove debug log to reduce console noise
       return response.data;
     } catch (error) {
-      console.error('Admin API Error:', error);
+      logger.error('Admin API Error:', error);
       if (error.response?.status === 401) {
-        // Token expired, clear admin session
         this.logout();
         throw new Error('Session expired. Please login again.');
       }
-      
       const errorData = error.response?.data;
       throw new Error(errorData?.error?.message || error.message || 'Request failed');
     }
@@ -66,19 +65,12 @@ class AdminService {
         throw new Error(response.data.error?.message || 'Login failed');
       }
     } catch (error) {
-      // FIXED: Safe check for connection error with optional chaining
-      if (error?.code === 'ERR_NETWORK' || error?.message?.includes('ERR_CONNECTION_REFUSED')) {
-        console.warn('Backend not available, using mock data for development');
-        return this.mockLogin(username, password);
-      }
-
       const errorData = error.response?.data;
       throw new Error(errorData?.error?.message || error.message || 'Login failed');
     }
   }
 
-  // Mock login for development when backend is not available
-  mockLogin(username, password) {
+  // Mock login removed
     if (username === 'superadmin' && password === 'admin123') {
       const mockAdmin = {
         id: 'mock-admin-id',
@@ -113,7 +105,7 @@ class AdminService {
         await this.adminApiRequest(API_ENDPOINTS.ADMIN.LOGOUT, { method: 'POST' });
       }
     } catch (error) {
-      console.warn('Logout request failed:', error.message);
+      logger.warn('Logout request failed:', error.message);
     } finally {
       // Clear admin session regardless of API response
       localStorage.removeItem('adminToken');
@@ -124,37 +116,7 @@ class AdminService {
   }
 
   async getProfile() {
-    try {
-      return await this.adminApiRequest(API_ENDPOINTS.ADMIN.PROFILE);
-    } catch (error) {
-      // FIXED: Safe check for connection error with optional chaining
-      if (error?.message?.includes('Network Error') || error?.code === 'ERR_NETWORK') {
-        console.warn('Backend not available, using mock profile data for development');
-        return this.mockGetProfile();
-      }
-      throw error;
-    }
-  }
-
-  mockGetProfile() {
-    const mockAdmin = {
-      id: 'mock-admin-id',
-      username: 'superadmin',
-      email: 'admin@atma.com',
-      full_name: 'Super Administrator',
-      role: 'superadmin',
-      is_active: true,
-      last_login: new Date().toISOString(),
-      created_at: '2024-01-01T00:00:00Z',
-      updated_at: new Date().toISOString()
-    };
-
-    return {
-      success: true,
-      data: {
-        admin: mockAdmin
-      }
-    };
+    return await this.adminApiRequest(API_ENDPOINTS.ADMIN.PROFILE);
   }
 
   async updateProfile(profileData) {
@@ -214,11 +176,6 @@ class AdminService {
 
       return response;
     } catch (error) {
-      // FIXED: Safe check for connection error with optional chaining
-      if (error?.message?.includes('Network Error') || error?.code === 'ERR_NETWORK') {
-        console.warn('Backend not available, using mock users data for development');
-        return this.mockGetUsers(page, limit, search, sortBy, sortOrder);
-      }
 
       // Return safe default structure on other errors
       return {
@@ -238,92 +195,7 @@ class AdminService {
     }
   }
 
-  mockGetUsers(page = 1, limit = 10, search = '', sortBy = 'created_at', sortOrder = 'DESC') {
-    const mockUsers = [
-      {
-        id: 'user-1',
-        username: 'john_doe',
-        email: 'john@example.com',
-        full_name: 'John Doe',
-        token_balance: 100,
-        is_active: true,
-        created_at: '2024-01-15T10:30:00Z',
-        updated_at: '2024-01-15T10:30:00Z',
-        last_login: '2024-01-20T14:20:00Z'
-      },
-      {
-        id: 'user-2',
-        username: 'jane_smith',
-        email: 'jane@example.com',
-        full_name: 'Jane Smith',
-        token_balance: 75,
-        is_active: true,
-        created_at: '2024-01-10T09:15:00Z',
-        updated_at: '2024-01-10T09:15:00Z',
-        last_login: '2024-01-19T16:45:00Z'
-      },
-      {
-        id: 'user-3',
-        username: 'bob_wilson',
-        email: 'bob@example.com',
-        full_name: 'Bob Wilson',
-        token_balance: 50,
-        is_active: false,
-        created_at: '2024-01-05T11:00:00Z',
-        updated_at: '2024-01-05T11:00:00Z',
-        last_login: '2024-01-18T12:30:00Z'
-      }
-    ];
 
-    // Apply search filter
-    let filteredUsers = mockUsers;
-    if (search) {
-      filteredUsers = mockUsers.filter(user =>
-        user.username.toLowerCase().includes(search.toLowerCase()) ||
-        user.email.toLowerCase().includes(search.toLowerCase()) ||
-        user.full_name.toLowerCase().includes(search.toLowerCase())
-      );
-    }
-
-    // Apply sorting
-    filteredUsers.sort((a, b) => {
-      let aValue = a[sortBy];
-      let bValue = b[sortBy];
-
-      if (sortBy === 'created_at' || sortBy === 'updated_at' || sortBy === 'last_login') {
-        aValue = new Date(aValue);
-        bValue = new Date(bValue);
-      }
-
-      if (sortOrder === 'ASC') {
-        return aValue > bValue ? 1 : -1;
-      } else {
-        return aValue < bValue ? 1 : -1;
-      }
-    });
-
-    // Apply pagination
-    const total = filteredUsers.length;
-    const totalPages = Math.ceil(total / limit);
-    const startIndex = (page - 1) * limit;
-    const endIndex = startIndex + limit;
-    const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
-
-    return {
-      success: true,
-      data: {
-        users: paginatedUsers,
-        pagination: {
-          page: parseInt(page),
-          limit: parseInt(limit),
-          total,
-          totalPages,
-          hasNext: page < totalPages,
-          hasPrev: page > 1
-        }
-      }
-    };
-  }
 
   async getUserById(userId) {
     return await this.adminApiRequest(API_ENDPOINTS.ADMIN.USER_BY_ID(userId));
@@ -357,16 +229,16 @@ class AdminService {
       'admin': 2,
       'superadmin': 3
     };
-    
+
     const userLevel = roleHierarchy[this.adminUser.role] || 0;
     const requiredLevel = roleHierarchy[requiredRole] || 0;
-    
+
     return userLevel >= requiredLevel;
   }
 
   // FIXED: Error handling helper with safe property access
   handleError(error) {
-    console.error('Admin API Error:', error);
+    logger.error('Admin API Error:', error);
 
     const errorMessages = {
       'UNAUTHORIZED': 'Session expired. Please login again.',

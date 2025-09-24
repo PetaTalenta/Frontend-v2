@@ -4,7 +4,7 @@ import React from 'react';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { toast } from '../../components/ui/use-toast';
-import { exportMultiPagePDF, downloadMultiPagePDF } from '../../utils/multi-page-pdf-export';
+import { exportCompletePDF, downloadPDF } from '../../utils/pdf-export-utils';
 import { BookOpen, FileText, Download } from 'lucide-react';
 
 // Mock assessment result for testing
@@ -82,19 +82,18 @@ export default function TestPDFExportPage() {
         description: 'Sedang membuat PDF test...',
       });
 
-      const pdfBlob = await exportMultiPagePDF('test-123', mockResult as any, {
+      const pdfBlob = await exportCompletePDF('test-123', mockResult as any, {
         quality: 0.95,
         scale: 1.2,
         format: 'a4',
         orientation: 'portrait',
-        margin: 5,
-        waitTime: 3000
+        margin: 5
       });
 
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
       const filename = `test-assessment-complete-${timestamp}.pdf`;
 
-      downloadMultiPagePDF(pdfBlob, filename);
+      downloadPDF(pdfBlob, filename);
       
       toast({
         title: 'Berhasil!',

@@ -24,7 +24,7 @@ import { PageTransition } from '../components/animations/PageTransitions'
 // OptimizationInitializer removed to prevent dynamic import issues
 
 export const metadata: Metadata = {
-  title: 'PetaTalenta - ATMA Platform',
+  title: 'PetaTalenta - Future Guide Platform',
   description: 'AI-Driven Talent Mapping Assessment Platform',
   generator: 'By PetaTalenta',
   manifest: '/manifest.json',

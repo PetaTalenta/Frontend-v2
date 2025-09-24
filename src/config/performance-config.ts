@@ -123,14 +123,14 @@ export const PERFORMANCE_CONFIG = {
   NETWORK: {
     // Connection optimization
     DNS_PREFETCH_DOMAINS: [
-      'https://api.chhrone.web.id',
+      'https://api.futureguide.id',
       'https://fonts.googleapis.com',
       'https://fonts.gstatic.com',
     ],
     
     // Resource hints
     PRECONNECT_DOMAINS: [
-      'https://api.chhrone.web.id',
+      'https://api.futureguide.id',
     ],
     
     // Request optimization

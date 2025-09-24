@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
-import { generateApiOnlyAnalysis } from '../../services/ai-analysis';
+import { generateApiOnlyAnalysis } from '../../utils/ai-analysis';
 import { AssessmentScores, PersonaProfile } from '../../types/assessment-results';
 import { Loader2, Brain, User, Star, Target, Users, Briefcase } from 'lucide-react';
 

@@ -98,7 +98,7 @@ export default function AuthPage() {
             {/* Main Heading */}
             <div className="mb-8">
               <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-white via-blue-100 to-indigo-200 bg-clip-text text-transparent leading-tight">
-                ATMA Platform
+                Future Guide Platform
               </h1>
               <p className="text-xl text-blue-100 font-light leading-relaxed max-w-md mx-auto">
                 AI-Driven Talent Mapping Assessment
@@ -148,7 +148,7 @@ export default function AuthPage() {
             <div className="w-16 h-16 mx-auto bg-gradient-to-br from-[#6475e9] to-[#5a6bd8] rounded-2xl flex items-center justify-center mb-4">
               <Zap className="w-8 h-8 text-white" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900">ATMA Platform</h1>
+            <h1 className="text-2xl font-bold text-gray-900">Future Guide Platform</h1>
             <p className="text-gray-600 text-sm">AI-Driven Talent Mapping</p>
           </div>
 

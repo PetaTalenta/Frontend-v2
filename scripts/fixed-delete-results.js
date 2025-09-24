@@ -13,7 +13,7 @@ const readline = require('readline');
 
 // Configuration
 const API_CONFIG = {
-  BASE_URL: 'https://api.chhrone.web.id',
+  BASE_URL: 'https://api.futureguide.id',
   PROXY_URL: 'http://localhost:3000/api/proxy',
   TIMEOUT: 30000,
   RATE_LIMIT_DELAY: 1000 // 1 second delay between requests

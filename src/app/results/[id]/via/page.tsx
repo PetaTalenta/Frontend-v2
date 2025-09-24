@@ -10,7 +10,7 @@ import { Badge } from '../../../../components/ui/badge';
 import { Skeleton } from '../../../../components/ui/skeleton';
 import { toast } from '../../../../components/ui/use-toast';
 import { AssessmentResult, getScoreInterpretation, VIA_CATEGORIES } from '../../../../types/assessment-results';
-import { getAssessmentResult } from '../../../../services/assessment-api';
+import apiService from '../../../../services/apiService';
 import { getTopViaStrengths } from '../../../../utils/assessment-calculations';
 import { ArrowLeft, Palette, Lightbulb, Search, Heart, Shield, Scale, Flower } from 'lucide-react';
 import ViaRadarChart from '../../../../components/results/ViaRadarChart';
@@ -30,8 +30,8 @@ export default function ViaDetailPage() {
 
       try {
         setLoading(true);
-        const data = await getAssessmentResult(resultId);
-        setResult(data);
+        const resp = await apiService.getResultById(resultId);
+        if (resp?.success) setResult(resp.data); else throw new Error('Failed to load');
       } catch (err) {
         console.error('Error fetching assessment result:', err);
         setError('Failed to load assessment result');

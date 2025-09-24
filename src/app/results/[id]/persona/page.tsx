@@ -9,7 +9,7 @@ import { Badge } from '../../../../components/ui/badge';
 import { Skeleton } from '../../../../components/ui/skeleton';
 import { toast } from '../../../../components/ui/use-toast';
 import { AssessmentResult } from '../../../../types/assessment-results';
-import { getAssessmentResult } from '../../../../services/assessment-api';
+import apiService from '../../../../services/apiService';
 import { ArrowLeft, User, Star, Target, Users, Briefcase, TrendingUp, BookOpen, Lightbulb, GraduationCap, AlertTriangle, Building, Shield, Zap, Brain, Heart } from 'lucide-react';
 import IndustryCompatibilityCard from '../../../../components/results/IndustryCompatibilityCard';
 import { calculateIndustryScores } from '../../../../utils/industry-scoring';
@@ -29,7 +29,8 @@ export default function PersonaDetailPage() {
 
       try {
         setLoading(true);
-        const data = await getAssessmentResult(resultId);
+        const resp = await apiService.getResultById(resultId);
+        const data = resp?.success ? resp.data : null;
         setResult(data);
       } catch (err) {
         console.error('Error fetching assessment result:', err);

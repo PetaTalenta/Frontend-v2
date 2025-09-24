@@ -17,7 +17,7 @@ const QUICK_TEST_CONFIG = {
 
 // Configuration for concurrent-assessment-test.js
 const CONCURRENT_TEST_CONFIG = {
-  baseUrl: 'https://api.chhrone.web.id',
+  baseUrl: 'https://api.futureguide.id',
   proxyUrl: 'http://localhost:3000/api/proxy',
   concurrentAssessments: 3, // Number of simultaneous assessments
   testTimeout: 300000, // 5 minutes total timeout

@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/ca
 import { Skeleton } from '../../components/ui/skeleton';
 import { toast } from '../../components/ui/use-toast';
 import { AssessmentResult, AssessmentScores } from '../../types/assessment-results';
-import { getLatestAssessmentResult } from '../../services/assessment-api';
+import apiService from '../../services/apiService';
 import OceanBarChart from '../../components/results/OceanBarChart';
 import { ArrowLeft, BarChart3, RefreshCw, AlertCircle } from 'lucide-react';
 
@@ -68,8 +68,9 @@ export default function OceanBarChartDemoPage() {
     
     try {
       console.log('Loading latest assessment result...');
-      const result = await getLatestAssessmentResult();
-      
+      const archive = await apiService.getResults({ limit: 1, status: 'completed', sort: 'created_at', order: 'DESC' });
+      const result = archive?.data?.results?.[0] ? await apiService.getResultById(archive.data.results[0].id) : null;
+
       if (result) {
         setLatestResult(result);
         console.log('Latest assessment loaded:', result.id);

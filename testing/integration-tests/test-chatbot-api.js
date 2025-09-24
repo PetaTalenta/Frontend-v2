@@ -4,7 +4,7 @@
 const axios = require('axios');
 
 // Test configuration
-const API_BASE_URL = 'https://api.chhrone.web.id';
+const API_BASE_URL = 'https://api.futureguide.id';
 const TEST_TOKEN = 'your-test-token-here'; // Replace with actual token
 
 // Test data

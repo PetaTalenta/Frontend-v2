@@ -130,7 +130,7 @@ function Test-ApiEndpoints {
     # Real API
     Write-Host "Testing real API..."
     try {
-        $response = Invoke-WebRequest -Uri "https://api.chhrone.web.id/api/health" -TimeoutSec 10 -ErrorAction SilentlyContinue
+        $response = Invoke-WebRequest -Uri "https://api.futureguide.id/api/health" -TimeoutSec 10 -ErrorAction SilentlyContinue
         if ($response.StatusCode -eq 200) {
             Write-Success "Real API is accessible"
         }

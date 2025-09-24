@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { AssessmentResult } from '../../../../types/assessment-results';
-import { getAssessmentResultFromArchiveAPI } from '../../../../services/assessment-api';
+import apiService from '../../../../services/apiService';
 import ChatInterface from '../../../../components/chat/ChatInterface';
 import { Loader2, AlertCircle, ArrowLeft } from 'lucide-react';
 import { Button } from '../../../../components/ui/button';
@@ -29,8 +29,9 @@ export default function ChatPage() {
       setIsLoading(true);
       setError(null);
 
-      const result = await getAssessmentResultFromArchiveAPI(resultId);
-      
+      const resp = await apiService.getResultById(resultId);
+      const result = resp?.success ? resp.data : null;
+
       if (!result) {
         setError('Hasil assessment tidak ditemukan. Pastikan Anda telah menyelesaikan assessment terlebih dahulu.');
         return;

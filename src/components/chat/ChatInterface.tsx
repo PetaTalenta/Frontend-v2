@@ -2,7 +2,9 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { AssessmentResult } from '../../types/assessment-results';
-import { ChatMessage, ChatConversation, startChatConversation, sendChatMessage, getChatConversation } from '../../services/chat-api';
+import type { ChatMessage, ChatConversation } from '../../services/helpers/chat-types';
+
+import apiService from '../../services/apiService';
 import ChatHeader from './ChatHeader';
 import MessageBubble from './MessageBubble';
 import ChatInput from './ChatInput';
@@ -46,18 +48,23 @@ export default function ChatInterface({ assessmentResult, onBack }: ChatInterfac
       setError(null);
 
       // Try to get existing conversation first
-      let existingConversation = await getChatConversation(assessmentResult.id);
+      let existing = await apiService.getChatConversation(assessmentResult.id);
 
-      if (existingConversation) {
-        setConversation(existingConversation);
-        // Ensure messages is always an array
-        setMessages(Array.isArray(existingConversation.messages) ? existingConversation.messages : []);
+      if (existing?.success && existing.data) {
+        setConversation(existing.data);
+        setMessages(Array.isArray(existing.data.messages) ? existing.data.messages : []);
       } else {
-        // Start new conversation
-        const newConversation = await startChatConversation(assessmentResult.id, assessmentResult);
-        setConversation(newConversation);
-        // Ensure messages is always an array
-        setMessages(Array.isArray(newConversation.messages) ? newConversation.messages : []);
+        // Start new conversation via ApiService
+        const created = await apiService.startChatConversation({
+          resultId: assessmentResult.id,
+          assessmentContext: assessmentResult,
+        });
+        if (created?.success && created.data) {
+          setConversation(created.data);
+          setMessages(Array.isArray(created.data.messages) ? created.data.messages : []);
+        } else {
+          throw new Error('Failed to create conversation');
+        }
       }
     } catch (err) {
       console.error('Failed to initialize chat:', err);
@@ -113,12 +120,16 @@ export default function ChatInterface({ assessmentResult, onBack }: ChatInterfac
       };
       setTypingMessage(typingMsg);
 
-      // Send message to API
-      const aiResponse = await sendChatMessage(
-        conversation.id,
-        assessmentResult.id,
-        messageContent
-      );
+      // Send message via ApiService
+      const apiResp = await apiService.sendChatMessage({
+        conversationId: conversation.id,
+        resultId: assessmentResult.id,
+        message: messageContent,
+      });
+      if (!apiResp?.success || !apiResp.data?.message) {
+        throw new Error('Failed to send message');
+      }
+      const aiResponse = apiResp.data.message;
 
       // Remove typing indicator and add AI response
       setTypingMessage(null);

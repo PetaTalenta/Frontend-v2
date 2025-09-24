@@ -139,7 +139,7 @@ export const NotificationDemo: React.FC = () => {
       <div className="p-4 bg-gray-50 border rounded-lg">
         <h3 className="text-lg font-semibold mb-2">API Documentation</h3>
         <div className="text-sm text-gray-600 space-y-1">
-          <div><strong>WebSocket URL:</strong> https://api.chhrone.web.id</div>
+          <div><strong>WebSocket URL:</strong> https://api.futureguide.id</div>
           <div><strong>Protocol:</strong> Socket.IO v4.7.2</div>
           <div><strong>Events:</strong> analysis-started, analysis-complete, analysis-failed</div>
           <div><strong>Authentication:</strong> JWT Token Required</div>

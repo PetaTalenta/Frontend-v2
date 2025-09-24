@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { getWebSocketService, WebSocketEvent, isWebSocketSupported } from '../../services/websocket-service';
-import { getAssessmentResult } from '../../services/assessment-api';
+import { getWebSocketService, isWebSocketSupported } from '../../services/websocket-service';
+import apiService from '../../services/apiService';
 import { useAuth } from '../../contexts/AuthContext';
 import Header from './header';
 import { StatsCard } from './stats-card';
@@ -11,9 +11,8 @@ import { VIAISCard } from './viais-card';
 import { OceanCard } from './ocean-card';
 import { ProgressCard } from './progress-card';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { calculateUserStats, formatStatsForDashboard, formatAssessmentHistory, calculateUserProgress } from '../../services/user-stats';
-import { getLatestAssessmentResult } from '../../services/assessment-api';
-import { generateDemoAssessmentResult } from '../../utils/demo-data-generator';
+import { calculateUserStats, formatStatsForDashboard, fetchAssessmentHistoryFromAPI as formatAssessmentHistory, calculateUserProgress } from '../../utils/user-stats';
+
 import type { StatCard, ProgressItem, AssessmentData } from '../../types/dashboard';
 import type { OceanScores, ViaScores } from '../../types/assessment-results';
 import useSWR from 'swr';
@@ -36,17 +35,11 @@ interface DashboardClientProps {
   staticData: DashboardStaticData;
 }
 
-const DASHBOARD_MOCK_ASSESSMENT: AssessmentData = {
-  id: 9999,
-  nama: 'Demo Assessment',
-  tipe: 'RIASEC + OCEAN + VIA',
-  tanggal: new Date().toLocaleString('id-ID'),
-  status: 'Selesai',
-  resultId: 'result-mock-9999'
-};
+// Deprecated mock assessment preserved for reference (not used)
+
 
 export default function DashboardClient({ staticData }: DashboardClientProps) {
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, isLoading: authLoading, logout } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const router = useRouter();
@@ -66,18 +59,13 @@ export default function DashboardClient({ staticData }: DashboardClientProps) {
 
     wsService.connect(token).then(() => {
       wsService.setCallbacks({
-        onEvent: async (event: WebSocketEvent) => {
+        onEvent: async (event: any) => {
           // Pastikan event completed dan ada resultId
           if ((event.status === 'completed' || event.type === 'analysis-complete') && event.resultId) {
             // Jeda 10 detik (sama seperti assessment-loading)
             await new Promise(res => setTimeout(res, 10000));
-            try {
-              await getAssessmentResult(event.resultId);
-              router.replace(`/results/${event.resultId}`);
-            } catch (err) {
-              const errorMsg = err instanceof Error ? err.message : String(err);
-              alert('Hasil assessment belum tersedia. Silakan cek beberapa saat lagi.\n' + errorMsg);
-            }
+            // After grace period, navigate to result; result fetch handled by results page
+            router.replace(`/results/${event.resultId}`);
           }
         }
       });
@@ -108,15 +96,19 @@ export default function DashboardClient({ staticData }: DashboardClientProps) {
     }
   );
 
-  // SWR for latest assessment result
+  // SWR for latest assessment result - using API results list to derive latest
   const { data: latestResult, error: resultError } = useSWR(
     user ? `latest-result-${user.id}` : null,
-    () => getLatestAssessmentResult(user!.id),
+    async () => {
+      // @ts-ignore: api accepts sort/order
+      const resp = await apiService.getResults({ limit: 1, status: 'completed', sort: 'created_at', order: 'DESC' } as any);
+      return resp.success && resp.data?.results?.length ? resp.data.results[0] : null;
+    },
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: true,
-      dedupingInterval: 300000, // 5 minutes
-      refreshInterval: 5000, // refetch otomatis setiap 5 detik agar riwayat assessment selalu up-to-date
+      dedupingInterval: 300000,
+      refreshInterval: 5000,
       fallbackData: null,
     }
   );
@@ -130,7 +122,7 @@ export default function DashboardClient({ staticData }: DashboardClientProps) {
 
       // Format data for dashboard components
       const formattedStats = formatStatsForDashboard(userStats);
-      const formattedAssessments = await formatAssessmentHistory(userStats);
+      const formattedAssessments = await formatAssessmentHistory();
       const formattedProgress = await calculateUserProgress(userStats);
 
       setStatsData(formattedStats);
@@ -234,7 +226,7 @@ export default function DashboardClient({ staticData }: DashboardClientProps) {
     return (
       <div className="dashboard-full-height">
         <div className="dashboard-container">
-          <Header logout={useAuth().logout} />
+          <Header logout={logout} />
           <div className="dashboard-main-grid">
             <div className="space-y-6">
               {/* Stats Cards Loading */}
@@ -299,7 +291,7 @@ export default function DashboardClient({ staticData }: DashboardClientProps) {
   return (
     <div className="dashboard-full-height">
       <div className="dashboard-container">
-        <Header logout={useAuth().logout} />
+        <Header logout={logout} />
         <div className="dashboard-main-grid">
           {/* Main Content */}
           <div

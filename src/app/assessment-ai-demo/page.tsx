@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Progress } from '../../components/ui/progress';
-import { submitAssessment } from '../../services/assessment-api';
+import apiService from '../../services/apiService';
 import { AssessmentScores } from '../../types/assessment-results';
 import { Loader2, CheckCircle, Brain, ArrowLeft } from 'lucide-react';
 
@@ -81,8 +81,8 @@ export default function AssessmentAIDemoPage() {
     setIsSubmitting(true);
     
     try {
-      const result = await submitAssessment(answers);
-      setResultId(result.resultId);
+      const result = await apiService.submitAssessmentFromAnswers(answers, 'AI-Driven Talent Mapping');
+      setResultId(result.id);
       setCurrentStep(3);
     } catch (error) {
       console.error('Assessment submission failed:', error);

@@ -87,7 +87,7 @@ async function testExternalAPI() {
   };
 
   try {
-    const response = await fetch('https://api.chhrone.web.id/api/auth/register', {
+    const response = await fetch('https://api.futureguide.id/api/auth/register', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

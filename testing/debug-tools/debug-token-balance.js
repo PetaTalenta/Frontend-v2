@@ -11,7 +11,7 @@ const http = require('http');
 // Configuration (Mock API removed)
 const ENDPOINTS = [
   { url: 'http://localhost:3000/api/proxy/auth/token-balance', name: 'Proxy API' },
-  { url: 'https://api.chhrone.web.id/api/auth/token-balance', name: 'Real API' }
+  { url: 'https://api.futureguide.id/api/auth/token-balance', name: 'Real API' }
 ];
 
 /**
@@ -148,7 +148,7 @@ async function testApiHealth() {
   
   const healthEndpoints = [
     'http://localhost:3000/api/health',
-    'https://api.chhrone.web.id/api/health'
+    'https://api.futureguide.id/api/health'
   ];
   
   for (const endpoint of healthEndpoints) {
