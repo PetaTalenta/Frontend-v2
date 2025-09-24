@@ -53,6 +53,12 @@ export default function ChatInterface({ assessmentResult, onBack }: ChatInterfac
       if (existing?.success && existing.data) {
         setConversation(existing.data);
         setMessages(Array.isArray(existing.data.messages) ? existing.data.messages : []);
+        try {
+          localStorage.setItem(
+            `chat-${assessmentResult.id}`,
+            JSON.stringify({ id: existing.data.id, assessmentContext: assessmentResult })
+          );
+        } catch {}
       } else {
         // Start new conversation via ApiService
         const created = await apiService.startChatConversation({
@@ -62,6 +68,12 @@ export default function ChatInterface({ assessmentResult, onBack }: ChatInterfac
         if (created?.success && created.data) {
           setConversation(created.data);
           setMessages(Array.isArray(created.data.messages) ? created.data.messages : []);
+          try {
+            localStorage.setItem(
+              `chat-${assessmentResult.id}`,
+              JSON.stringify({ id: created.data.id, assessmentContext: assessmentResult })
+            );
+          } catch {}
         } else {
           throw new Error('Failed to create conversation');
         }

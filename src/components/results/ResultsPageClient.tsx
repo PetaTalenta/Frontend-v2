@@ -453,6 +453,16 @@ export default function ResultsPageClient({ initialResult, resultId }: ResultsPa
                 <BookOpen className="w-4 h-4 mr-2" />
                 Salin Link
               </Button>
+              {/* Chat AI Button - kembalikan tombol chat AI di halaman hasil */}
+              <Button
+                size="sm"
+                onClick={handleChatbot}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+                title="Diskusikan hasil assessment Anda dengan AI"
+              >
+                <MessageCircle className="w-4 h-4 mr-2" />
+                Chat AI
+              </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button

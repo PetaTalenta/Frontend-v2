@@ -14,43 +14,35 @@ export async function startConversation(axiosInstance, API_ENDPOINTS, data) {
       },
     });
 
-    // First: try generic conversations endpoint
+    // First: try generic conversations endpoint (per docs)
     try {
       const genericResponse = await axiosInstance.post(
         API_ENDPOINTS.CHATBOT.CREATE_CONVERSATION,
         {
           title: 'Career Guidance Session',
-          context: 'assessment',
-          initialMessage: "I'd like to discuss my recent assessment results",
+          context_type: 'assessment',
+          context_data: { source: 'assessment', assessment_id: data.resultId },
+          metadata: { origin: 'results_page' },
         }
       );
 
       logger.debug('Generic conversation creation response:', genericResponse.data);
 
       if (genericResponse.data?.success) {
-        const apiData = genericResponse.data.data;
-        const ai = apiData.aiResponse;
-        return {
-          success: true,
-          data: {
-            id: apiData.conversationId,
-            resultId: data.resultId,
-            messages: ai
-              ? [
-                  {
-                    id: ai.id || ai.messageId || `msg-${Date.now()}`,
-                    role: 'assistant',
-                    content: ai.content,
-                    timestamp: ai.timestamp || new Date().toISOString(),
-                    resultId: data.resultId,
-                  },
-                ]
-              : [],
-            createdAt: apiData.createdAt,
-            updatedAt: apiData.lastActivity || apiData.createdAt,
-            assessmentContext: data.assessmentContext,
-          },
-        };
+        const conv = genericResponse.data.data?.conversation;
+        if (conv?.id) {
+          return {
+            success: true,
+            data: {
+              id: conv.id,
+              resultId: data.resultId,
+              messages: [],
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+              assessmentContext: data.assessmentContext,
+            },
+          };
+        }
       }
     } catch (genericErr) {
       const gp = genericErr.response?.data || { message: genericErr.message };
@@ -167,7 +159,8 @@ export async function sendMessage(axiosInstance, API_ENDPOINTS, data) {
       API_ENDPOINTS.CHATBOT.SEND_MESSAGE(data.conversationId),
       {
         content: data.message,
-        type: 'text',
+        content_type: 'text',
+        ...(data.parentMessageId ? { parent_message_id: data.parentMessageId } : {}),
       }
     );
 
@@ -175,14 +168,15 @@ export async function sendMessage(axiosInstance, API_ENDPOINTS, data) {
 
     if (response.data.success) {
       const apiData = response.data.data;
+      const assistant = apiData.assistant_message || {};
       return {
         success: true,
         data: {
           message: {
-            id: apiData.aiResponse.id || `msg-${Date.now()}`,
+            id: assistant.id || `msg-${Date.now()}`,
             role: 'assistant',
-            content: apiData.aiResponse.content,
-            timestamp: apiData.aiResponse.timestamp || new Date().toISOString(),
+            content: assistant.content,
+            timestamp: new Date().toISOString(),
             resultId: data.resultId,
           },
         },
@@ -204,28 +198,44 @@ export async function getConversation(axiosInstance, API_ENDPOINTS, resultId) {
   try {
     const storedConversation = localStorage.getItem(`chat-${resultId}`);
     if (storedConversation) {
-      const conversation = JSON.parse(storedConversation);
-      if (conversation.id && !conversation.id.startsWith('mock-chat-')) {
-        const response = await axiosInstance.get(
-          API_ENDPOINTS.CHATBOT.GET_CONVERSATION(conversation.id)
+      const stored = JSON.parse(storedConversation);
+      if (stored.id && !stored.id.startsWith('mock-chat-')) {
+        // Get conversation metadata
+        const detailResp = await axiosInstance.get(
+          API_ENDPOINTS.CHATBOT.GET_CONVERSATION(stored.id)
         );
-        if (response.data.success) {
-          const apiData = response.data.data.conversation;
-          return {
-            success: true,
-            data: {
-              id: apiData.id,
-              resultId: resultId,
-              messages: apiData.messages.map((msg) => ({
+        if (detailResp.data?.success) {
+          const conv = detailResp.data.data.conversation;
+
+          // Get messages via dedicated endpoint
+          let messages = [];
+          try {
+            const msgResp = await axiosInstance.get(
+              `${API_ENDPOINTS.CHATBOT.GET_MESSAGES(stored.id)}?page=1&limit=50`
+            );
+            if (msgResp.data?.success) {
+              const items = msgResp.data.data?.messages || [];
+              messages = items.map((msg) => ({
                 id: msg.id,
-                role: msg.sender === 'ai' ? 'assistant' : msg.sender,
+                role: msg.sender === 'ai' ? 'assistant' : (msg.sender || 'user'),
                 content: msg.content,
                 timestamp: msg.timestamp,
                 resultId: resultId,
-              })),
-              createdAt: apiData.createdAt,
-              updatedAt: apiData.lastActivity,
-              assessmentContext: conversation.assessmentContext,
+              }));
+            }
+          } catch (e) {
+            logger.warn('Failed to load messages; proceeding with empty array', e.response?.data || e.message);
+          }
+
+          return {
+            success: true,
+            data: {
+              id: conv.id,
+              resultId: resultId,
+              messages,
+              createdAt: conv.createdAt || new Date().toISOString(),
+              updatedAt: conv.lastActivity || conv.createdAt || new Date().toISOString(),
+              assessmentContext: stored.assessmentContext,
             },
           };
         }
