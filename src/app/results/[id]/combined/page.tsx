@@ -141,11 +141,21 @@ export default function CombinedDetailPage() {
                   {result.persona_profile?.name || 'Assessment Result'}
                 </h2>
                 <p className="text-sm text-gray-600">
-                  Completed on {new Date(result.createdAt).toLocaleDateString('id-ID', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                  })}
+                  Completed on {(() => {
+                    const v: any = (result as any)?.createdAt ?? (result as any)?.created_at ?? (result as any)?.createdAtUtc ?? (result as any)?.updated_at;
+                    const date = (() => {
+                      if (v == null || v === '') return null;
+                      if (typeof v === 'number' || (typeof v === 'string' && /^\d+$/.test(v))) {
+                        const n = typeof v === 'string' ? Number(v) : v;
+                        const ms = n < 1e12 ? n * 1000 : n;
+                        const d = new Date(ms);
+                        return isNaN(d.getTime()) ? null : d;
+                      }
+                      const d = new Date(v);
+                      return isNaN(d.getTime()) ? null : d;
+                    })();
+                    return date ? date.toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' }) : '-';
+                  })()}
                 </p>
               </div>
               <div className="flex gap-2">

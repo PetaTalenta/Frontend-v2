@@ -66,6 +66,41 @@ import {
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu';
 
+// Safe date parsing and formatting helper (handles various API shapes)
+const parseDateFlexible = (input: any): Date | null => {
+  const tryParse = (v: any): Date | null => {
+    if (v === null || v === undefined || v === '') return null;
+    // Numeric epoch handling (seconds vs milliseconds)
+    if (typeof v === 'number' || (typeof v === 'string' && /^\d+$/.test(v))) {
+      const n = typeof v === 'string' ? Number(v) : v;
+      const ms = n < 1e12 ? n * 1000 : n; // if seconds, convert to ms
+      const d = new Date(ms);
+      return isNaN(d.getTime()) ? null : d;
+    }
+    const d = new Date(v);
+    return isNaN(d.getTime()) ? null : d;
+  };
+  // Direct value
+  const direct = tryParse(input);
+  if (direct) return direct;
+  // Common field fallbacks from backend responses
+  if (input && typeof input === 'object') {
+    const fields = ['createdAt', 'created_at', 'createdAtUtc', 'updated_at', 'updatedAt', 'timestamp'];
+    for (const f of fields) {
+      const d = tryParse((input as any)[f]);
+      if (d) return d;
+    }
+  }
+  return null;
+};
+
+const formatDateID = (value: any): string => {
+  const d = parseDateFlexible(value);
+  if (!d) return '-';
+  return d.toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' });
+};
+
+
 // Fallback component for when charts can't be rendered
 const ChartFallback = ({ title = 'Chart Unavailable' }: { title?: string }) => (
   <Card className="bg-white border-gray-200/60 shadow-sm">
@@ -331,7 +366,7 @@ export default function ResultsPageClient({ initialResult, resultId }: ResultsPa
   const handleScreenshot = async () => {
     try {
       setScreenshotting(true);
-      
+
       if (!isScreenshotSupported()) {
         const limitations = getBrowserLimitations();
         toast({
@@ -345,7 +380,7 @@ export default function ResultsPageClient({ initialResult, resultId }: ResultsPa
       console.log('Taking page screenshot...');
       const blob = await capturePageScreenshot();
       downloadBlob(blob, `assessment-result-${resultId}.png`);
-      
+
       toast({
         title: "Screenshot berhasil!",
         description: "Screenshot hasil assessment telah diunduh.",
@@ -396,8 +431,8 @@ export default function ResultsPageClient({ initialResult, resultId }: ResultsPa
           {/* Top row: Buttons (Back, Share, Salin Link, Unduh) */}
           <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-4">
             <div className="flex items-center gap-2 sm:gap-4">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 size="sm"
                 onClick={handleBack}
                 className="border-gray-200"
@@ -420,8 +455,8 @@ export default function ResultsPageClient({ initialResult, resultId }: ResultsPa
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     size="sm"
                     disabled={exporting || screenshotting}
                     className="border-gray-200"
@@ -431,7 +466,7 @@ export default function ResultsPageClient({ initialResult, resultId }: ResultsPa
                     ) : (
                       <Download className="w-4 h-4 mr-2" />
                     )}
-                    {exporting ? `Mengunduh ${exportType.toUpperCase()}...` : 
+                    {exporting ? `Mengunduh ${exportType.toUpperCase()}...` :
                      screenshotting ? 'Mengambil Screenshot...' : 'Unduh'}
                     <ChevronDown className="w-4 h-4 ml-2" />
                   </Button>
@@ -455,11 +490,7 @@ export default function ResultsPageClient({ initialResult, resultId }: ResultsPa
               Hasil Assessment - {result.persona_profile?.archetype || 'Assessment'}
             </h1>
             <p className="text-sm text-[#6b7280]">
-              Tanggal: {new Date(result.createdAt).toLocaleDateString('id-ID', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-              })}
+              Tanggal: {formatDateID(result)}
             </p>
           </div>
         </div>
@@ -473,7 +504,7 @@ export default function ResultsPageClient({ initialResult, resultId }: ResultsPa
               <div className="space-y-6">
                 {/* Summary Stats - Grid 2x2 */}
                 {scores && (
-                  <ResultSummaryStats scores={scores} createdAt={result.createdAt} />
+                  <ResultSummaryStats scores={scores} createdAt={result} />
                 )}
 
                 {/* Profil Kepribadian Anda */}

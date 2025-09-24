@@ -9,10 +9,35 @@ import { AssessmentResult } from '../../types/assessment-results';
 import { useUserAssessmentResults } from '../../hooks/useAssessmentData';
 import { AssessmentListLoading } from '../../components/ui/loading-states';
 import { DataFetchError } from '../../components/ui/error-states';
-// Local formatter to avoid global utils dependency
-const formatDate = (dateString: string) => {
-  const date = new Date(dateString);
-  return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+// Safe date parsing/formatting helpers (local)
+const parseDateFlexible = (input: any): Date | null => {
+  const tryParse = (v: any): Date | null => {
+    if (v === null || v === undefined || v === '') return null;
+    if (typeof v === 'number' || (typeof v === 'string' && /^\d+$/.test(v))) {
+      const n = typeof v === 'string' ? Number(v) : v;
+      const ms = n < 1e12 ? n * 1000 : n;
+      const d = new Date(ms);
+      return isNaN(d.getTime()) ? null : d;
+    }
+    const d = new Date(v);
+    return isNaN(d.getTime()) ? null : d;
+  };
+  const direct = tryParse(input);
+  if (direct) return direct;
+  if (input && typeof input === 'object') {
+    const fields = ['createdAt', 'created_at', 'createdAtUtc', 'updated_at', 'updatedAt', 'timestamp'];
+    for (const f of fields) {
+      const d = tryParse((input as any)[f]);
+      if (d) return d;
+    }
+  }
+  return null;
+};
+
+const formatDateID = (value: any) => {
+  const d = parseDateFlexible(value);
+  if (!d) return '-';
+  return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
 };
 import {
   Eye,
@@ -145,7 +170,7 @@ export default function MyResultsPage() {
                           </CardTitle>
                           <div className="flex items-center gap-2 text-xs text-[#64707d]">
                             <Calendar className="w-3 h-3" />
-                            {formatDate(result.createdAt)}
+                            {formatDateID(result)}
                           </div>
                         </div>
                         <Badge 

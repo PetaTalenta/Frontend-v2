@@ -26,6 +26,9 @@ async function getUserAssessmentResults(userId?: string) {
   }
 }
 
+
+
+
 export async function calculateUserStats(userId?: string): Promise<UserStats> {
   try {
     console.log(`UserStats: Calculating stats for user: ${userId || 'anonymous'}`);
@@ -123,6 +126,32 @@ export async function fetchAssessmentHistoryFromAPI() {
       }
     }
 
+    // Local helper for robust date formatting
+    const toLocalIDDate = (v: any): string => {
+      if (v === null || v === undefined || v === '') return '-';
+      const parse = (x: any): Date | null => {
+        if (x === null || x === undefined || x === '') return null;
+        if (typeof x === 'number' || (typeof x === 'string' && /^\d+$/.test(x))) {
+          const n = typeof x === 'string' ? Number(x) : x;
+          const ms = n < 1e12 ? n * 1000 : n;
+          const d = new Date(ms);
+          return isNaN(d.getTime()) ? null : d;
+        }
+        const d = new Date(x);
+        return isNaN(d.getTime()) ? null : d;
+      };
+      const direct = parse(v);
+      if (direct) return direct.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+      if (v && typeof v === 'object') {
+        const fields = ['created_at', 'createdAt', 'createdAtUtc', 'updated_at', 'updatedAt', 'timestamp'];
+        for (const f of fields) {
+          const d = parse((v as any)[f]);
+          if (d) return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+        }
+      }
+      return '-';
+    };
+
     // Map jobs to AssessmentData for dashboard table with enrichment if title missing
     const assessmentHistory = await Promise.all(
       allJobs.map(async (job: any, index: number) => {
@@ -168,7 +197,7 @@ export async function fetchAssessmentHistoryFromAPI() {
           id: index + 1,
           nama: title || 'Unknown',
           tipe: 'Personality Assessment' as const,
-          tanggal: new Date(createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
+          tanggal: toLocalIDDate(createdAt),
           status,
           resultId,
         };
@@ -228,8 +257,8 @@ export async function calculateUserProgress(userStats: UserStats) {
     }
 
     const latest = userStats.assessmentResults?.[0];
-    if (latest?.scores?.riasec) {
-      const riasec = latest.scores.riasec;
+    if (latest?.assessment_data?.riasec) {
+      const riasec = latest.assessment_data.riasec as any;
       return [
         { label: 'Investigative', value: riasec.investigative || 0 },
         { label: 'Arts', value: riasec.artistic || 0 },

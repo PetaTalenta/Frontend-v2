@@ -8,8 +8,43 @@ import { BarChart3, Trophy, Target, Calendar } from 'lucide-react';
 
 interface ResultSummaryStatsProps {
   scores: AssessmentScores;
-  createdAt: string;
+  // Accept flexible input so we can parse fields like createdAt/created_at/createdAtUtc or nested
+  createdAt: any;
 }
+
+// Safe date parsing and formatting helpers
+const parseDateFlexible = (input: any): Date | null => {
+  const tryParse = (v: any): Date | null => {
+    if (v === null || v === undefined || v === '') return null;
+    if (typeof v === 'number' || (typeof v === 'string' && /^\d+$/.test(v))) {
+      const n = typeof v === 'string' ? Number(v) : v;
+      const ms = n < 1e12 ? n * 1000 : n;
+      const d = new Date(ms);
+      return isNaN(d.getTime()) ? null : d;
+    }
+    const d = new Date(v);
+    return isNaN(d.getTime()) ? null : d;
+  };
+  const direct = tryParse(input);
+  if (direct) return direct;
+  if (input && typeof input === 'object') {
+    const fields = ['createdAt', 'created_at', 'createdAtUtc', 'updated_at', 'updatedAt', 'timestamp'];
+    for (const f of fields) {
+      const d = tryParse((input as any)[f]);
+      if (d) return d;
+    }
+  }
+  return null;
+};
+
+const formatDateIDParts = (value: any): { main: string; sub: string } => {
+  const d = parseDateFlexible(value);
+  if (!d) return { main: '-', sub: '' };
+  const main = d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+  const sub = d.toLocaleDateString('id-ID', { year: 'numeric' });
+  return { main, sub };
+};
+
 
 export default function ResultSummaryStats({ scores, createdAt }: ResultSummaryStatsProps) {
   // Ensure scores data exists to prevent errors
@@ -40,10 +75,10 @@ export default function ResultSummaryStats({ scores, createdAt }: ResultSummaryS
     Object.values(scores.viaIs).reduce((sum, score) => sum + score, 0) / 24
   );
 
-  const StatCard = ({ 
-    icon: Icon, 
-    title, 
-    value, 
+  const StatCard = ({
+    icon: Icon,
+    title,
+    value,
     subtitle,
     color = '#6475e9'
   }: {
@@ -87,7 +122,7 @@ export default function ResultSummaryStats({ scores, createdAt }: ResultSummaryS
         subtitle={`${dominantRiasec.primary.charAt(0).toUpperCase() + dominantRiasec.primary.slice(1)} dominan`}
         color="#6475e9"
       />
-      
+
       <StatCard
         icon={Trophy}
         title="Top Strength"
@@ -95,7 +130,7 @@ export default function ResultSummaryStats({ scores, createdAt }: ResultSummaryS
         subtitle={`Skor: ${topStrengths[0]?.score || 0}`}
         color="#22c55e"
       />
-      
+
       <StatCard
         icon={Target}
         title="Overall Score"
@@ -103,17 +138,12 @@ export default function ResultSummaryStats({ scores, createdAt }: ResultSummaryS
         subtitle="Rata-rata semua assessment"
         color="#f59e0b"
       />
-      
+
       <StatCard
         icon={Calendar}
         title="Assessment Date"
-        value={new Date(createdAt).toLocaleDateString('id-ID', { 
-          day: 'numeric', 
-          month: 'short' 
-        })}
-        subtitle={new Date(createdAt).toLocaleDateString('id-ID', { 
-          year: 'numeric' 
-        })}
+        value={formatDateIDParts(createdAt).main}
+        subtitle={formatDateIDParts(createdAt).sub}
         color="#8b5cf6"
       />
     </div>
