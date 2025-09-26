@@ -19,10 +19,27 @@ export default function ChatPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (resultId) {
-      loadAssessmentResult();
+    if (!resultId) return;
+
+    // 1) Try to restore from sessionStorage (fast path from Results page)
+    try {
+      const cached = typeof window !== 'undefined'
+        ? sessionStorage.getItem(`assessmentResult:${resultId}`)
+        : null;
+      if (cached) {
+        const parsed = JSON.parse(cached) as AssessmentResult;
+        setAssessmentResult(parsed);
+        setIsLoading(false);
+        return; // Skip network if we already have it
+      }
+    } catch (e) {
+      console.warn('Failed to restore assessment result from sessionStorage:', e);
     }
+
+    // 2) Fallback to API fetch
+    loadAssessmentResult();
   }, [resultId]);
+
 
   const loadAssessmentResult = async () => {
     try {
@@ -118,8 +135,13 @@ export default function ChatPage() {
   // Main chat interface
   return (
     <div className="h-screen flex flex-col">
-      <ChatInterface 
-        assessmentResult={assessmentResult} 
+      <ChatInterface
+        assessmentResult={{
+          ...assessmentResult,
+          // Force ChatInterface context building to focus on persona profile only
+          assessment_data: assessmentResult.assessment_data, // untouched
+          persona_profile: assessmentResult.persona_profile,
+        }}
         onBack={handleBack}
       />
     </div>

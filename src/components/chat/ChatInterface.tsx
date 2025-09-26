@@ -37,6 +37,21 @@ export default function ChatInterface({ assessmentResult, onBack }: ChatInterfac
     scrollToBottom();
   }, [messages, typingMessage]);
 
+  // Build minimal context: persona profile only
+  const buildPersonaContext = () => {
+    try {
+      const persona = assessmentResult?.persona_profile || {};
+      return {
+        type: 'persona_profile',
+        resultId: assessmentResult.id,
+        createdAt: assessmentResult.createdAt,
+        persona,
+      };
+    } catch {
+      return { type: 'persona_profile', resultId: assessmentResult.id, persona: {} };
+    }
+  };
+
   // Initialize chat conversation
   useEffect(() => {
     initializeChat();
@@ -47,48 +62,88 @@ export default function ChatInterface({ assessmentResult, onBack }: ChatInterfac
       setIsLoading(true);
       setError(null);
 
-      // Try to get existing conversation first
+      // 0) Load any locally cached messages first so UI isn't empty on refresh
+      let localMessages: ChatMessage[] = [];
+      try {
+        const cached = typeof window !== 'undefined'
+          ? localStorage.getItem(`chat:${assessmentResult.id}:messages`)
+          : null;
+        if (cached) {
+          localMessages = JSON.parse(cached);
+          // Do not set typing message into cache; just set messages state
+          setMessages(localMessages);
+        }
+      } catch {}
+
+      // Helper to merge messages by id and sort by timestamp
+      const mergeMessages = (a: ChatMessage[], b: ChatMessage[]) => {
+        const map = new Map<string, ChatMessage>();
+        [...a, ...b].forEach((m) => {
+          if (m && m.id && m.id !== 'typing') {
+            map.set(m.id, m);
+          }
+        });
+        return Array.from(map.values()).sort((m1, m2) => {
+          const t1 = new Date(m1.timestamp || 0).getTime();
+          const t2 = new Date(m2.timestamp || 0).getTime();
+          return t1 - t2;
+        });
+      };
+
+      // Try to get existing conversation first (server + local pointer)
       let existing = await apiService.getChatConversation(assessmentResult.id);
 
       if (existing?.success && existing.data) {
         setConversation(existing.data);
-        setMessages(Array.isArray(existing.data.messages) ? existing.data.messages : []);
+        const serverMessages = Array.isArray(existing.data.messages) ? existing.data.messages : [];
+        const merged = mergeMessages(localMessages, serverMessages);
+        setMessages(merged);
         try {
           localStorage.setItem(
             `chat-${assessmentResult.id}`,
-            JSON.stringify({ id: existing.data.id, assessmentContext: assessmentResult })
+            JSON.stringify({ id: existing.data.id, assessmentContext: buildPersonaContext() })
+          );
+          localStorage.setItem(
+            `chat:${assessmentResult.id}:messages`,
+            JSON.stringify(merged)
           );
         } catch {}
       } else {
         // Start new conversation via ApiService
         const created = await apiService.startChatConversation({
           resultId: assessmentResult.id,
-          assessmentContext: assessmentResult,
+          assessmentContext: buildPersonaContext(),
         });
         if (created?.success && created.data) {
           setConversation(created.data);
-          setMessages(Array.isArray(created.data.messages) ? created.data.messages : []);
+          const serverMessages = Array.isArray(created.data.messages) ? created.data.messages : [];
+          const merged = mergeMessages(localMessages, serverMessages);
+          setMessages(merged);
           try {
             localStorage.setItem(
               `chat-${assessmentResult.id}`,
-              JSON.stringify({ id: created.data.id, assessmentContext: assessmentResult })
+              JSON.stringify({ id: created.data.id, assessmentContext: buildPersonaContext() })
+            );
+            localStorage.setItem(
+              `chat:${assessmentResult.id}:messages`,
+              JSON.stringify(merged)
             );
           } catch {}
         } else {
           throw new Error('Failed to create conversation');
         }
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to initialize chat:', err);
 
       // Provide more specific error messages
       let errorMessage = 'Gagal memulai percakapan. ';
 
-      if (err.message.includes('Authentication required')) {
+      if (typeof err?.message === 'string' && err.message.includes('Authentication required')) {
         errorMessage += 'Silakan login ulang untuk melanjutkan.';
-      } else if (err.message.includes('Network error')) {
+      } else if (typeof err?.message === 'string' && err.message.includes('Network error')) {
         errorMessage += 'Periksa koneksi internet Anda dan coba lagi.';
-      } else if (err.message.includes('not available')) {
+      } else if (typeof err?.message === 'string' && err.message.includes('not available')) {
         errorMessage += 'Layanan chatbot sedang tidak tersedia. Coba lagi nanti.';
       } else {
         errorMessage += 'Silakan coba lagi atau hubungi support jika masalah berlanjut.';
@@ -148,10 +203,17 @@ export default function ChatInterface({ assessmentResult, onBack }: ChatInterfac
       setMessages(prev => {
         // Remove the temporary user message and add both final messages
         const withoutTemp = prev.filter(msg => msg.id !== tempUserId);
-        return [...withoutTemp,
+        const next = [...withoutTemp,
           { ...userMessage, id: 'user-' + Date.now() },
           aiResponse
         ];
+        try {
+          localStorage.setItem(
+            `chat:${assessmentResult.id}:messages`,
+            JSON.stringify(next)
+          );
+        } catch {}
+        return next;
       });
 
     } catch (err) {
@@ -176,9 +238,25 @@ export default function ChatInterface({ assessmentResult, onBack }: ChatInterfac
       setTypingMessage(null);
 
       // Remove the temporary user message on error
-      setMessages(prev => prev.filter(msg => msg.id !== tempUserId));
+      setMessages(prev => {
+        const next = prev.filter(msg => msg.id !== tempUserId);
+        try {
+          localStorage.setItem(
+            `chat:${assessmentResult.id}:messages`,
+            JSON.stringify(next)
+          );
+        } catch {}
+        return next;
+      });
     } finally {
       setIsSending(false);
+      // Persist messages after each send attempt
+      try {
+        localStorage.setItem(
+          `chat:${assessmentResult.id}:messages`,
+          JSON.stringify(messages)
+        );
+      } catch {}
     }
   };
 

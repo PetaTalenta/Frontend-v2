@@ -398,6 +398,14 @@ export default function ResultsPageClient({ initialResult, resultId }: ResultsPa
   };
 
   const handleChatbot = () => {
+    try {
+      if (typeof window !== 'undefined' && result) {
+        // Cache assessment result so Chat AI page can read it without refetching
+        sessionStorage.setItem(`assessmentResult:${resultId}`, JSON.stringify(result));
+      }
+    } catch (e) {
+      console.warn('Failed to cache assessment result for chat:', e);
+    }
     router.push(`/results/${resultId}/chat`);
   };
 

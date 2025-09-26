@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
-import LandingPage from '../components/landing/LandingPage';
-import AuthRedirect from '../components/landing/AuthRedirect';
+import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
 
 export const metadata: Metadata = {
   title: 'PetaTalenta - AI-Driven Talent Mapping Assessment Platform',
@@ -24,10 +24,11 @@ export const metadata: Metadata = {
 };
 
 export default function Page() {
-  return (
-    <>
-      <LandingPage />
-      <AuthRedirect />
-    </>
-  );
+  const token = cookies().get('token')?.value;
+
+  if (token) {
+    redirect('/dashboard');
+  }
+
+  redirect('/auth');
 }

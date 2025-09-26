@@ -21,8 +21,16 @@ export async function startConversation(axiosInstance, API_ENDPOINTS, data) {
         {
           title: 'Career Guidance Session',
           context_type: 'assessment',
-          context_data: { source: 'assessment', assessment_id: data.resultId },
-          metadata: { origin: 'results_page' },
+          context_data: {
+            source: 'assessment',
+            assessment_id: data.resultId,
+            // Provide snapshot so backend can use cached data and avoid re-analysis
+            // Only send persona profile as context snapshot
+            assessment_snapshot: data.assessmentContext || null,
+            no_reanalysis: true,
+            use_cached: true,
+          },
+          metadata: { origin: 'results_page', reanalyze: false, use_cached: true },
         }
       );
 
@@ -104,7 +112,11 @@ export async function startConversation(axiosInstance, API_ENDPOINTS, data) {
       {
         assessment_id: data.resultId,
         conversation_type: 'career_guidance',
-        include_suggestions: true,
+        include_suggestions: false, // avoid extra processing that may re-analyze
+        no_reanalysis: true,
+        use_cached: true,
+        // Only send persona profile as context snapshot
+        assessment_snapshot: data.assessmentContext || null,
       }
     );
 
