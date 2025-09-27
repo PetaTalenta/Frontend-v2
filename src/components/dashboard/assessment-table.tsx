@@ -46,15 +46,19 @@ export function AssessmentTable({ data, onRefresh, swrKey, isLoading }: Assessme
   const currentData = data.slice(startIndex, endIndex)
 
   const handleDelete = async (id: number) => {
-    // Find the assessment item to get the result_id
+    // Find the assessment item to get identifiers
     const assessmentItem = data.find(item => item.id === id);
-    if (!assessmentItem?.result_id) {
-      console.error('No result_id found for assessment item:', id);
+    const resultId = assessmentItem?.result_id || null;
+    const jobId = assessmentItem?.job_id || null;
+
+    if (!resultId && !jobId) {
+      console.error('No result_id or job_id found for assessment item:', id);
+      try { showToast({ title: 'Gagal menghapus', description: 'ID hasil atau job tidak ditemukan.' } as any); } catch (_) {}
       return;
     }
 
-    const resultId = assessmentItem.result_id;
-    setIsDeleting(resultId);
+    const deletingKey = (resultId || jobId)!;
+    setIsDeleting(deletingKey);
 
     // Toast: Menghapus...
     const t = showToast({ title: 'Menghapus…' });
@@ -67,7 +71,7 @@ export function AssessmentTable({ data, onRefresh, swrKey, isLoading }: Assessme
           swrKey,
           (current: any) => {
             previousData = current as AssessmentData[];
-            const next = (current || []).filter((row: AssessmentData) => row.result_id !== resultId);
+            const next = (current || []).filter((row: AssessmentData) => (row.result_id !== deletingKey && row.job_id !== deletingKey));
             return next;
           },
           false
@@ -77,8 +81,12 @@ export function AssessmentTable({ data, onRefresh, swrKey, isLoading }: Assessme
       // Import API service dynamically
       const { apiService } = await import('../../services/apiService');
 
-      // Call the API to delete the result
-      await apiService.deleteResult(resultId);
+      // Call the API to delete the result or job
+      if (resultId) {
+        await apiService.deleteResult(resultId);
+      } else if (jobId) {
+        await apiService.deleteJob(jobId);
+      }
 
       // Invalidate to keep sync with server (no page refresh)
       if (swrKey) {
@@ -214,7 +222,7 @@ export function AssessmentTable({ data, onRefresh, swrKey, isLoading }: Assessme
                               variant="ghost"
                               size="icon"
                               className="assessment-table__action-button"
-                              disabled={isDeleting === item.result_id}
+                              disabled={isDeleting === (item.result_id || item.job_id)}
                             >
                               <Trash2 className="assessment-table__action-icon" />
                             </Button>
@@ -228,15 +236,15 @@ export function AssessmentTable({ data, onRefresh, swrKey, isLoading }: Assessme
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
-                              <AlertDialogCancel disabled={isDeleting === item.result_id}>
+                              <AlertDialogCancel disabled={isDeleting === (item.result_id || item.job_id)}>
                                 Batal
                               </AlertDialogCancel>
                               <AlertDialogAction
                                 onClick={() => handleDelete(item.id)}
                                 className="bg-red-600 hover:bg-red-700"
-                                disabled={isDeleting === item.result_id}
+                                disabled={isDeleting === (item.result_id || item.job_id)}
                               >
-                                {isDeleting === item.result_id ? 'Menghapus...' : 'Ya, Hapus'}
+                                {isDeleting === (item.result_id || item.job_id) ? 'Menghapus...' : 'Ya, Hapus'}
                               </AlertDialogAction>
                             </AlertDialogFooter>
                           </AlertDialogContent>

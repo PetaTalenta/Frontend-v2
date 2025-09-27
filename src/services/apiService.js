@@ -586,6 +586,15 @@ class ApiService {
   }
 
   /**
+   * Delete analysis job (fallback when no result exists)
+   * @param {string} jobId - Job ID
+   */
+  async deleteJob(jobId) {
+    const response = await this.axiosInstance.delete(API_ENDPOINTS.ARCHIVE.DELETE_JOB(jobId));
+    return response.data;
+  }
+
+  /**
    * Toggle assessment result public visibility
    * @param {string} resultId
    * @param {boolean} isPublic

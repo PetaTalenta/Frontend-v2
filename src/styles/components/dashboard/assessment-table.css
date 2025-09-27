@@ -30,7 +30,7 @@
 .assessment-table {
   @apply bg-white flex flex-col rounded-lg border shadow-sm;
   border-color: #eaecf0;
-  height: 800px;
+  height: auto;
 }
 
 /* Mobile responsive adjustments */
@@ -38,13 +38,14 @@
   .assessment-table {
     height: auto;
     min-height: 400px;
-    max-height: 600px;
+    /* Allow full 10 rows without inner scroll */
+    max-height: none;
   }
 }
 
 @media (min-width: 641px) and (max-width: 1023px) {
   .assessment-table {
-    height: 700px;
+    height: auto;
   }
 }
 
@@ -110,8 +111,11 @@
 }
 
 .assessment-table__table-container {
-  @apply flex-1 overflow-auto;
-  /* Enhanced mobile scrolling */
+  @apply flex-1;
+  /* Show full 10 rows by default without vertical scrolling */
+  overflow-x: auto;
+  overflow-y: visible;
+  /* Enhanced mobile/desktop scrolling */
   -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
 }
@@ -121,7 +125,8 @@
   .assessment-table__table-container {
     /* Enable horizontal scroll for mobile */
     overflow-x: auto;
-    overflow-y: auto;
+    /* Avoid inner vertical scrolling so 10 rows are visible */
+    overflow-y: visible;
   }
 
   /* Ensure table maintains minimum width on mobile */
@@ -375,7 +380,7 @@
   .assessment-table {
     @apply bg-white flex flex-col;
     border-color: #eaecf0;
-    height: 800px;
+    height: auto;
   }
 
   .assessment-table__header {
