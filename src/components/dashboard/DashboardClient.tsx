@@ -45,6 +45,7 @@ export default function DashboardClient({ staticData }: DashboardClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const wsInitialized = useRef(false);
+  const redirectGuardRef = useRef(false);
   // Effect: Listen to WebSocket for assessment completion and redirect
   useEffect(() => {
     if (!user || wsInitialized.current || !isWebSocketSupported()) return;
@@ -56,16 +57,43 @@ export default function DashboardClient({ staticData }: DashboardClientProps) {
     if (!token) return;
 
     // Connect and listen
-
+    let unsubscribe: (() => void) | null = null;
     wsService.connect(token).then(() => {
-      wsService.setCallbacks({
-        onEvent: async (event: any) => {
-          // Pastikan event completed dan ada resultId
-          if ((event.status === 'completed' || event.type === 'analysis-complete') && event.resultId) {
-            // Jeda 10 detik (sama seperti assessment-loading)
-            await new Promise(res => setTimeout(res, 10000));
-            // After grace period, navigate to result; result fetch handled by results page
-            router.replace(`/results/${event.resultId}`);
+      unsubscribe = wsService.addEventListener(async (event) => {
+        // Tangani event completion meski resultId belum tersedia pada payload
+        if ((event.status === 'completed' || event.type === 'analysis-complete')) {
+          if (redirectGuardRef.current) return;
+          redirectGuardRef.current = true;
+
+          // Jeda 10 detik (sama seperti assessment-loading) untuk memberi waktu backend persist
+          await new Promise(res => setTimeout(res, 10000));
+
+          let resultId: string | undefined = event.resultId;
+
+          // Jika resultId tidak ada, coba ambil dari status API berdasarkan jobId
+          if (!resultId && event.jobId) {
+            for (let attempt = 0; attempt < 5 && !resultId; attempt++) {
+              try {
+                // @ts-ignore - apiService typings in JS
+                const statusResp = await apiService.getAssessmentStatus(event.jobId);
+                if (statusResp?.success && statusResp.data?.resultId) {
+                  resultId = statusResp.data.resultId as string;
+                  break;
+                }
+              } catch (e) {
+                // ignore and retry with backoff
+              }
+              // Exponential-ish backoff: 1.5s, 3s, 4.5s, 6s, 7.5s
+              await new Promise(res => setTimeout(res, 1500 * (attempt + 1)));
+            }
+          }
+
+          if (resultId) {
+            // After resolving resultId, navigate to result page
+            router.replace(`/results/${resultId}`);
+          } else {
+            // Jika masih belum ada resultId, lepaskan guard agar bisa coba lagi pada event berikutnya
+            redirectGuardRef.current = false;
           }
         }
       });
@@ -73,7 +101,9 @@ export default function DashboardClient({ staticData }: DashboardClientProps) {
 
     // Cleanup on unmount
     return () => {
-      wsService.setCallbacks({ onEvent: null });
+      if (unsubscribe) {
+        try { unsubscribe(); } catch { /* ignore */ }
+      }
     };
   }, [user, router]);
   
@@ -206,8 +236,8 @@ export default function DashboardClient({ staticData }: DashboardClientProps) {
       // Cek jika assessment terbaru sudah selesai, redirect ke hasil
       if (assessmentHistory && assessmentHistory.length > 0) {
         const latest = assessmentHistory[0];
-        if (latest.status === 'Selesai' && latest.resultId) {
-          router.replace(`/results/${latest.resultId}`);
+        if (latest.status === 'Selesai' && latest.result_id) {
+          router.replace(`/results/${latest.result_id}`);
           return;
         }
       }

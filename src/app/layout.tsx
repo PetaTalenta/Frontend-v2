@@ -21,6 +21,7 @@ import SWRProvider from '../components/providers/SWRProvider'
 import PerformanceInitializer from '../components/performance/PerformanceInitializer'
 import SimplePrefetchProvider from '../components/performance/SimplePrefetchProvider'
 import { PageTransition } from '../components/animations/PageTransitions'
+import NotificationRedirectListener from '../components/notifications/NotificationRedirectListener'
 // OptimizationInitializer removed to prevent dynamic import issues
 
 export const metadata: Metadata = {
@@ -94,6 +95,8 @@ html {
                     {children}
                   </PageTransition>
                 </AuthGuard>
+                {/* Global notification-driven redirect */}
+                <NotificationRedirectListener />
               </TokenProvider>
             </AuthProvider>
             <DemoDataInitializer />

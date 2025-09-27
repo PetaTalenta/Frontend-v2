@@ -47,8 +47,8 @@ class WebSocketService {
   private connectionPromise: Promise<void> | null = null;
   private heartbeatInterval: NodeJS.Timeout | null = null;
   private reconnectAttempts = 0;
-  
-  // Event callbacks
+
+  // Event callbacks (primary single-callback interface kept for backward compatibility)
   private callbacks: {
     onEvent: EventCallback | null;
     onConnected: ConnectionCallback | null;
@@ -60,6 +60,9 @@ class WebSocketService {
     onDisconnected: null,
     onError: null,
   };
+
+  // Additional event listeners to avoid clobbering when multiple consumers want events
+  private eventListeners: Set<EventCallback> = new Set();
 
   /**
    * Connect to WebSocket server
@@ -211,10 +214,25 @@ class WebSocketService {
   }
 
   /**
-   * Set event callbacks
+   * Set event callbacks (backward compatible)
    */
   setCallbacks(callbacks: Partial<typeof this.callbacks>): void {
     this.callbacks = { ...this.callbacks, ...callbacks };
+  }
+
+  /**
+   * Add an additional event listener without overriding the primary callback
+   */
+  addEventListener(listener: EventCallback): () => void {
+    this.eventListeners.add(listener);
+    return () => this.eventListeners.delete(listener);
+  }
+
+  /**
+   * Clear all additional event listeners
+   */
+  clearEventListeners(): void {
+    this.eventListeners.clear();
   }
 
   /**
@@ -311,6 +329,10 @@ class WebSocketService {
         timestamp: data.timestamp
       };
       this.callbacks.onEvent?.(event);
+      // Notify additional listeners
+      this.eventListeners.forEach((cb) => {
+        try { cb(event); } catch (e) { console.warn('WebSocket Service: event listener error', e); }
+      });
     });
 
     this.socket.on('analysis-complete', (data: any) => {
@@ -325,6 +347,10 @@ class WebSocketService {
         timestamp: data.timestamp
       };
       this.callbacks.onEvent?.(event);
+      // Notify additional listeners
+      this.eventListeners.forEach((cb) => {
+        try { cb(event); } catch (e) { console.warn('WebSocket Service: event listener error', e); }
+      });
     });
 
     this.socket.on('analysis-failed', (data: any) => {
@@ -338,6 +364,10 @@ class WebSocketService {
         timestamp: data.timestamp
       };
       this.callbacks.onEvent?.(event);
+      // Notify additional listeners
+      this.eventListeners.forEach((cb) => {
+        try { cb(event); } catch (e) { console.warn('WebSocket Service: event listener error', e); }
+      });
     });
 
     // Token balance events
