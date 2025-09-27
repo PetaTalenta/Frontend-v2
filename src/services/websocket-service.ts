@@ -27,14 +27,14 @@ export type EventCallback = (event: WebSocketEvent) => void;
 export type ConnectionCallback = () => void;
 export type ErrorCallback = (error: Error) => void;
 
-// Configuration - Updated to match documentation
+// Configuration - Updated to match new Notification Service documentation
 const WS_CONFIG = {
   URL: 'https://api.futureguide.id',
   RECONNECTION_ATTEMPTS: 5,
-  RECONNECTION_DELAY: 1000,        // Reduced from 2000ms
-  CONNECTION_TIMEOUT: 15000,       // Reduced from 20000ms for better UX
-  AUTHENTICATION_TIMEOUT: 10000,   // Reduced from 15000ms
-  HEARTBEAT_INTERVAL: 20000,       // Reduced from 30000ms
+  RECONNECTION_DELAY: 1000,
+  CONNECTION_TIMEOUT: 15000,
+  AUTHENTICATION_TIMEOUT: 10000,   // Must authenticate within 10 seconds per docs
+  HEARTBEAT_INTERVAL: 20000,
 } as const;
 
 class WebSocketService {

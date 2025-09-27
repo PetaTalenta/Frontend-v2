@@ -8,24 +8,13 @@ import { Skeleton } from '../ui/skeleton';
 import { toast } from '../ui/use-toast';
 import { AssessmentResult, AssessmentScores, ApiAssessmentData } from '../../types/assessment-results';
 import apiService from '../../services/apiService';
-// Toggle public API
+// Toggle public API via direct backend endpoint
 async function toggleResultPublic(resultId: string, isPublic: boolean): Promise<{success: boolean, is_public: boolean}> {
-  // Use proxy endpoint to avoid CORS issues if needed
-  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-  if (!token) throw new Error('Authentication token not found');
-  const response = await fetch(`/api/proxy/archive/results/${resultId}/public`, {
-    method: 'PATCH',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ is_public: isPublic }),
-  });
-  const data = await response.json();
-  if (!response.ok || !data.success) {
-    throw new Error(data.message || 'Gagal mengubah status publikasi hasil assessment');
+  const resp = await apiService.setResultPublic(resultId, isPublic);
+  if (!resp?.success) {
+    throw new Error(resp?.message || 'Gagal mengubah status publikasi hasil assessment');
   }
-  return { success: true, is_public: data.data.is_public };
+  return { success: true, is_public: resp.data?.is_public ?? isPublic };
 }
 import {
   captureElementScreenshot,

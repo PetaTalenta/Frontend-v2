@@ -165,28 +165,88 @@ export function convertScoresToApiData(
   scores: AssessmentScores,
   assessmentName: string = 'AI-Driven Talent Mapping',
   answers?: Record<number, number | null>
-): ApiAssessmentData & { rawResponses?: any } {
-  let rawResponses;
+): ApiAssessmentData & { rawResponses?: any; rawSchemaVersion?: string } {
+  let rawResponses: any | undefined;
+  let rawSchemaVersion: string | undefined;
+
   if (answers) {
+    const to2 = (n: number | string) => String(n).padStart(2, '0');
+    const toPascalCase = (input?: string) => {
+      if (!input) return 'Unknown';
+      const tokens = input.split(/[\-\s]+/).filter(Boolean);
+      const joined = tokens.map(t => t.charAt(0).toUpperCase() + t.slice(1).toLowerCase()).join('');
+      return joined === 'Judgment' ? 'Judgement' : joined;
+    };
+    const normalizeViaSubcategory = (name?: string) => toPascalCase(name);
+
+    // Build index maps so numbering is per-dimension (01..NN) instead of global question IDs
+    const buildIndexMap = (items: Array<{ id: number; category?: string; subcategory?: string }>, key: 'category' | 'subcategory') => {
+      const indexMap: Record<number, number> = {};
+      const counters = new Map<string, number>();
+      items.forEach((q) => {
+        const k = (q as any)[key] || '';
+        const next = (counters.get(k) || 0) + 1;
+        counters.set(k, next);
+        indexMap[q.id] = next;
+      });
+      return indexMap;
+    };
+
+    const riasecIdxById = buildIndexMap(riasecQuestions, 'category');
+    const oceanIdxById = buildIndexMap(bigFiveQuestions, 'category');
+    const viaIdxById = buildIndexMap(viaQuestions, 'subcategory');
+
     rawResponses = {
       riasec: riasecQuestions
         .filter(q => answers[q.id] !== undefined && answers[q.id] !== null)
-        .map(q => ({ questionId: `RIASEC-${q.category[0].toUpperCase()}-${String(q.id).padStart(2, '0')}`, value: answers[q.id] })),
+        .map(q => ({
+          questionId: `Riasec-${q.category[0].toUpperCase()}-${to2(riasecIdxById[q.id] || 1)}`,
+          value: answers[q.id]
+        })),
       ocean: bigFiveQuestions
         .filter(q => answers[q.id] !== undefined && answers[q.id] !== null)
-        .map(q => ({ questionId: `O-${String(q.id).padStart(2, '0')}`, value: answers[q.id] })),
+        .map(q => ({
+          questionId: `Ocean-${q.category[0].toUpperCase()}-${to2(oceanIdxById[q.id] || 1)}`,
+          value: answers[q.id]
+        })),
       viaIs: viaQuestions
         .filter(q => answers[q.id] !== undefined && answers[q.id] !== null)
-        .map(q => ({ questionId: `VIA-${String(q.id).padStart(2, '0')}`, value: answers[q.id] })),
+        .map(q => ({
+          questionId: `VIA-${normalizeViaSubcategory(q.subcategory)}-${to2(viaIdxById[q.id] || 1)}`,
+          value: answers[q.id]
+        })),
     };
+
+    // Include schema version when rawResponses are sent (default v1 per docs)
+    rawSchemaVersion = 'v1';
   }
+
+  const allowedAssessmentNames = [
+    'AI-Driven Talent Mapping',
+    'AI-Based IQ Test',
+    'Custom Assessment'
+  ];
+  const safeAssessmentName = allowedAssessmentNames.includes(assessmentName)
+    ? assessmentName
+    : 'Custom Assessment';
+
+  const clamp01 = (n: number) => Math.max(0, Math.min(100, Math.round(n)));
+  const sanitize = <T extends Record<string, number> | undefined>(obj: T): T => {
+    if (!obj) return obj;
+    const out: any = {};
+    Object.keys(obj).forEach(k => {
+      out[k] = clamp01((obj as any)[k]);
+    });
+    return out as T;
+  };
+
   return {
-    assessmentName,
-    riasec: scores.riasec,
-    ocean: scores.ocean,
-    viaIs: scores.viaIs,
-    industryScore: scores.industryScore,
-    ...(rawResponses ? { rawResponses } : {})
+    assessmentName: safeAssessmentName,
+    riasec: sanitize(scores.riasec),
+    ocean: sanitize(scores.ocean),
+    viaIs: sanitize(scores.viaIs),
+    industryScore: sanitize(scores.industryScore),
+    ...(rawResponses ? { rawResponses, rawSchemaVersion } : {})
   };
 }
 
@@ -202,8 +262,16 @@ export function extractScoresFromApiData(apiData: ApiAssessmentData): Assessment
 
 export interface AssessmentResult {
   id: string;
+  // New API (snake_case)
+  user_id?: string;
+  created_at?: string;
+  updated_at?: string;
+  assessment_name?: string;
+  error_message?: string | null;
+  chatbot_id?: string;
+  // Legacy/camelCase for backward compatibility
   userId?: string;
-  createdAt: string;
+  createdAt?: string;
   status: 'queued' | 'processing' | 'completed' | 'failed';
   assessment_data: ApiAssessmentData;
   persona_profile: PersonaProfile;

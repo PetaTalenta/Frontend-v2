@@ -160,7 +160,25 @@ class AssessmentService {
       throw createSafeError('No authentication token found', 'AUTH_ERROR');
     }
 
-  const apiData = convertScoresToApiData(scores, assessmentName, answers);
+    const apiData = convertScoresToApiData(scores, assessmentName, answers);
+
+    // Use LEGACY flat format per documentation; include rawResponses only if present.
+    // Payload: { assessmentName, riasec, ocean, viaIs, industryScore, rawResponses?, rawSchemaVersion? }
+    const payload: any = {
+      assessmentName: apiData.assessmentName || assessmentName,
+      riasec: apiData.riasec,
+      ocean: apiData.ocean,
+      viaIs: apiData.viaIs,
+      industryScore: apiData.industryScore,
+    };
+
+    console.log('Assessment Service: Submitting payload (legacy flat):', {
+      assessmentName: payload.assessmentName,
+      hasRiasec: !!payload.riasec,
+      hasOcean: !!payload.ocean,
+      hasViaIs: !!payload.viaIs,
+      hasIndustryScore: !!payload.industryScore,
+    });
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), CONFIG.TIMEOUTS.SUBMISSION);
@@ -173,7 +191,7 @@ class AssessmentService {
           'Authorization': `Bearer ${token}`,
           'User-Agent': 'PetaTalenta-Frontend/1.0',
         },
-        body: JSON.stringify(apiData),
+        body: JSON.stringify(payload),
         signal: controller.signal
       });
 

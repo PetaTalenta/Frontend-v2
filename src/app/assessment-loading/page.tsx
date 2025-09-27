@@ -5,8 +5,9 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '../../contexts/AuthContext';
 import AssessmentLoadingPage from '../../components/assessment/AssessmentLoadingPage';
 import { useAssessment } from '../../hooks/useAssessment';
-import { addToAssessmentHistory } from '../../utils/assessment-history';
+// import { addToAssessmentHistory } from '../../utils/assessment-history';
 import { hasRecentSubmission, markRecentSubmission } from '../../utils/submission-guard';
+// NOTE: Local assessment-history utilities are deprecated for dashboard usage.
 
 export default function AssessmentLoadingPageRoute() {
   const router = useRouter();
@@ -40,19 +41,8 @@ export default function AssessmentLoadingPageRoute() {
       console.log(`Assessment Loading: Received result with ID: ${result.id}, navigating to /results/${result.id}`);
       isSubmitting.current = false;
 
-      // Add to assessment history with duplicate prevention
-      addToAssessmentHistory({
-        id: Date.now(),
-        nama: result.persona_profile?.title || "Assessment Lengkap",
-        tipe: "Personality Assessment",
-        tanggal: new Date().toLocaleDateString('id-ID', {
-          day: 'numeric',
-          month: 'long',
-          year: 'numeric'
-        }),
-        status: "Selesai",
-        resultId: result.id
-      });
+      // NOTE: History source of truth is Archive API now; skip local history write
+      // (Left intentionally empty to avoid conflicting localStorage entries)
 
       // Clear saved answers to prevent re-submission on refresh
       try {

@@ -69,14 +69,16 @@ export default function OceanBarChartDemoPage() {
     try {
       console.log('Loading latest assessment result...');
       const archive = await apiService.getResults({ limit: 1, status: 'completed', sort: 'created_at', order: 'DESC' });
-      const result = archive?.data?.results?.[0] ? await apiService.getResultById(archive.data.results[0].id) : null;
+      const resultResp = archive?.data?.results?.[0] ? await apiService.getResultById(archive.data.results[0].id) : null;
+      const result = resultResp?.success ? resultResp.data : null;
 
       if (result) {
         setLatestResult(result);
         console.log('Latest assessment loaded:', result.id);
+        const created = (result as any)?.created_at || (result as any)?.createdAt;
         toast({
           title: "Data Terbaru Dimuat",
-          description: `Assessment terbaru dari ${new Date(result.createdAt).toLocaleDateString('id-ID')}`,
+          description: `Assessment terbaru dari ${created ? new Date(created).toLocaleDateString('id-ID') : '-'}`,
         });
       } else {
         console.log('No latest assessment found, using sample data');
@@ -173,13 +175,16 @@ export default function OceanBarChartDemoPage() {
                       </p>
                       <p className="text-sm text-green-700">
                         Assessment ID: {latestResult?.id} | 
-                        Dibuat: {new Date(latestResult?.createdAt || '').toLocaleDateString('id-ID', {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
+                        Dibuat: {(() => {
+                          const created = (latestResult as any)?.created_at || (latestResult as any)?.createdAt;
+                          return created ? new Date(created).toLocaleDateString('id-ID', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          }) : '-';
+                        })()}
                       </p>
                     </div>
                   </>

@@ -13,7 +13,7 @@ import { ProgressCard } from './progress-card';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { calculateUserStats, formatStatsForDashboard, fetchAssessmentHistoryFromAPI as formatAssessmentHistory, calculateUserProgress } from '../../utils/user-stats';
 
-import type { StatCard, ProgressItem, AssessmentData } from '../../types/dashboard';
+import type { StatCard, ProgressItem } from '../../types/dashboard';
 import type { OceanScores, ViaScores } from '../../types/assessment-results';
 import useSWR from 'swr';
 
@@ -79,7 +79,9 @@ export default function DashboardClient({ staticData }: DashboardClientProps) {
   
   // Local state for dashboard data
   const [statsData, setStatsData] = useState<StatCard[]>([]);
-  const [assessmentData, setAssessmentData] = useState<any[]>([]);
+  // Assessment history is now managed via SWR (cache-first + revalidate)
+  // Remove local state; we'll consume SWR data directly
+  // const [assessmentData, setAssessmentData] = useState<any[]>([]);
   const [progressData, setProgressData] = useState<ProgressItem[]>([]);
   const [oceanScores, setOceanScores] = useState<OceanScores | undefined>();
   const [viaScores, setViaScores] = useState<ViaScores | undefined>();
@@ -113,6 +115,18 @@ export default function DashboardClient({ staticData }: DashboardClientProps) {
     }
   );
 
+  // SWR for assessment history (cache-first + revalidate); skeleton shown if no cache
+  const assessmentHistoryKey = user ? `assessment-history-${user.id}` : null;
+  const { data: assessmentHistory, error: assessmentError, isLoading: isAssessmentLoading, mutate: mutateAssessmentHistory } = useSWR(
+    assessmentHistoryKey,
+    () => formatAssessmentHistory(),
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: true,
+      dedupingInterval: 60000,
+    }
+  );
+
   // Load dashboard data
   const loadDashboardData = useCallback(async () => {
     if (!user || !userStats) return;
@@ -122,12 +136,10 @@ export default function DashboardClient({ staticData }: DashboardClientProps) {
 
       // Format data for dashboard components
       const formattedStats = formatStatsForDashboard(userStats);
-      const formattedAssessments = await formatAssessmentHistory();
       const formattedProgress = await calculateUserProgress(userStats);
 
       setStatsData(formattedStats);
-      // Use API data directly; do not fallback to mock data
-      setAssessmentData(formattedAssessments || []);
+      // Assessment table data is provided via SWR (cache-first); no local state update here
       setProgressData(formattedProgress);
 
       // Set scores from latest result
@@ -174,8 +186,6 @@ export default function DashboardClient({ staticData }: DashboardClientProps) {
           icon: 'growth',
         }
       ]);
-      // Do not show mock row in the table on error; leave it empty
-      setAssessmentData([]);
       setProgressData([]);
     } finally {
       setIsLoading(false);
@@ -194,8 +204,8 @@ export default function DashboardClient({ staticData }: DashboardClientProps) {
     if (searchParams?.get('refresh') === '1') {
       mutateStats();
       // Cek jika assessment terbaru sudah selesai, redirect ke hasil
-      if (assessmentData && assessmentData.length > 0) {
-        const latest = assessmentData[0];
+      if (assessmentHistory && assessmentHistory.length > 0) {
+        const latest = assessmentHistory[0];
         if (latest.status === 'Selesai' && latest.resultId) {
           router.replace(`/results/${latest.resultId}`);
           return;
@@ -207,7 +217,7 @@ export default function DashboardClient({ staticData }: DashboardClientProps) {
       const newUrl = window.location.pathname + (params.toString() ? `?${params}` : '');
       window.history.replaceState({}, '', newUrl);
     }
-  }, [searchParams, mutateStats, assessmentData, router]);
+  }, [searchParams, mutateStats, assessmentHistory, router]);
   // Refresh function
   const refreshDashboardData = async () => {
     setIsRefreshing(true);
@@ -220,6 +230,15 @@ export default function DashboardClient({ staticData }: DashboardClientProps) {
       setIsRefreshing(false);
     }
   };
+
+  // Refresh only assessment history table (no full dashboard refresh)
+  const refreshAssessmentHistory = useCallback(async () => {
+    try {
+      await mutateAssessmentHistory();
+    } catch (error) {
+      console.error('Dashboard: Error refreshing assessment history:', error);
+    }
+  }, [mutateAssessmentHistory]);
 
   // Loading state
   if (authLoading || isLoading) {
@@ -264,7 +283,7 @@ export default function DashboardClient({ staticData }: DashboardClientProps) {
   }
 
   // Error state
-  if (statsError || resultError) {
+  if (statsError || resultError || assessmentError) {
     return (
       <div className="dashboard-full-height flex items-center justify-center">
         <div className="max-w-md mx-auto text-center">
@@ -307,7 +326,10 @@ export default function DashboardClient({ staticData }: DashboardClientProps) {
             {/* Assessment History */}
             <div className="dashboard-table-scroll">
               <AssessmentTable
-                data={assessmentData}
+                data={assessmentHistory || []}
+                onRefresh={refreshAssessmentHistory}
+                swrKey={assessmentHistoryKey || undefined}
+                isLoading={isAssessmentLoading && !(assessmentHistory && assessmentHistory.length > 0)}
               />
             </div>
           </div>

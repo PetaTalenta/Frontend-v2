@@ -3,6 +3,7 @@
 
 import { StatCard } from '../types/dashboard';
 import { AssessmentResult } from '../types/assessment-results';
+import type { AssessmentData } from '../types/dashboard';
 import apiService from '../services/apiService';
 import { checkTokenBalance } from './token-balance';
 
@@ -29,7 +30,7 @@ async function getUserAssessmentResults(userId?: string) {
 
 
 
-export async function calculateUserStats(userId?: string): Promise<UserStats> {
+export async function calculateUserStats(userId?: string): Promise<UserStats> { /* status mapping normalized to API raw */
   try {
     console.log(`UserStats: Calculating stats for user: ${userId || 'anonymous'}`);
 
@@ -59,12 +60,15 @@ export async function calculateUserStats(userId?: string): Promise<UserStats> {
 
     if (assessmentHistory.length > 0) {
       totalAnalysis = assessmentHistory.length;
-      completed = assessmentHistory.filter(item => item.status === 'Selesai').length;
-      processing = assessmentHistory.filter(item => item.status === 'Proses' || item.status === 'Batal').length;
+      completed = assessmentHistory.filter(item => String(item.status).toLowerCase() === 'completed').length;
+      processing = assessmentHistory.filter(item => {
+        const s = String(item.status).toLowerCase();
+        return s === 'processing' || s === 'queued' || s === 'pending' || s === 'in_progress';
+      }).length;
     } else {
       totalAnalysis = userSpecificResults.length;
       completed = userSpecificResults.filter(r => r.status === 'completed').length;
-      processing = userSpecificResults.filter(r => r.status === 'processing' || r.status === 'queued').length;
+      processing = userSpecificResults.filter(r => r.status === 'processing' || r.status === 'queued' || r.status === 'pending' || r.status === 'in_progress').length;
     }
 
     // Token balance
@@ -95,118 +99,239 @@ export function formatStatsForDashboard(userStats: UserStats): StatCard[] {
   ];
 }
 
-export async function fetchAssessmentHistoryFromAPI() {
+export async function fetchAssessmentHistoryFromAPI(): Promise<AssessmentData[]> {
   try {
-    console.log('Archive API: Starting to fetch assessment history (via /api/archive/jobs)...');
+    console.log('Archive API: Fetching assessment history from /archive/jobs...');
 
-    // Fetch first page of jobs to determine pagination
-    const firstResponse = await apiService.getJobs({
-      limit: 100,
-      page: 1,
-      sort: 'created_at',
-      order: 'DESC'
-    } as any);
-
-    // Expected response shape: { success, data: { jobs: [...], pagination: {...} } }
-    if (!firstResponse?.success || !firstResponse.data?.jobs) {
-      return [];
-    }
-
-    let allJobs = [...firstResponse.data.jobs];
-
-    if (firstResponse.data.pagination) {
-      const { totalPages } = firstResponse.data.pagination;
-      if (totalPages > 1) {
-        for (let page = 2; page <= totalPages; page++) {
-          const response = await apiService.getJobs({ limit: 100, page } as any);
-          if (response?.success && response.data?.jobs) {
-            allJobs = allJobs.concat(response.data.jobs);
-          }
-        }
-      }
-    }
-
-    // Local helper for robust date formatting
-    const toLocalIDDate = (v: any): string => {
-      if (v === null || v === undefined || v === '') return '-';
-      const parse = (x: any): Date | null => {
+    // Helpers
+    // Helpers (date only for internal normalization)
+    const toIso = (v: any): string => {
+      const toDate = (x: any): Date | null => {
         if (x === null || x === undefined || x === '') return null;
         if (typeof x === 'number' || (typeof x === 'string' && /^\d+$/.test(x))) {
-          const n = typeof x === 'string' ? Number(x) : x;
-          const ms = n < 1e12 ? n * 1000 : n;
+          const n = Number(x);
+          const ms = n < 1e12 ? n * 1000 : n; // seconds or ms
           const d = new Date(ms);
           return isNaN(d.getTime()) ? null : d;
         }
         const d = new Date(x);
         return isNaN(d.getTime()) ? null : d;
       };
-      const direct = parse(v);
-      if (direct) return direct.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
-      if (v && typeof v === 'object') {
-        const fields = ['created_at', 'createdAt', 'createdAtUtc', 'updated_at', 'updatedAt', 'timestamp'];
-        for (const f of fields) {
-          const d = parse((v as any)[f]);
-          if (d) return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
-        }
+      const candidates = [v, v?.created_at, v?.createdAt, v?.createdAtUtc, v?.updated_at, v?.updatedAt, Date.now()];
+      for (const c of candidates) {
+        const d = toDate(c);
+        if (d) return d.toISOString();
       }
-      return '-';
+      return new Date().toISOString();
     };
 
-    // Map jobs to AssessmentData for dashboard table with enrichment if title missing
-    const assessmentHistory = await Promise.all(
-      allJobs.map(async (job: any, index: number) => {
-        let title =
-          job.persona_profile?.archetype ||
-          job.persona_profile?.title ||
-          job.final_data?.persona_profile?.archetype ||
-          job.final_data?.persona_profile?.title ||
-          job.assessment_data?.persona_profile?.archetype ||
-          job.assessment_data?.persona_profile?.title ||
-          job.result?.persona_profile?.archetype ||
-          job.result?.persona_profile?.title ||
-          job.persona_title ||
-          job.archetype ||
-          job.title ||
-          job.name ||
-          '';
+    const deriveTitle = (obj: any): string => {
+      const pp = obj?.persona_profile || obj?.result?.persona_profile || obj?.assessment_data?.persona_profile || obj?.test_result;
+      const candidates = [
+        obj?.archetype_name,               // prefer explicit archetype name if provided by jobs API
+        obj?.archetype,                    // sometimes backend may flatten it here
+        pp?.archetype,                     // persona_profile archetype from job/result
+        pp?.title,
+        obj?.assessment_name,              // generic assessment names (least preferred)
+        obj?.title,
+        obj?.name
+      ];
+      const t = candidates.find((x) => typeof x === 'string' && String(x).trim());
+      return (t && String(t).trim()) || 'Assessment';
+    };
 
-        // Enrich from result detail if title still unknown and resultId available
-        const resultId = job.result_id || job.id;
-        if ((!title || title.trim().length === 0) && resultId) {
-          try {
-            const full = await apiService.getResultById(resultId);
-            const t = full?.data?.persona_profile?.archetype || full?.data?.persona_profile?.title;
-            if (t) title = t;
-          } catch (_) {
-            // ignore enrichment failure
+    // 1) Fetch jobs (paginate if needed) — robust stop conditions to avoid endless loops
+    const PAGE_LIMIT = 100;
+    const MAX_PAGES = 100;        // hard cap
+    const MAX_ITEMS = 5000;       // hard cap
+
+    const first = await apiService.getJobs({ page: 1, limit: PAGE_LIMIT, sort: 'created_at', order: 'DESC' } as any);
+    let jobs: any[] = [];
+    if (first?.success && Array.isArray(first.data?.jobs)) {
+      jobs = [...first.data.jobs];
+
+      // Track seen IDs to prevent duplicates and detect no-progress conditions
+      const seen = new Set<string>();
+      const getKey = (j: any, idx: number) => String(j?.id || j?.job_id || `${j?.user_id || 'u'}-${j?.created_at || 't'}-${idx}`);
+      jobs.forEach((j, idx) => seen.add(getKey(j, idx)));
+
+      let page = 1;
+      let hasMore = Boolean(first.data?.pagination?.hasMore);
+      let totalFetched = jobs.length;
+
+      // Continue while backend indicates more AND we still make progress
+      while (hasMore && page < MAX_PAGES && totalFetched < MAX_ITEMS) {
+        page += 1;
+        const resp = await apiService.getJobs({ page, limit: PAGE_LIMIT, sort: 'created_at', order: 'DESC' } as any);
+        const pageJobs = resp?.success && Array.isArray(resp.data?.jobs) ? resp.data.jobs : [];
+
+        if (!pageJobs.length) break; // no items => stop
+
+        // Add only new items (dedup by known fields)
+        let added = 0;
+        pageJobs.forEach((j: any, idx: number) => {
+          const key = getKey(j, idx);
+          if (!seen.has(key)) {
+            seen.add(key);
+            jobs.push(j);
+            added++;
           }
-        }
+        });
 
-        const rawStatus = job.status || job.assessment_data?.status || 'completed';
-        const status = (() => {
-          const s = String(rawStatus).toLowerCase();
-          if (s === 'completed' || s === 'done' || s === 'success') return 'Selesai';
-          if (s === 'processing' || s === 'in_progress' || s === 'queued' || s === 'running') return 'Proses';
-          if (s === 'failed' || s === 'error') return 'Gagal';
-          if (s === 'cancelled' || s === 'canceled') return 'Batal';
-          return rawStatus;
-        })();
+        if (added === 0) break; // no-progress => stop
 
-        const createdAt = job.created_at || job.createdAt || job.createdAtUtc || job.updated_at || Date.now();
+        totalFetched += added;
+
+        // Stop when this looks like last page by size
+        if (pageJobs.length < PAGE_LIMIT) break;
+
+        // Continue only if API indicates more
+        hasMore = Boolean(resp?.data?.pagination?.hasMore);
+
+        // Safety fallback if backend also returns totalPages
+        const totalPages = resp?.data?.pagination?.totalPages;
+        if (typeof totalPages === 'number' && page >= totalPages) break;
+      }
+    }
+
+    // 2) Map dan enrich jobs. Output diselaraskan dengan field API.
+    if (jobs.length > 0) {
+      const GENERIC_TITLES = new Set([
+        'Assessment',
+        'AI-Driven Talent Mapping',
+        'Personality Assessment',
+        'Big Five Personality',
+        'RIASEC Holland Codes',
+        'VIA Character Strengths'
+      ]);
+
+      const toIso = (v: any): string => {
+        if (typeof v === 'string' && v.trim()) return v;
+        const d = new Date(v ?? Date.now());
+        return isNaN(d.getTime()) ? new Date().toISOString() : d.toISOString();
+      };
+
+      // Drop obviously deleted jobs if backend flags exist
+      const aliveJobs = jobs.filter((job: any) => !(
+        job?.deleted === true || job?.is_deleted === true || job?.isDeleted === true || !!job?.deleted_at
+      ));
+
+      const mapped: AssessmentData[] = aliveJobs.map((job: any, idx: number) => {
+        const createdRaw = job.created_at || job.createdAt || job.createdAtUtc || job.updated_at || job.updatedAt || Date.now();
+        const statusRaw = job.status || job.assessment_data?.status || '';
+        const resultId = job.result_id || job.resultId || job.result_uuid || job.result?.id || undefined;
+        const title = deriveTitle(job);
+        const cleanTitle = (typeof title === 'string' && title.trim()) ? title.trim() : 'Assessment';
         return {
-          id: index + 1,
-          nama: title || 'Unknown',
-          tipe: 'Personality Assessment' as const,
-          tanggal: toLocalIDDate(createdAt),
-          status,
-          resultId,
+          id: idx + 1,
+          archetype: cleanTitle,
+          created_at: toIso(createdRaw),
+          status: String(statusRaw),
+          result_id: resultId,
+          assessment_name: job.assessment_name || job.assessmentName,
+          job_id: job.id || job.job_id
         };
-      })
-    );
+      });
 
-    return assessmentHistory;
+      // Always batch fetch recent results to both enrich titles and filter deleted ones
+      let resultsArr: any[] = [];
+      let resMap = new Map<string, any>();
+      let resultsIdSet = new Set<string>();
+      try {
+        // Use conservative params to avoid 400 and large payloads; backend sorts by created_at desc by default
+        const resList = await apiService.getResults({ limit: 100, page: 1 } as any);
+        resultsArr = (resList?.success && Array.isArray(resList.data?.results)) ? resList.data.results : [];
+        resMap = new Map<string, any>();
+        resultsArr.forEach(r => {
+          const isDeleted = r?.deleted === true || r?.is_deleted === true || r?.isDeleted === true || !!r?.deleted_at;
+          if (!isDeleted && r?.id) resMap.set(String(r.id), r);
+        });
+        resultsIdSet = new Set(Array.from(resMap.keys()));
+      } catch (_) {
+        // ignore fetch errors; we'll skip enrichment and filtering by results existence
+      }
+
+      // Filter out completed jobs whose result was deleted (not present in results list)
+      const filtered = mapped.filter((item) => {
+        const s = String(item.status).toLowerCase();
+        if (s === 'completed' && item.result_id) {
+          return resultsIdSet.size === 0 || resultsIdSet.has(String(item.result_id));
+        }
+        return true; // keep non-completed or items without result_id
+      });
+
+      // Case-insensitive generic check
+      const GENERIC_TITLES_LC = new Set(Array.from(GENERIC_TITLES).map((s) => String(s).toLowerCase()));
+      const isGeneric = (t: any) => GENERIC_TITLES_LC.has(String(t || '').trim().toLowerCase());
+
+      // Enrich titles from results map for completed items still showing generic
+      if (resultsArr.length > 0) {
+        filtered.forEach((item, idx) => {
+          if (!item.result_id) return;
+          if (isGeneric(item.archetype) && String(item.status).toLowerCase() === 'completed') {
+            const r = resMap.get(String(item.result_id));
+            if (r) {
+              const better = deriveTitle(r);
+              if (better && !isGeneric(better)) {
+                filtered[idx].archetype = better;
+              }
+            }
+          }
+        });
+      }
+
+      // For any remaining generics, try job detail but limit to 10 to minimize requests
+      const stillGeneric = filtered
+        .map((it, idx) => ({ it, idx }))
+        .filter(({ it }) => isGeneric(it.archetype) && String(it.status).toLowerCase() === 'completed' && it.job_id)
+        .slice(0, 10);
+      if (stillGeneric.length > 0) {
+        await Promise.all(
+          stillGeneric.map(async ({ it, idx }) => {
+            try {
+              const j = await apiService.getJobById(it.job_id!);
+              if (j?.success && j.data) {
+                const better = deriveTitle(j.data);
+                if (better && !isGeneric(better)) {
+                  filtered[idx].archetype = better;
+                }
+              }
+            } catch (_) {
+              // ignore
+            }
+          })
+        );
+      }
+
+      // Final cleanup: never show generic placeholders like "AI-Driven Talent Mapping"; use a neutral label instead
+      const GENERIC_PLACEHOLDERS_LC = new Set(['assessment','ai-driven talent mapping','personality assessment','big five personality','riasec holland codes','via character strengths']);
+      const cleaned = filtered.map(it => ({
+        ...it,
+        archetype: GENERIC_PLACEHOLDERS_LC.has(String(it.archetype || '').trim().toLowerCase()) ? 'Assessment' : it.archetype
+      }));
+      return cleaned;
+    }
+
+    // 3) Fallback ke results bila jobs kosong
+    console.log('Archive API: Jobs API returned empty. Falling back to /archive/results...');
+    const res = await apiService.getResults({ limit: 100, page: 1 } as any);
+    let results: any[] = (res?.success && Array.isArray(res.data?.results)) ? res.data.results : [];
+    // Exclude deleted results explicitly
+    results = results.filter(r => !(r?.deleted === true || r?.is_deleted === true || r?.isDeleted === true || !!r?.deleted_at));
+    return results.map((r: any, idx: number): AssessmentData => {
+      const createdRaw = r.created_at || r.createdAt || r.createdAtUtc || r.updated_at || r.updatedAt || Date.now();
+      const title = deriveTitle(r);
+      return {
+        id: idx + 1,
+        archetype: (typeof title === 'string' && title.trim()) ? title : 'Assessment',
+        created_at: toIso(createdRaw),
+        status: String(r.status || r.assessment_data?.status || ''),
+        result_id: r.id,
+        assessment_name: r.assessment_name || r.assessmentData?.assessmentName
+      };
+    });
   } catch (error) {
-    console.error('Archive API: Error fetching assessment history (jobs):', error);
+    console.error('Archive API: Error fetching assessment history:', error);
     return [];
   }
 }

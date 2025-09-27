@@ -8,7 +8,8 @@ async function getAssessmentResult(id: string): Promise<AssessmentResult | null>
   try {
     // Use the same API endpoint but from server-side
     const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.futureguide.id';
-    const response = await fetch(`${baseUrl}/api/assessment/archive/${id}`, {
+    // Updated to new Archive API endpoint per docs
+    const response = await fetch(`${baseUrl}/api/archive/results/${id}`, {
       headers: {
         'Content-Type': 'application/json',
       },
@@ -26,8 +27,9 @@ async function getAssessmentResult(id: string): Promise<AssessmentResult | null>
       throw new Error(`Failed to fetch assessment result: ${response.status}`);
     }
 
-    const data = await response.json();
-    return data;
+    const json = await response.json();
+    const result = json?.success ? json.data : null;
+    return result;
   } catch (error) {
     console.error('Error fetching assessment result:', error);
     return null;

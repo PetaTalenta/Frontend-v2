@@ -235,37 +235,18 @@ class ApiService {
   // ==================== SCHOOLS ====================
 
   async getSchools() {
-    // Use local proxy to avoid CORS and keep consistency with auth routes
-    const url = `/api/proxy/auth${API_ENDPOINTS.AUTH.SCHOOLS.replace('/api/auth', '')}`;
-
-    const token = getToken();
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token && { 'Authorization': `Bearer ${token}` })
-      }
-    });
-    if (!response.ok) throw new Error(`Schools API failed: ${response.status}`);
-    return await response.json();
+    const response = await this.axiosInstance.get(API_ENDPOINTS.AUTH.SCHOOLS);
+    return response.data;
   }
 
   async getSchoolsByLocation({ location, province } = {}) {
-    const qs = new URLSearchParams();
-    if (location) qs.append('location', location);
-    if (province) qs.append('province', province);
-    const base = `/api/proxy/auth${API_ENDPOINTS.AUTH.SCHOOLS_BY_LOCATION.replace('/api/auth', '')}`;
-
-    const token = getToken();
-    const response = await fetch(`${base}${qs.toString() ? `?${qs.toString()}` : ''}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token && { 'Authorization': `Bearer ${token}` })
-      }
+    const response = await this.axiosInstance.get(API_ENDPOINTS.AUTH.SCHOOLS_BY_LOCATION, {
+      params: {
+        ...(location ? { location } : {}),
+        ...(province ? { province } : {}),
+      },
     });
-    if (!response.ok) throw new Error(`Schools by location API failed: ${response.status}`);
-    return await response.json();
+    return response.data;
   }
 
   async validateSchoolId(schoolId) {
@@ -496,24 +477,26 @@ class ApiService {
   // ==================== ARCHIVE ====================
 
   /**
-   * Get user's analysis jobs with pagination (NEW endpoint)
+   * Get user's analysis jobs with pagination (align with new API docs)
    * @param {Object} params - Query parameters
-   * @param {number} params.page - Page number
-   * @param {number} params.limit - Items per page
-   * @param {string} params.status - Filter by status
-   * @param {string} params.sort - Sort field (e.g., created_at)
-   * @param {string} params.order - Sort order (ASC|DESC)
+   * @param {number} params.page - Page number (default: 1)
+   * @param {number} params.limit - Items per page (default: 10)
+   * @param {string} params.status - Filter by status: 'queued' | 'processing' | 'completed' | 'failed'
+   * @param {string} params.assessment_name - Filter by assessment name
+   * @param {string} params.sort - Sort field (default: 'created_at')
+   * @param {string} params.order - Sort order (default: 'DESC')
    */
   async getJobs(params = {}) {
     const queryParams = new URLSearchParams();
 
-    if (params.page) queryParams.append('page', params.page);
-    if (params.limit) queryParams.append('limit', params.limit);
-    if (params.status) queryParams.append('status', params.status);
-    if (params.sort) queryParams.append('sort', params.sort);
-    if (params.order) queryParams.append('order', params.order);
+    if (params.page) queryParams.append('page', String(params.page));
+    if (params.limit) queryParams.append('limit', String(params.limit));
+    if (params.status) queryParams.append('status', String(params.status));
+    if (params.assessment_name) queryParams.append('assessment_name', String(params.assessment_name));
+    if (params.sort) queryParams.append('sort', String(params.sort));
+    if (params.order) queryParams.append('order', String(params.order));
 
-    // Call new archive jobs endpoint directly via axios (same-origin API gateway)
+    // Call archive jobs endpoint
     const url = `${API_ENDPOINTS.ARCHIVE.JOBS}${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
     const response = await this.axiosInstance.get(url);
     return response.data;
@@ -537,36 +520,22 @@ class ApiService {
    * @param {string} params.jobId - Filter by job ID
    */
   async getResults(params = {}) {
-    const queryParams = new URLSearchParams();
+    // Sanitize params to avoid 400 (Bad Request) from backend: allow only supported keys and cap limit
+    const allowed = {};
+    if (params.page) allowed.page = String(params.page);
+    if (params.limit) {
+      const lim = Number(params.limit);
+      allowed.limit = String(Math.min(isNaN(lim) ? 50 : lim, 100));
+    }
+    if (params.status) allowed.status = String(params.status);
+    if (params.jobId) allowed.jobId = String(params.jobId);
+    // Some backends expect job_id instead of jobId
+    if (params.job_id && !allowed.jobId) allowed.job_id = String(params.job_id);
 
-    if (params.page) queryParams.append('page', params.page);
-    if (params.limit) queryParams.append('limit', params.limit);
-    if (params.status) queryParams.append('status', params.status);
-    if (params.jobId) queryParams.append('jobId', params.jobId);
-    if (params.sort) queryParams.append('sort', params.sort);
-    if (params.order) queryParams.append('order', params.order);
-
-    // Use local proxy to avoid CORS issues
-    const url = `/api/proxy/archive/results${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
-
-    // Get token for authorization
-    const token = localStorage.getItem('token') ||
-                 localStorage.getItem('auth_token') ||
-                 localStorage.getItem('authToken');
-
-    const data = await this._fetchWithDedupe(
-      url,
-      {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token && { 'Authorization': `Bearer ${token}` })
-        }
-      },
-      1200
-    );
-
-    return data;
+    const response = await this.axiosInstance.get(API_ENDPOINTS.ARCHIVE.RESULTS, {
+      params: allowed,
+    });
+    return response.data;
   }
 
   /**
@@ -574,27 +543,27 @@ class ApiService {
    * @param {string} resultId - Result ID
    */
   async getResultById(resultId) {
-    // Use local proxy to avoid CORS issues
-    const url = `/api/proxy/archive/results/${resultId}`;
-
-    // Get token for authorization
-    const token = localStorage.getItem('token') ||
-                 localStorage.getItem('auth_token') ||
-                 localStorage.getItem('authToken');
-
-    const data = await this._fetchWithDedupe(
-      url,
-      {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token && { 'Authorization': `Bearer ${token}` })
+    const response = await this.axiosInstance.get(API_ENDPOINTS.ARCHIVE.RESULT_BY_ID(resultId));
+    const resp = response.data;
+    try {
+      if (resp?.success && resp?.data && typeof resp.data === 'object') {
+        const d = resp.data;
+        const hasAssessmentData = d.assessment_data && (d.assessment_data.riasec || d.assessment_data.ocean || d.assessment_data.viaIs);
+        const hasTestData = d.test_data && (d.test_data.riasec || d.test_data.ocean || d.test_data.viaIs);
+        const normalized = { ...d };
+        if (!hasAssessmentData && hasTestData) {
+          normalized.assessment_data = { ...d.test_data };
+          if (!normalized.assessment_data.assessmentName && d.assessment_name) {
+            normalized.assessment_data.assessmentName = d.assessment_name;
+          }
         }
-      },
-      1200
-    );
-
-    return data;
+        if (!d.persona_profile && d.test_result) {
+          normalized.persona_profile = d.test_result;
+        }
+        return { ...resp, data: normalized };
+      }
+    } catch (_) {}
+    return resp;
   }
 
   /**
@@ -613,6 +582,16 @@ class ApiService {
    */
   async deleteResult(resultId) {
     const response = await this.axiosInstance.delete(API_ENDPOINTS.ARCHIVE.DELETE_RESULT(resultId));
+    return response.data;
+  }
+
+  /**
+   * Toggle assessment result public visibility
+   * @param {string} resultId
+   * @param {boolean} isPublic
+   */
+  async setResultPublic(resultId, isPublic) {
+    const response = await this.axiosInstance.patch(`/api/archive/results/${resultId}/public`, { is_public: isPublic });
     return response.data;
   }
 

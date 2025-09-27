@@ -4,7 +4,6 @@
  */
 
 const REAL_API_BASE_URL = 'https://api.futureguide.id';
-const PROXY_API_BASE_URL = '/api/proxy'; // Use Next.js API proxy to avoid CORS
 const HEALTH_CHECK_TIMEOUT = 10000; // 10 seconds
 const HEALTH_CHECK_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
@@ -31,13 +30,12 @@ export async function checkApiHealth(): Promise<HealthCheckResult> {
   const startTime = Date.now();
   
   try {
-    console.log('API Health: Testing connectivity via proxy to', REAL_API_BASE_URL);
+    console.log('API Health: Testing connectivity to', REAL_API_BASE_URL);
 
-    // Use Next.js API proxy to avoid CORS issues
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), HEALTH_CHECK_TIMEOUT);
 
-    const response = await fetch(`${PROXY_API_BASE_URL}/health`, {
+    const response = await fetch(`${REAL_API_BASE_URL}/health`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -58,11 +56,11 @@ export async function checkApiHealth(): Promise<HealthCheckResult> {
     };
 
     if (!result.isAvailable) {
-      result.error = proxyResult.error || `Proxy error: ${response.status} ${response.statusText}`;
+      result.error = proxyResult.error || `Health error: ${response.status} ${response.statusText}`;
     }
-    
+
     healthCheckCache = result;
-    console.log(`API Health: Real API is ${result.isAvailable ? 'available' : 'unavailable'} (${responseTime}ms) via proxy`);
+    console.log(`API Health: Real API is ${result.isAvailable ? 'available' : 'unavailable'} (${responseTime}ms)`);
 
     return result;
     
@@ -149,8 +147,8 @@ async function testAuthEndpoint(): Promise<HealthCheckResult> {
  * Get the API base URL - always use proxy to avoid CORS
  */
 export async function getApiBaseUrl(): Promise<string> {
-  console.log('API Health: Using proxy API to avoid CORS:', PROXY_API_BASE_URL);
-  return PROXY_API_BASE_URL;
+  console.log('API Health: Using real API base URL:', REAL_API_BASE_URL);
+  return REAL_API_BASE_URL;
 }
 
 /**
