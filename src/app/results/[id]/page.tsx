@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { AssessmentResult } from '../../../types/assessment-results';
 import apiService from '../../../services/apiService';
 import ResultsPageClient from '../../../components/results/ResultsPageClient';
@@ -9,10 +9,12 @@ import ResultsPageClient from '../../../components/results/ResultsPageClient';
 // Comprehensive results page using ResultsPageClient
 export default function ResultsPage() {
   const params = useParams();
+  const router = useRouter();
   const resultId = params.id as string;
   const [result, setResult] = useState<AssessmentResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [retrying, setRetrying] = useState(false);
 
   useEffect(() => {
     console.log('ResultsPage: Loading result for ID:', resultId);
@@ -58,29 +60,50 @@ export default function ResultsPage() {
   }
 
   if (error || !result) {
+    const handleRetry = async () => {
+      if (!resultId) return;
+      try {
+        setRetrying(true);
+        const resp = await apiService.retryAssessment(resultId);
+        if (resp?.success && resp?.data?.jobId) {
+          // Redirect ke halaman loading/monitoring atau tetap di sini sampai WS redirect
+          // Paling aman: arahkan ke halaman dashboard (di sana ada global WS listener),
+          // atau bisa ke halaman loading jika tersedia.
+          router.push('/dashboard');
+        } else {
+          alert(resp?.error?.message || 'Gagal mengirim ulang assessment.');
+        }
+      } catch (e) {
+        alert(e?.message || 'Gagal mengirim ulang assessment.');
+      } finally {
+        setRetrying(false);
+      }
+    };
+
     return (
       <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center p-6">
         <div className="max-w-md mx-auto text-center">
           <div className="bg-white rounded-lg p-8 shadow-sm">
             <div className="text-6xl mb-4">🔍</div>
             <h1 className="text-2xl font-bold text-gray-900 mb-2">
-              Assessment Result Not Found
+              assessment result not found
             </h1>
             <p className="text-gray-600 mb-6">
               {error || 'The assessment result you\'re looking for could not be found.'}
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <button
-                onClick={() => window.location.href = '/dashboard'}
+                onClick={() => router.push('/dashboard')}
                 className="bg-[#6475e9] text-white px-4 py-2 rounded-lg hover:bg-[#5a6bd8]"
               >
                 Back to Dashboard
               </button>
               <button
-                onClick={() => window.location.href = '/my-results'}
+                onClick={handleRetry}
+                disabled={retrying}
                 className="border border-gray-200 px-4 py-2 rounded-lg hover:bg-gray-50"
               >
-                View All Results
+                {retrying ? 'Submitting…' : 'Submit ulang'}
               </button>
             </div>
           </div>

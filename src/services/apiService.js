@@ -567,6 +567,23 @@ class ApiService {
   }
 
   /**
+   * Retry assessment using a previous failed or completed resultId
+   * @param {string} resultId - UUID of previous analysis result owned by the user
+   */
+  async retryAssessment(resultId) {
+    try {
+      const response = await this.axiosInstance.post(API_ENDPOINTS.ASSESSMENT.RETRY, { resultId });
+      return response.data;
+    } catch (error) {
+      // Normalize error response
+      return {
+        success: false,
+        error: error.response?.data || { message: error.message }
+      };
+    }
+  }
+
+  /**
    * Update analysis result
    * @param {string} resultId - Result ID
    * @param {Object} updateData - Update data

@@ -56,6 +56,7 @@ export const API_ENDPOINTS = {
   ASSESSMENT: {
     SUBMIT: '/api/assessment/submit',
     STATUS: (jobId) => `/api/assessment/status/${jobId}`,
+    RETRY: '/api/assessment/retry',
     QUEUE_STATUS: '/api/assessment/queue/status',
     HEALTH: '/api/assessment/health',
     HEALTH_READY: '/api/assessment/health/ready',
