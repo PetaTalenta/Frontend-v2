@@ -37,8 +37,9 @@ async function getAssessmentResult(id: string): Promise<AssessmentResult | null>
 }
 
 // Generate metadata for SEO
-export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
-  const result = await getAssessmentResult(params.id);
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const resolvedParams = await params;
+  const result = await getAssessmentResult(resolvedParams.id);
 
   if (!result) {
     return {
@@ -78,21 +79,22 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
       follow: true,
     },
     alternates: {
-      canonical: `/results/${params.id}`,
+      canonical: `/results/${resolvedParams.id}`,
     },
   };
 }
 
 // Main page component
-export default async function ResultsPage({ params }: { params: { id: string } }) {
-  const result = await getAssessmentResult(params.id);
+export default async function ResultsPage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = await params;
+  const result = await getAssessmentResult(resolvedParams.id);
 
   if (!result) {
     notFound();
   }
 
   // Pass the pre-fetched data to the client component
-  return <ResultsPageClient initialResult={result} resultId={params.id} />;
+  return <ResultsPageClient initialResult={result} resultId={resolvedParams.id} />;
 }
 
 // Generate static params for popular results (optional)

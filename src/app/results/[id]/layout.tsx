@@ -9,9 +9,10 @@ export default function ResultsLayout({
   params,
 }: {
   children: React.ReactNode;
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
-  const resultId = params.id;
+  const resolvedParams = React.use(params);
+  const resultId = resolvedParams.id;
   const { prefetchRoutes } = usePrefetch();
 
   useEffect(() => {
