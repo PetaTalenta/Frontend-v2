@@ -1,50 +1,22 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '../../../../components/ui/button';
 import { Skeleton } from '../../../../components/ui/skeleton';
-import { toast } from '../../../../components/ui/use-toast';
-import { AssessmentResult } from '../../../../types/assessment-results';
-import apiService from '../../../../services/apiService';
 import { ArrowLeft, Grid3X3 } from 'lucide-react';
 import CombinedAssessmentGrid from '../../../../components/results/CombinedAssessmentGrid';
+import { useResultContext } from '../../../../contexts/ResultsContext';
 
 export default function CombinedDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const [result, setResult] = useState<AssessmentResult | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { result, isLoading, error } = useResultContext();
 
   const resultId = params.id as string;
 
-  useEffect(() => {
-    async function fetchResult() {
-      if (!resultId) return;
-
-      try {
-        setLoading(true);
-        const resp = await apiService.getResultById(resultId);
-        if (resp?.success) setResult(resp.data); else throw new Error('Failed to load');
-      } catch (err) {
-        console.error('Error fetching assessment result:', err);
-        setError('Failed to load assessment result');
-        toast({
-          title: "Error",
-          description: "Failed to load assessment result",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchResult();
-  }, [resultId]);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">

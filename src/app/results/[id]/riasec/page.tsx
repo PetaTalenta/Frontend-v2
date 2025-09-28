@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '../../../../components/ui/button';
@@ -9,46 +9,20 @@ import { Progress } from '../../../../components/ui/progress';
 import { Badge } from '../../../../components/ui/badge';
 import { Skeleton } from '../../../../components/ui/skeleton';
 import { toast } from '../../../../components/ui/use-toast';
-import { AssessmentResult, getScoreInterpretation, RIASEC_DESCRIPTIONS } from '../../../../types/assessment-results';
-import apiService from '../../../../services/apiService';
+import { getScoreInterpretation } from '../../../../types/assessment-results';
 import { getDominantRiasecType } from '../../../../utils/assessment-calculations';
 import { ArrowLeft, BarChart3, Users, Lightbulb, Wrench, Search, Palette } from 'lucide-react';
 import RiasecRadarChart from '../../../../components/results/RiasecRadarChart';
+import { useResultContext } from '../../../../contexts/ResultsContext';
 
 export default function RiasecDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const [result, setResult] = useState<AssessmentResult | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { result, isLoading, error } = useResultContext();
 
   const resultId = params.id as string;
 
-  useEffect(() => {
-    async function fetchResult() {
-      if (!resultId) return;
-
-      try {
-        setLoading(true);
-        const resp = await apiService.getResultById(resultId);
-        if (resp?.success) setResult(resp.data); else throw new Error('Failed to load');
-      } catch (err) {
-        console.error('Error fetching assessment result:', err);
-        setError('Failed to load assessment result');
-        toast({
-          title: "Error",
-          description: "Failed to load assessment result",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchResult();
-  }, [resultId]);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -69,7 +43,7 @@ export default function RiasecDetailPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <h1 className="text-2xl font-bold text-gray-900 mb-4">Error</h1>
-            <p className="text-gray-600 mb-6">{error || 'Assessment result not found'}</p>
+            <p className="text-gray-600 mb-6">{(error as any)?.message || 'Assessment result not found'}</p>
             <Button onClick={() => router.back()}>Go Back</Button>
           </div>
         </div>
@@ -196,7 +170,7 @@ export default function RiasecDetailPage() {
               </Button>
             </Link>
           </div>
-          
+
           <div className="flex items-center gap-3 mb-4">
             <div className="p-3 bg-[#e7eaff] rounded-lg">
               <BarChart3 className="w-8 h-8 text-[#6475e9]" />

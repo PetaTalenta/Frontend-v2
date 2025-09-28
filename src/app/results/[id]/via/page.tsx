@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '../../../../components/ui/button';
@@ -8,47 +8,20 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../../../components
 import { Progress } from '../../../../components/ui/progress';
 import { Badge } from '../../../../components/ui/badge';
 import { Skeleton } from '../../../../components/ui/skeleton';
-import { toast } from '../../../../components/ui/use-toast';
-import { AssessmentResult, getScoreInterpretation, VIA_CATEGORIES } from '../../../../types/assessment-results';
-import apiService from '../../../../services/apiService';
+import { getScoreInterpretation, VIA_CATEGORIES } from '../../../../types/assessment-results';
 import { getTopViaStrengths } from '../../../../utils/assessment-calculations';
 import { ArrowLeft, Palette, Lightbulb, Search, Heart, Shield, Scale, Flower } from 'lucide-react';
 import ViaRadarChart from '../../../../components/results/ViaRadarChart';
+import { useResultContext } from '../../../../contexts/ResultsContext';
 
 export default function ViaDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const [result, setResult] = useState<AssessmentResult | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { result, isLoading, error } = useResultContext();
 
   const resultId = params.id as string;
 
-  useEffect(() => {
-    async function fetchResult() {
-      if (!resultId) return;
-
-      try {
-        setLoading(true);
-        const resp = await apiService.getResultById(resultId);
-        if (resp?.success) setResult(resp.data); else throw new Error('Failed to load');
-      } catch (err) {
-        console.error('Error fetching assessment result:', err);
-        setError('Failed to load assessment result');
-        toast({
-          title: "Error",
-          description: "Failed to load assessment result",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchResult();
-  }, [resultId]);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -69,7 +42,7 @@ export default function ViaDetailPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <h1 className="text-2xl font-bold text-gray-900 mb-4">Error</h1>
-            <p className="text-gray-600 mb-6">{error || 'Assessment result not found'}</p>
+            <p className="text-gray-600 mb-6">{(error as any)?.message || 'Assessment result not found'}</p>
             <Button onClick={() => router.back()}>Go Back</Button>
           </div>
         </div>
@@ -78,7 +51,7 @@ export default function ViaDetailPage() {
   }
 
   const viaScores = result.assessment_data.viaIs;
-  const topStrengths = getTopViaStrengths(viaScores, 24); // Get all strengths
+  const topStrengths = getTopViaStrengths(viaScores, 24);
 
   // VIA Strengths with detailed information
   const viaStrengthsDetails: { [key: string]: any } = {
@@ -261,7 +234,7 @@ export default function ViaDetailPage() {
               </Button>
             </Link>
           </div>
-          
+
           <div className="flex items-center gap-3 mb-4">
             <div className="p-3 bg-[#e7eaff] rounded-lg">
               <Palette className="w-8 h-8 text-[#6475e9]" />
@@ -312,11 +285,11 @@ export default function ViaDetailPage() {
             const categoryStrengths = topStrengths.filter(s => strengthKeys.includes(s.strength as any));
             const Icon = categoryIcons[category];
             const color = categoryColors[category];
-            
+
             return (
               <div key={category}>
                 <div className="flex items-center gap-3 mb-4">
-                  <div 
+                  <div
                     className="p-2 rounded-lg"
                     style={{ backgroundColor: color + '20' }}
                   >
@@ -324,7 +297,7 @@ export default function ViaDetailPage() {
                   </div>
                   <h2 className="text-2xl font-bold text-gray-900">{category}</h2>
                 </div>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {categoryStrengths.map((strength, index) => {
                     const details = viaStrengthsDetails[strength.strength];
@@ -358,10 +331,10 @@ export default function ViaDetailPage() {
                               <p className="text-xl font-bold" style={{ color }}>
                                 {strength.score}
                               </p>
-                              <Badge 
-                                style={{ 
-                                  backgroundColor: interpretation.color + '20', 
-                                  color: interpretation.color 
+                              <Badge
+                                style={{
+                                  backgroundColor: interpretation.color + '20',
+                                  color: interpretation.color
                                 }}
                                 className="font-medium"
                               >
@@ -372,8 +345,8 @@ export default function ViaDetailPage() {
 
                           {/* Progress Bar */}
                           <div className="space-y-2 mb-4">
-                            <Progress 
-                              value={strength.score} 
+                            <Progress
+                              value={strength.score}
                               className="h-2"
                               style={{
                                 '--progress-background': color,

@@ -9,6 +9,7 @@ import { Progress } from '../ui/progress';
 import { AssessmentScores, getScoreInterpretation } from '../../types/assessment-results';
 import { getDominantRiasecType, getTopViaStrengths } from '../../utils/assessment-calculations';
 import { BarChart3, Brain, Palette, ArrowRight } from 'lucide-react';
+import { usePrefetch } from '../../hooks/usePrefetch';
 
 interface AssessmentScoresSummaryProps {
   scores: AssessmentScores;
@@ -40,6 +41,8 @@ export default function AssessmentScoresSummary({ scores, resultId }: Assessment
 
   // Get top 3 VIA strengths
   const topViaStrengths = getTopViaStrengths(scores.viaIs, 3);
+
+  const { prefetchOnHover } = usePrefetch();
 
   // RIASEC labels mapping
   const riasecLabels: { [key: string]: string } = {
@@ -209,19 +212,19 @@ export default function AssessmentScoresSummary({ scores, resultId }: Assessment
         {/* View Details Button */}
         <div className="border-t border-gray-200 pt-4">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <Link href={`/results/${resultId}/riasec`}>
+            <Link href={`/results/${resultId}/riasec`} onMouseEnter={() => prefetchOnHover(`/results/${resultId}/riasec`)}>
               <Button variant="outline" className="w-full justify-between">
                 <span>Detail RIASEC</span>
                 <ArrowRight className="w-4 h-4" />
               </Button>
             </Link>
-            <Link href={`/results/${resultId}/ocean`}>
+            <Link href={`/results/${resultId}/ocean`} onMouseEnter={() => prefetchOnHover(`/results/${resultId}/ocean`)}>
               <Button variant="outline" className="w-full justify-between">
                 <span>Detail Big Five</span>
                 <ArrowRight className="w-4 h-4" />
               </Button>
             </Link>
-            <Link href={`/results/${resultId}/via`}>
+            <Link href={`/results/${resultId}/via`} onMouseEnter={() => prefetchOnHover(`/results/${resultId}/via`)}>
               <Button variant="outline" className="w-full justify-between">
                 <span>Detail VIA</span>
                 <ArrowRight className="w-4 h-4" />

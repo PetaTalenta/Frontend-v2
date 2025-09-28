@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '../../../../components/ui/button';
@@ -9,45 +9,19 @@ import { Progress } from '../../../../components/ui/progress';
 import { Badge } from '../../../../components/ui/badge';
 import { Skeleton } from '../../../../components/ui/skeleton';
 import { toast } from '../../../../components/ui/use-toast';
-import { AssessmentResult, getScoreInterpretation, OCEAN_DESCRIPTIONS } from '../../../../types/assessment-results';
-import apiService from '../../../../services/apiService';
+import { getScoreInterpretation } from '../../../../types/assessment-results';
 import { ArrowLeft, Brain, Eye, Heart, Zap, CheckCircle } from 'lucide-react';
 import OceanRadarChart from '../../../../components/results/OceanRadarChart';
+import { useResultContext } from '../../../../contexts/ResultsContext';
 
 export default function OceanDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const [result, setResult] = useState<AssessmentResult | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { result, isLoading, error } = useResultContext();
 
   const resultId = params.id as string;
 
-  useEffect(() => {
-    async function fetchResult() {
-      if (!resultId) return;
-
-      try {
-        setLoading(true);
-        const resp = await apiService.getResultById(resultId);
-        if (resp?.success) setResult(resp.data); else throw new Error('Failed to load');
-      } catch (err) {
-        console.error('Error fetching assessment result:', err);
-        setError('Failed to load assessment result');
-        toast({
-          title: "Error",
-          description: "Failed to load assessment result",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchResult();
-  }, [resultId]);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -68,7 +42,7 @@ export default function OceanDetailPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <h1 className="text-2xl font-bold text-gray-900 mb-4">Error</h1>
-            <p className="text-gray-600 mb-6">{error || 'Assessment result not found'}</p>
+            <p className="text-gray-600 mb-6">{(error as any)?.message || 'Assessment result not found'}</p>
             <Button onClick={() => router.back()}>Go Back</Button>
           </div>
         </div>
@@ -218,7 +192,7 @@ export default function OceanDetailPage() {
               </Button>
             </Link>
           </div>
-          
+
           <div className="flex items-center gap-3 mb-4">
             <div className="p-3 bg-[#e7eaff] rounded-lg">
               <Brain className="w-8 h-8 text-[#6475e9]" />
@@ -277,7 +251,7 @@ export default function OceanDetailPage() {
             const Icon = trait.icon;
             const isHigh = trait.score >= 60;
             const relevantTraits = isHigh ? trait.highTraits : trait.lowTraits;
-            
+
             return (
               <Card key={trait.key} className="bg-white border-gray-200 shadow-sm">
                 <CardHeader className="pb-4">
@@ -286,7 +260,7 @@ export default function OceanDetailPage() {
                       <div className="flex items-center justify-center w-8 h-8 bg-gray-100 text-gray-600 text-sm font-bold rounded-full">
                         {index + 1}
                       </div>
-                      <div 
+                      <div
                         className="p-3 rounded-lg"
                         style={{ backgroundColor: trait.color + '20' }}
                       >
@@ -303,10 +277,10 @@ export default function OceanDetailPage() {
                       <p className="text-2xl font-bold" style={{ color: trait.color }}>
                         {trait.score}
                       </p>
-                      <Badge 
-                        style={{ 
-                          backgroundColor: interpretation.color + '20', 
-                          color: interpretation.color 
+                      <Badge
+                        style={{
+                          backgroundColor: interpretation.color + '20',
+                          color: interpretation.color
                         }}
                         className="font-medium"
                       >
@@ -315,12 +289,12 @@ export default function OceanDetailPage() {
                     </div>
                   </div>
                 </CardHeader>
-                
+
                 <CardContent className="space-y-4">
                   {/* Progress Bar */}
                   <div className="space-y-2">
-                    <Progress 
-                      value={trait.score} 
+                    <Progress
+                      value={trait.score}
                       className="h-3"
                       style={{
                         '--progress-background': trait.color,
@@ -359,8 +333,8 @@ export default function OceanDetailPage() {
                   <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
                     <p className="text-sm text-blue-700">
                       <strong>Catatan:</strong> {
-                        trait.key === 'neuroticism' 
-                          ? isHigh 
+                        trait.key === 'neuroticism'
+                          ? isHigh
                             ? "Skor tinggi pada Neuroticism menunjukkan kecenderungan mengalami emosi negatif. Ini normal dan dapat dikelola dengan teknik manajemen stress."
                             : "Skor rendah pada Neuroticism menunjukkan stabilitas emosional yang baik dan ketahanan terhadap stress."
                           : isHigh
