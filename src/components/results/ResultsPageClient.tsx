@@ -439,17 +439,7 @@ export default function ResultsPageClient({ initialResult, resultId }: ResultsPa
               </Button>
             </div>
             <div className="flex items-center gap-2 sm:gap-2">
-              {/* Button Bagikan/Public/Private disembunyikan sesuai permintaan */}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleShare}
-                className="border-gray-200"
-                title="Salin atau bagikan link hasil assessment"
-              >
-                <BookOpen className="w-4 h-4 mr-2" />
-                Salin Link
-              </Button>
+              {/* Button Bagikan/Public/Private dipindah ke dropdown */}
               {/* Chat AI Button - kembalikan tombol chat AI di halaman hasil */}
               <Button
                 size="sm"
@@ -471,14 +461,18 @@ export default function ResultsPageClient({ initialResult, resultId }: ResultsPa
                     {(exporting || screenshotting) ? (
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                     ) : (
-                      <Download className="w-4 h-4 mr-2" />
+                      <Share2 className="w-4 h-4 mr-2" />
                     )}
                     {exporting ? `Mengunduh ${exportType.toUpperCase()}...` :
-                     screenshotting ? 'Mengambil Screenshot...' : 'Unduh'}
+                     screenshotting ? 'Mengambil Screenshot...' : 'Share'}
                     <ChevronDown className="w-4 h-4 ml-2" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={handleShare}>
+                    <BookOpen className="w-4 h-4 mr-2" />
+                    Salin/Bagikan Link
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={handleExportPDF}>
                     <FileText className="w-4 h-4 mr-2" />
                     Unduh PDF

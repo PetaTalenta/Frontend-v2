@@ -20,7 +20,7 @@ import DemoDataInitializer from '../components/debug/DemoDataInitializer'
 import SWRProvider from '../components/providers/SWRProvider'
 import PerformanceInitializer from '../components/performance/PerformanceInitializer'
 import SimplePrefetchProvider from '../components/performance/SimplePrefetchProvider'
-import { PageTransition } from '../components/animations/PageTransitions'
+// import { PageTransition } from '../components/animations/PageTransitions'
 import NotificationRedirectListener from '../components/notifications/NotificationRedirectListener'
 // OptimizationInitializer removed to prevent dynamic import issues
 
@@ -91,9 +91,7 @@ html {
             <AuthProvider>
               <TokenProvider>
                 <AuthGuard>
-                  <PageTransition>
-                    {children}
-                  </PageTransition>
+                  {children}
                 </AuthGuard>
                 {/* Global notification-driven redirect */}
                 <NotificationRedirectListener />
