@@ -53,7 +53,7 @@ export default function ChatInput({
   };
 
   return (
-    <div className="border-t border-gray-200 bg-white p-4">
+    <div className="border-t border-gray-200 bg-white p-3">
       <form onSubmit={handleSubmit} className="flex gap-3 items-end">
         <div className="flex-1">
           <Textarea
@@ -72,7 +72,7 @@ export default function ChatInput({
             rows={1}
           />
         </div>
-        
+
         <Button
           type="submit"
           disabled={!message.trim() || disabled}
@@ -89,9 +89,9 @@ export default function ChatInput({
           )}
         </Button>
       </form>
-      
+
       {/* Helper text */}
-      <div className="mt-2 text-xs text-gray-500">
+      <div className="mt-2 text-[10px] text-gray-500">
         Tekan Enter untuk mengirim, Shift+Enter untuk baris baru
       </div>
     </div>

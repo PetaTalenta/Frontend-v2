@@ -3,15 +3,17 @@
 import React from 'react';
 import { Button } from '../ui/button';
 import { Avatar, AvatarFallback } from '../ui/avatar';
-import { ArrowLeft, Bot, MessageCircle } from 'lucide-react';
+import { ArrowLeft, Bot, MessageCircle, UserSquare2 } from 'lucide-react';
 import { AssessmentResult } from '../../types/assessment-results';
 
 interface ChatHeaderProps {
   assessmentResult: AssessmentResult;
   onBack: () => void;
+  onTogglePersona?: () => void;
+  isPersonaOpen?: boolean;
 }
 
-export default function ChatHeader({ assessmentResult, onBack }: ChatHeaderProps) {
+export default function ChatHeader({ assessmentResult, onBack, onTogglePersona, isPersonaOpen }: ChatHeaderProps) {
   const persona = assessmentResult.persona_profile;
 
   return (
@@ -52,10 +54,16 @@ export default function ChatHeader({ assessmentResult, onBack }: ChatHeaderProps
           </p>
         </div>
 
-        {/* Chat Icon */}
-        <div className="text-gray-400">
-          <MessageCircle className="w-5 h-5" />
-        </div>
+        {/* Persona Toggle Button */}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onTogglePersona}
+          className="ml-auto"
+        >
+          <UserSquare2 className="w-4 h-4 mr-2" />
+          {isPersonaOpen ? 'Tutup Profil Persona' : 'Cek Profil Persona'}
+        </Button>
       </div>
 
       {/* Assessment Context Info */}

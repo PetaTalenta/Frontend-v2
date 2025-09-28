@@ -182,77 +182,92 @@ export function AssessmentTable({ data, onRefresh, swrKey, isLoading }: Assessme
                   </TableRow>
                 ))
               ) : (
-                currentData.map((item, index) => (
-                  <TableRow key={item.id} className="assessment-table__table-row">
-                    <TableCell className="assessment-table__table-cell">{startIndex + index + 1}</TableCell>
-                    <TableCell className="assessment-table__table-cell">{item.archetype}</TableCell>
+                <>
+                  {currentData.map((item, index) => (
+                    <TableRow key={item.id} className="assessment-table__table-row">
+                      <TableCell className="assessment-table__table-cell">{startIndex + index + 1}</TableCell>
+                      <TableCell className="assessment-table__table-cell">{item.archetype}</TableCell>
 
-                    <TableCell className="assessment-table__table-cell--secondary dashboard-hide-mobile">{new Date(item.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant="secondary"
-                        className={`assessment-table__badge ${(() => {
-                          const s = String(item.status).toLowerCase();
-                          if (s === 'completed') return 'assessment-table__badge--success';
-                          if (s === 'processing' || s === 'queued' || s === 'pending' || s === 'in_progress') return 'assessment-table__badge--processing';
-                          if (s === 'failed' || s === 'error') return 'assessment-table__badge--danger';
-                          if (s === 'cancelled' || s === 'canceled') return 'assessment-table__badge--cancelled';
-                          return 'assessment-table__badge--warning';
-                        })()}`}
-                      >
-                        {(() => {
-                          const s = String(item.status).toLowerCase();
-                          if (s === 'completed') return 'Selesai';
-                          if (s === 'processing' || s === 'queued' || s === 'pending' || s === 'in_progress') return 'Sedang Diproses';
-                          if (s === 'failed' || s === 'error') return 'Gagal';
-                          if (s === 'cancelled' || s === 'canceled') return 'Dibatalkan';
-                          return 'Belum Selesai';
-                        })()}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="assessment-table__action-buttons">
-                        <Button variant="ghost" size="icon" className="assessment-table__action-button" onClick={() => handleView(item.id)}>
-                          <ExternalLink className="assessment-table__action-icon" />
-                        </Button>
+                      <TableCell className="assessment-table__table-cell--secondary dashboard-hide-mobile">{new Date(item.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="secondary"
+                          className={`assessment-table__badge ${(() => {
+                            const s = String(item.status).toLowerCase();
+                            if (s === 'completed') return 'assessment-table__badge--success';
+                            if (s === 'processing' || s === 'queued' || s === 'pending' || s === 'in_progress') return 'assessment-table__badge--processing';
+                            if (s === 'failed' || s === 'error') return 'assessment-table__badge--danger';
+                            if (s === 'cancelled' || s === 'canceled') return 'assessment-table__badge--cancelled';
+                            return 'assessment-table__badge--warning';
+                          })()}`}
+                        >
+                          {(() => {
+                            const s = String(item.status).toLowerCase();
+                            if (s === 'completed') return 'Selesai';
+                            if (s === 'processing' || s === 'queued' || s === 'pending' || s === 'in_progress') return 'Sedang Diproses';
+                            if (s === 'failed' || s === 'error') return 'Gagal';
+                            if (s === 'cancelled' || s === 'canceled') return 'Dibatalkan';
+                            return 'Belum Selesai';
+                          })()}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="assessment-table__action-buttons">
+                          <Button variant="ghost" size="icon" className="assessment-table__action-button" onClick={() => handleView(item.id)}>
+                            <ExternalLink className="assessment-table__action-icon" />
+                          </Button>
 
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="assessment-table__action-button"
-                              disabled={isDeleting === (item.result_id || item.job_id)}
-                            >
-                              <Trash2 className="assessment-table__action-icon" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Konfirmasi Hapus</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Apakah Anda yakin ingin menghapus assessment "{item.archetype}"?
-                                Tindakan ini tidak dapat dibatalkan.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel disabled={isDeleting === (item.result_id || item.job_id)}>
-                                Batal
-                              </AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => handleDelete(item.id)}
-                                className="bg-red-600 hover:bg-red-700"
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="assessment-table__action-button"
                                 disabled={isDeleting === (item.result_id || item.job_id)}
                               >
-                                {isDeleting === (item.result_id || item.job_id) ? 'Menghapus...' : 'Ya, Hapus'}
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
+                                <Trash2 className="assessment-table__action-icon" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Konfirmasi Hapus</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Apakah Anda yakin ingin menghapus assessment "{item.archetype}"?
+                                  Tindakan ini tidak dapat dibatalkan.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel disabled={isDeleting === (item.result_id || item.job_id)}>
+                                  Batal
+                                </AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleDelete(item.id)}
+                                  className="bg-red-600 hover:bg-red-700"
+                                  disabled={isDeleting === (item.result_id || item.job_id)}
+                                >
+                                  {isDeleting === (item.result_id || item.job_id) ? 'Menghapus...' : 'Ya, Hapus'}
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+
+                  {/* Filler rows to keep table height consistent up to itemsPerPage */}
+                  {currentData.length < itemsPerPage && Array.from({ length: itemsPerPage - currentData.length }).map((_, idx) => (
+                    <TableRow key={`empty-${idx}`} className="assessment-table__table-row opacity-50">
+                      <TableCell className="assessment-table__table-cell">&nbsp;</TableCell>
+                      <TableCell className="assessment-table__table-cell">&nbsp;</TableCell>
+                      <TableCell className="assessment-table__table-cell--secondary dashboard-hide-mobile">&nbsp;</TableCell>
+                      <TableCell className="assessment-table__table-cell">&nbsp;</TableCell>
+                      <TableCell>
+                        <div className="assessment-table__action-buttons" />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </>
               )}
             </TableBody>
           </Table>

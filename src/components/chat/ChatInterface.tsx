@@ -11,6 +11,7 @@ import ChatInput from './ChatInput';
 import { Card } from '../ui/card';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '../ui/alert';
+import PersonaProfileCard from '../results/PersonaProfileCard';
 
 interface ChatInterfaceProps {
   assessmentResult: AssessmentResult;
@@ -24,6 +25,7 @@ export default function ChatInterface({ assessmentResult, onBack }: ChatInterfac
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [typingMessage, setTypingMessage] = useState<ChatMessage | null>(null);
+  const [showPersona, setShowPersona] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -272,9 +274,14 @@ export default function ChatInterface({ assessmentResult, onBack }: ChatInterfac
   }
 
   return (
-    <div className="h-full flex flex-col bg-gray-50">
+    <div className="min-h-screen flex flex-col bg-gray-50">
       {/* Header */}
-      <ChatHeader assessmentResult={assessmentResult} onBack={onBack} />
+      <ChatHeader
+        assessmentResult={assessmentResult}
+        onBack={onBack}
+        onTogglePersona={() => setShowPersona((v) => !v)}
+        isPersonaOpen={showPersona}
+      />
 
       {/* Error Alert */}
       {error && (
@@ -299,42 +306,57 @@ export default function ChatInterface({ assessmentResult, onBack }: ChatInterfac
         </div>
       )}
 
-      {/* Messages Container */}
-      <div
-        ref={messagesContainerRef}
-        className="flex-1 overflow-y-auto p-4 space-y-4"
-      >
-        <div className="max-w-4xl mx-auto">
-          {/* Messages */}
-          {messages && messages.length > 0 ? (
-            messages.map((message) => (
-              <MessageBubble key={message.id} message={message} />
-            ))
-          ) : (
-            <div className="text-center text-gray-500 py-8">
-              <p>Belum ada pesan. Mulai percakapan dengan mengirim pesan!</p>
+      {/* Main Content: Split view when persona open */}
+      <div className="flex-1 overflow-hidden flex" style={{minHeight: 0}}>
+        {/* Left: Chat */}
+        <div className={`${showPersona ? 'w-1/2 border-r border-gray-200' : 'w-full'} flex flex-col relative`}
+             style={{minHeight: 0}}>
+          <div
+            ref={messagesContainerRef}
+            className="flex-1 overflow-y-auto p-4 space-y-4"
+          >
+            <div className={`${showPersona ? 'max-w-2xl' : 'max-w-4xl'} mx-auto`}>
+              {/* Messages */}
+              {messages && messages.length > 0 ? (
+                messages.map((message) => (
+                  <MessageBubble key={message.id} message={message} />
+                ))
+              ) : (
+                <div className="text-center text-gray-500 py-8">
+                  <p>Belum ada pesan. Mulai percakapan dengan mengirim pesan!</p>
+                </div>
+              )}
+
+              {/* Typing Indicator */}
+              {typingMessage && (
+                <MessageBubble message={typingMessage} isTyping={true} />
+              )}
+
+              {/* Scroll anchor */}
+              <div ref={messagesEndRef} />
             </div>
-          )}
+          </div>
 
-          {/* Typing Indicator */}
-          {typingMessage && (
-            <MessageBubble message={typingMessage} isTyping={true} />
-          )}
-
-          {/* Scroll anchor */}
-          <div ref={messagesEndRef} />
+          {/* Input - sticky to bottom of viewport */}
+          <div className="border-t border-gray-200 sticky bottom-0 bg-white">
+            <div className={`${showPersona ? 'max-w-2xl' : 'max-w-4xl'} mx-auto px-4 py-2`}>
+              <ChatInput
+                onSendMessage={handleSendMessage}
+                disabled={isSending}
+                placeholder={isSending ? "Mengirim pesan..." : "Tanyakan tentang hasil assessment Anda..."}
+              />
+            </div>
+          </div>
         </div>
-      </div>
 
-      {/* Input */}
-      <div className="border-t border-gray-200">
-        <div className="max-w-4xl mx-auto">
-          <ChatInput
-            onSendMessage={handleSendMessage}
-            disabled={isSending}
-            placeholder={isSending ? "Mengirim pesan..." : "Tanyakan tentang hasil assessment Anda..."}
-          />
-        </div>
+        {/* Right: Persona Profile Sidebar */}
+        {showPersona && (
+          <div className="w-1/2 min-w-[360px] overflow-y-auto p-4 bg-white">
+            <div className="space-y-4">
+              <PersonaProfileCard persona={assessmentResult.persona_profile as any} />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
