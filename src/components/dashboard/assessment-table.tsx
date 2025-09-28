@@ -112,7 +112,7 @@ export function AssessmentTable({ data, onRefresh, swrKey, isLoading }: Assessme
 
   const handleView = async (id: number) => {
     try {
-      // Find the assessment item to get the correct resultId
+      // Find the assessment item to get the correct identifiers
       const assessmentItem = data.find(item => item.id === id);
 
       if (!assessmentItem) {
@@ -123,12 +123,14 @@ export function AssessmentTable({ data, onRefresh, swrKey, isLoading }: Assessme
 
       // Use the resultId from the assessment item, or generate a legacy format as fallback
       const resultId = assessmentItem.result_id || `result-${id}`;
+      const jobId = assessmentItem.job_id;
 
       console.log('Navigating to result:', resultId);
       console.log('Assessment item:', assessmentItem);
 
-      // Navigate to comprehensive results page
-      router.push(`/results/${resultId}`);
+      // Navigate to comprehensive results page, include jobId when available
+      const url = jobId ? `/results/${resultId}?jobId=${encodeURIComponent(jobId)}` : `/results/${resultId}`;
+      router.push(url);
 
     } catch (error) {
       console.error('Error navigating to results:', error);

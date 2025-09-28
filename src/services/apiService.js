@@ -584,6 +584,77 @@ class ApiService {
   }
 
   /**
+   * Retry assessment by jobId (required by backend validation)
+   * @param {string} jobId - Job ID from archive/jobs
+   */
+  async retryAssessmentByJob(jobId) {
+    console.log('🔄 ApiService: Retrying assessment by jobId:', jobId);
+    
+    if (!jobId) {
+      console.error('❌ ApiService: No jobId provided for retry');
+      throw new Error('Job ID is required for retry');
+    }
+
+    try {
+      const response = await this.axiosInstance.post(API_ENDPOINTS.ASSESSMENT.RETRY, {
+        jobId: jobId
+      });
+      
+      console.log('✅ ApiService: Retry response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ ApiService: Retry failed:', error.response?.data || error.message);
+      
+      // Re-throw dengan informasi lebih detail
+      if (error.response?.data) {
+        throw new Error(error.response.data.error?.message || error.response.data.message || 'Retry failed');
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Find jobId associated with a resultId by scanning recent jobs
+   * Returns jobId or null if not found
+   */
+  async findJobIdByResultId(resultId) {
+    try {
+      // Fetch recent jobs (one or two pages for practicality)
+      const limit = 100;
+      const first = await this.getJobs({ page: 1, limit, sort: 'created_at', order: 'DESC' });
+      const jobs1 = first?.success && Array.isArray(first.data?.jobs) ? first.data.jobs : [];
+
+      const pickJobId = (job) => {
+        const rId = job?.result_id || job?.resultId || job?.result_uuid || job?.result?.id;
+        if (rId && String(rId) === String(resultId)) {
+          return job?.id || job?.job_id || null;
+        }
+        return null;
+      };
+
+      for (const j of jobs1) {
+        const id = pickJobId(j);
+        if (id) return id;
+      }
+
+      // Optionally, try second page if backend indicates more
+      const hasMore = !!(first?.data?.pagination?.hasMore || first?.data?.hasMore);
+      if (hasMore) {
+        const second = await this.getJobs({ page: 2, limit, sort: 'created_at', order: 'DESC' });
+        const jobs2 = second?.success && Array.isArray(second.data?.jobs) ? second.data.jobs : [];
+        for (const j of jobs2) {
+          const id = pickJobId(j);
+          if (id) return id;
+        }
+      }
+
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /**
    * Update analysis result
    * @param {string} resultId - Result ID
    * @param {Object} updateData - Update data

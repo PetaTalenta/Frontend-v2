@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { AssessmentResult } from '../../../types/assessment-results';
 import apiService from '../../../services/apiService';
 import ResultsPageClient from '../../../components/results/ResultsPageClient';
@@ -10,6 +10,7 @@ import ResultsPageClient from '../../../components/results/ResultsPageClient';
 export default function ResultsPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const resultId = params.id as string;
   const [result, setResult] = useState<AssessmentResult | null>(null);
   const [loading, setLoading] = useState(true);
@@ -64,16 +65,53 @@ export default function ResultsPage() {
       if (!resultId) return;
       try {
         setRetrying(true);
-        const resp = await apiService.retryAssessment(resultId);
-        if (resp?.success && resp?.data?.jobId) {
-          // Redirect ke halaman loading/monitoring atau tetap di sini sampai WS redirect
-          // Paling aman: arahkan ke halaman dashboard (di sana ada global WS listener),
-          // atau bisa ke halaman loading jika tersedia.
+
+        // 0) Ambil jobId dari query param jika tersedia
+        const jobIdFromQuery = searchParams?.get('jobId') || null;
+        console.log('🔍 JobId from query:', jobIdFromQuery);
+
+        // 1) Coba ambil jobId langsung dari object result (kalau backend menyertakan)
+        let jobId: string | null = jobIdFromQuery;
+        const r: any = result as any;
+        if (!jobId) jobId = r?.job_id || r?.jobId || r?.job?.id || null;
+        console.log('🔍 JobId from result object:', jobId);
+
+        // 2) Jika masih tidak ada, cari berdasarkan resultId melalui archive/jobs
+        if (!jobId) {
+          try {
+            console.log('🔍 Searching jobId by resultId...');
+            // @ts-ignore - apiService is JS
+            jobId = await apiService.findJobIdByResultId(resultId);
+            console.log('🔍 JobId found via search:', jobId);
+          } catch (searchError) {
+            console.error('❌ Failed to find jobId by resultId:', searchError);
+            jobId = null;
+          }
+        }
+
+        if (!jobId) {
+          console.error('❌ No jobId found for resultId:', resultId);
+          alert('Job ID tidak ditemukan untuk hasil ini. Coba lagi nanti.');
+          return;
+        }
+
+        console.log('🚀 Retrying assessment with jobId:', jobId);
+
+        // Retry berdasarkan jobId (sesuai validasi backend)
+        // @ts-ignore - apiService is JS
+        const resp = await apiService.retryAssessmentByJob(jobId);
+        console.log('📝 Retry response:', resp);
+        
+        if (resp?.success && (resp?.data?.jobId || resp?.data?.id)) {
+          alert('Assessment berhasil dikirim ulang! Anda akan diarahkan ke Dashboard.');
           router.push('/dashboard');
         } else {
-          alert(resp?.error?.message || 'Gagal mengirim ulang assessment.');
+          const errorMsg = resp?.error?.message || resp?.error || 'Gagal mengirim ulang assessment.';
+          console.error('❌ Retry failed:', errorMsg);
+          alert(errorMsg);
         }
-      } catch (e) {
+      } catch (e: any) {
+        console.error('❌ Retry error:', e);
         alert(e?.message || 'Gagal mengirim ulang assessment.');
       } finally {
         setRetrying(false);

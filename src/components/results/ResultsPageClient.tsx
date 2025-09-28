@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '../ui/button';
 import { Card, CardContent } from '../ui/card';
 import { Skeleton } from '../ui/skeleton';
@@ -183,12 +183,14 @@ interface ResultsPageClientProps {
 
 export default function ResultsPageClient({ initialResult, resultId }: ResultsPageClientProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [result, setResult] = useState<AssessmentResult>(initialResult);
   const [exporting, setExporting] = useState(false);
   const [screenshotting, setScreenshotting] = useState(false);
   const [exportType, setExportType] = useState<string>('');
   const [isPublic, setIsPublic] = useState<boolean>(initialResult?.is_public ?? false);
   const [isTogglingPublic, setIsTogglingPublic] = useState(false);
+  const [retrying, setRetrying] = useState(false);
 
   // Refs for screenshot capture
   const pageRef = useRef<HTMLDivElement>(null);
@@ -398,6 +400,64 @@ export default function ResultsPageClient({ initialResult, resultId }: ResultsPa
     router.push(`/results/${resultId}/chat`);
   };
 
+  const handleRetrySubmit = async () => {
+    try {
+      setRetrying(true);
+
+      // 0) Coba ambil jobId dari query param jika tersedia
+      const jobIdFromQuery = searchParams?.get('jobId') || null;
+
+      // 1) Coba ambil jobId langsung dari object result (kalau backend menyertakan)
+      let jobId: string | null = jobIdFromQuery;
+      const r: any = result as any;
+      if (!jobId) jobId = r?.job_id || r?.jobId || r?.job?.id || null;
+
+      // 2) Jika tidak ada, cari berdasarkan resultId melalui archive/jobs
+      if (!jobId) {
+        try {
+          // @ts-ignore - apiService is JS
+          jobId = await apiService.findJobIdByResultId(resultId);
+        } catch (_) {
+          jobId = null;
+        }
+      }
+
+      if (!jobId) {
+        toast({
+          title: 'Job ID tidak ditemukan',
+          description: 'Tidak dapat menemukan jobId terkait hasil ini. Silakan coba lagi nanti.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // 3) Kirim ulang berdasarkan jobId (sesuai validasi backend)
+      // @ts-ignore - apiService is JS
+      const resp = await apiService.retryAssessmentByJob(jobId);
+      if (resp?.success && (resp?.data?.jobId || resp?.data?.id)) {
+        toast({
+          title: 'Assessment dikirim ulang',
+          description: 'Kami akan memproses ulang hasil Anda. Anda akan diarahkan ke Dashboard.',
+        });
+        router.push('/dashboard');
+      } else {
+        toast({
+          title: 'Gagal submit ulang',
+          description: resp?.error?.message || 'Gagal mengirim ulang assessment.',
+          variant: 'destructive',
+        });
+      }
+    } catch (e: any) {
+      toast({
+        title: 'Gagal submit ulang',
+        description: e?.message || 'Terjadi kesalahan saat mengirim ulang assessment.',
+        variant: 'destructive',
+      });
+    } finally {
+      setRetrying(false);
+    }
+  };
+
   if (!result) {
     return (
       <div className="min-h-screen bg-[#f8fafc] p-6">
@@ -450,6 +510,14 @@ export default function ResultsPageClient({ initialResult, resultId }: ResultsPa
                 <MessageCircle className="w-4 h-4 mr-2" />
                 Chat AI
               </Button>
+              <button
+                onClick={handleRetrySubmit}
+                disabled={retrying}
+                className="border border-gray-200 px-3 py-2 rounded-md text-sm hover:bg-gray-50 disabled:opacity-60"
+                title="Kirim ulang assessment Anda untuk diproses"
+              >
+                {retrying ? 'Submitting…' : 'submit ulang'}
+              </button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
