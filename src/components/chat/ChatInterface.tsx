@@ -8,10 +8,10 @@ import apiService from '../../services/apiService';
 import ChatHeader from './ChatHeader';
 import MessageBubble from './MessageBubble';
 import ChatInput from './ChatInput';
-import { Card } from '../ui/card';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '../ui/alert';
-import PersonaProfileCard from '../results/PersonaProfileCard';
+import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
+import PersonaProfileFull from '../results/PersonaProfileFull';
 
 interface ChatInterfaceProps {
   assessmentResult: AssessmentResult;
@@ -307,57 +307,101 @@ export default function ChatInterface({ assessmentResult, onBack }: ChatInterfac
       )}
 
       {/* Main Content: Split view when persona open */}
-      <div className="flex-1 overflow-hidden flex" style={{minHeight: 0}}>
-        {/* Left: Chat */}
-        <div className={`${showPersona ? 'w-1/2 border-r border-gray-200' : 'w-full'} flex flex-col relative`}
-             style={{minHeight: 0}}>
-          <div
-            ref={messagesContainerRef}
-            className="flex-1 overflow-y-auto p-4 space-y-4"
-          >
-            <div className={`${showPersona ? 'max-w-2xl' : 'max-w-4xl'} mx-auto`}>
-              {/* Messages */}
-              {messages && messages.length > 0 ? (
-                messages.map((message) => (
-                  <MessageBubble key={message.id} message={message} />
-                ))
-              ) : (
-                <div className="text-center text-gray-500 py-8">
-                  <p>Belum ada pesan. Mulai percakapan dengan mengirim pesan!</p>
+      {showPersona ? (
+        <PanelGroup direction="horizontal" className="flex-1 overflow-hidden" style={{ minHeight: 0 }}>
+          <Panel defaultSize={60} minSize={30}>
+            <div className="h-full flex flex-col border-r border-gray-200" style={{ minHeight: 0 }}>
+              <div
+                ref={messagesContainerRef}
+                className="flex-1 overflow-y-auto p-4 space-y-4"
+              >
+                <div className="max-w-2xl mx-auto">
+                  {/* Messages */}
+                  {messages && messages.length > 0 ? (
+                    messages.map((message) => (
+                      <MessageBubble key={message.id} message={message} />
+                    ))
+                  ) : (
+                    <div className="text-center text-gray-500 py-8">
+                      <p>Belum ada pesan. Mulai percakapan dengan mengirim pesan!</p>
+                    </div>
+                  )}
+
+                  {/* Typing Indicator */}
+                  {typingMessage && (
+                    <MessageBubble message={typingMessage} isTyping={true} />
+                  )}
+
+                  {/* Scroll anchor */}
+                  <div ref={messagesEndRef} />
                 </div>
-              )}
+              </div>
 
-              {/* Typing Indicator */}
-              {typingMessage && (
-                <MessageBubble message={typingMessage} isTyping={true} />
-              )}
-
-              {/* Scroll anchor */}
-              <div ref={messagesEndRef} />
+              {/* Input - sticky to bottom of viewport */}
+              <div className="border-t border-gray-200 sticky bottom-0 bg-white">
+                <div className="max-w-2xl mx-auto px-4 py-2">
+                  <ChatInput
+                    onSendMessage={handleSendMessage}
+                    disabled={isSending}
+                    placeholder={isSending ? "Mengirim pesan..." : "Tanyakan tentang hasil assessment Anda..."}
+                  />
+                </div>
+              </div>
             </div>
-          </div>
+          </Panel>
 
-          {/* Input - sticky to bottom of viewport */}
-          <div className="border-t border-gray-200 sticky bottom-0 bg-white">
-            <div className={`${showPersona ? 'max-w-2xl' : 'max-w-4xl'} mx-auto px-4 py-2`}>
-              <ChatInput
-                onSendMessage={handleSendMessage}
-                disabled={isSending}
-                placeholder={isSending ? "Mengirim pesan..." : "Tanyakan tentang hasil assessment Anda..."}
-              />
+          <PanelResizeHandle className="w-1 bg-gray-200 hover:bg-gray-300 cursor-col-resize" />
+
+          <Panel defaultSize={40} minSize={25}>
+            <div className="h-full overflow-y-auto p-4 bg-white">
+              <div className="space-y-4">
+                <PersonaProfileFull result={assessmentResult} />
+              </div>
+            </div>
+          </Panel>
+        </PanelGroup>
+      ) : (
+        <div className="flex-1 overflow-hidden flex" style={{ minHeight: 0 }}>
+          <div className="w-full flex flex-col relative" style={{ minHeight: 0 }}>
+            <div
+              ref={messagesContainerRef}
+              className="flex-1 overflow-y-auto p-4 space-y-4"
+            >
+              <div className="max-w-4xl mx-auto">
+                {/* Messages */}
+                {messages && messages.length > 0 ? (
+                  messages.map((message) => (
+                    <MessageBubble key={message.id} message={message} />
+                  ))
+                ) : (
+                  <div className="text-center text-gray-500 py-8">
+                    <p>Belum ada pesan. Mulai percakapan dengan mengirim pesan!</p>
+                  </div>
+                )}
+
+                {/* Typing Indicator */}
+                {typingMessage && (
+                  <MessageBubble message={typingMessage} isTyping={true} />
+                )}
+
+                {/* Scroll anchor */}
+                <div ref={messagesEndRef} />
+              </div>
+            </div>
+
+            {/* Input - sticky to bottom of viewport */}
+            <div className="border-t border-gray-200 sticky bottom-0 bg-white">
+              <div className="max-w-4xl mx-auto px-4 py-2">
+                <ChatInput
+                  onSendMessage={handleSendMessage}
+                  disabled={isSending}
+                  placeholder={isSending ? "Mengirim pesan..." : "Tanyakan tentang hasil assessment Anda..."}
+                />
+              </div>
             </div>
           </div>
         </div>
-
-        {/* Right: Persona Profile Sidebar */}
-        {showPersona && (
-          <div className="w-1/2 min-w-[360px] overflow-y-auto p-4 bg-white">
-            <div className="space-y-4">
-              <PersonaProfileCard persona={assessmentResult.persona_profile as any} />
-            </div>
-          </div>
-        )}
-      </div>
+      )}
     </div>
   );
 }
