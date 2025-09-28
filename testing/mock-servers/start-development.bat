@@ -1,6 +1,6 @@
 @echo off
 echo ========================================
-echo   PetaTalenta Development Environment
+echo   FutureGuide Development Environment
 echo ========================================
 echo.
 

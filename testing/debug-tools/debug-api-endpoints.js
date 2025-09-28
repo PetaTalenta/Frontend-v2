@@ -61,7 +61,7 @@ function makeRequest(endpoint, token) {
       method: endpoint.method,
       headers: {
         'Content-Type': 'application/json',
-        'User-Agent': 'PetaTalenta-Debug/1.0',
+        'User-Agent': 'FutureGuide-Debug/1.0',
         ...(token && { 'Authorization': `Bearer ${token}` })
       }
     };

@@ -189,7 +189,7 @@ class AssessmentService {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
-          'User-Agent': 'PetaTalenta-Frontend/1.0',
+          'User-Agent': 'FutureGuide-Frontend/1.0',
         },
         body: JSON.stringify(payload),
         signal: controller.signal
@@ -633,7 +633,7 @@ class AssessmentService {
       const response = await fetch(`${CONFIG.API_BASE_URL}${CONFIG.ENDPOINTS.STATUS(jobId)}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
-          'User-Agent': 'PetaTalenta-Frontend/1.0',
+          'User-Agent': 'FutureGuide-Frontend/1.0',
           'Accept': 'application/json',
         },
         signal: AbortSignal.timeout(15000), // 15 second timeout for status checks

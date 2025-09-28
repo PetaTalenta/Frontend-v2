@@ -179,7 +179,7 @@ export default function AuthTestPage() {
                 <div className="bg-gray-50 rounded-lg p-4">
                   <h4 className="font-medium text-[#1e1e1e] mb-2">Demo User</h4>
                   <div className="space-y-1 text-sm">
-                    <p><strong>Email:</strong> demo@petatalenta.com</p>
+                    <p><strong>Email:</strong> demo@FutureGuide.com</p>
                     <p><strong>Password:</strong> demo123</p>
                   </div>
                 </div>

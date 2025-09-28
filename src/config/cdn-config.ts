@@ -1,5 +1,5 @@
 /**
- * CDN Configuration for PetaTalenta Frontend
+ * CDN Configuration for FutureGuide Frontend
  * Centralized configuration for CDN integration and asset optimization
  */
 
@@ -121,7 +121,7 @@ export const CDN_CONFIG = {
   SECURITY: {
     // Content Security Policy for CDN
     CSP_SOURCES: {
-      'img-src': ['self', 'data:', 'https://images.petatalenta.com'],
+      'img-src': ['self', 'data:', 'https://images.FutureGuide.com'],
       'font-src': ['self', 'https://fonts.gstatic.com'],
       'style-src': ['self', 'unsafe-inline', 'https://fonts.googleapis.com'],
       'script-src': ['self', 'unsafe-eval', 'unsafe-inline']
@@ -129,7 +129,7 @@ export const CDN_CONFIG = {
     
     // CORS settings
     CORS: {
-      origin: ['https://petatalenta.com', 'https://www.petatalenta.com'],
+      origin: ['https://FutureGuide.com', 'https://www.FutureGuide.com'],
       credentials: true
     }
   },

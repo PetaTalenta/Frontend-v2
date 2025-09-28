@@ -3,7 +3,7 @@ REM Token Helper script untuk membantu mengambil token
 REM Usage: run-token-helper.bat
 
 echo =====================================================
-echo Token Helper untuk PetaTalenta
+echo Token Helper untuk FutureGuide
 echo =====================================================
 
 REM Check if Node.js is installed

@@ -25,15 +25,15 @@ import NotificationRedirectListener from '../components/notifications/Notificati
 // OptimizationInitializer removed to prevent dynamic import issues
 
 export const metadata: Metadata = {
-  title: 'PetaTalenta - Future Guide Platform',
+  title: 'FutureGuide - Future Guide Platform',
   description: 'AI-Driven Talent Mapping Assessment Platform',
-  generator: 'By PetaTalenta',
+  generator: 'By FutureGuide',
   manifest: '/manifest.json',
 
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'PetaTalenta',
+    title: 'FutureGuide',
   },
   formatDetection: {
     telephone: false,

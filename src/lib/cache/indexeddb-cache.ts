@@ -18,7 +18,7 @@ interface CacheOptions {
 }
 
 class IndexedDBCache {
-  private dbName = 'PetaTalentaCache';
+  private dbName = 'FutureGuideCache';
   private dbVersion = 1;
   private storeName = 'cache';
   private db: IDBDatabase | null = null;

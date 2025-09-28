@@ -86,7 +86,7 @@ function displayInstructions() {
   console.log('🔐 Cara Mendapatkan Token untuk Akun rizqy2458@gmail.com');
   console.log('========================================================');
   console.log('');
-  console.log('1. Buka aplikasi PetaTalenta di browser');
+  console.log('1. Buka aplikasi FutureGuide di browser');
   console.log('2. Login dengan:');
   console.log('   📧 Email: rizqy2458@gmail.com');
   console.log('   🔑 Password: kiana1234');

@@ -187,7 +187,7 @@ export default function TestScreenshotPage() {
 
         <div className="text-center py-8">
           <p className="text-gray-500 text-sm">
-            © 2024 PetaTalenta - Screenshot Test Page
+            © 2024 FutureGuide - Screenshot Test Page
           </p>
         </div>
       </div>

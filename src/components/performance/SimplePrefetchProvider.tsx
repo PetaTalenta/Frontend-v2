@@ -58,7 +58,7 @@ export default function SimplePrefetchProvider({
         // Basic caching setup
         if (enableCaching && 'localStorage' in window) {
           // Simple cache initialization
-          const cacheKey = 'petatalenta_cache_init';
+          const cacheKey = 'FutureGuide_cache_init';
           const cacheData = {
             initialized: true,
             timestamp: Date.now(),

@@ -51,7 +51,7 @@ export default function AuthDemoPage() {
   const demoCredentials = [
     {
       type: 'Demo User',
-      email: 'demo@petatalenta.com',
+      email: 'demo@FutureGuide.com',
       password: 'demo123',
       description: 'Standard user account for testing'
     },

@@ -38,7 +38,7 @@ function displayTokenInstructions() {
   console.log('🔐 Cara Mendapatkan Token Authentication');
   console.log('======================================');
   console.log('');
-  console.log('1. Buka aplikasi PetaTalenta di browser');
+  console.log('1. Buka aplikasi FutureGuide di browser');
   console.log('2. Login dengan akun Anda:');
   console.log('   Email: rizqy2458@gmail.com');
   console.log('   Password: kiana1234');

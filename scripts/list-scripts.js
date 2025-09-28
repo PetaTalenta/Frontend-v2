@@ -200,7 +200,7 @@ function displayDocumentationLinks() {
  * Main function
  */
 function main() {
-  console.log('📜 PetaTalenta Scripts Directory');
+  console.log('📜 FutureGuide Scripts Directory');
   console.log('================================');
   console.log('');
   

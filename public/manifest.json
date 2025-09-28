@@ -1,6 +1,6 @@
 {
-  "name": "PetaTalenta - AI-Driven Talent Assessment",
-  "short_name": "PetaTalenta",
+  "name": "FutureGuide - AI-Driven Talent Assessment",
+  "short_name": "FutureGuide",
   "description": "Platform assessment kepribadian dan bakat berbasis AI untuk pengembangan karir optimal",
   "start_url": "/",
   "display": "standalone",
@@ -104,7 +104,7 @@
       "sizes": "1280x720",
       "type": "image/png",
       "form_factor": "wide",
-      "label": "Dashboard PetaTalenta"
+      "label": "Dashboard FutureGuide"
     },
     {
       "src": "/screenshot-mobile.png",

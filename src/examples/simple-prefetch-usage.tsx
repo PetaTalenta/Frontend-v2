@@ -9,7 +9,7 @@ export function OptimizedLandingPageExample() {
   return (
     <div className="landing-page">
       <header className="header">
-        <h1>PetaTalenta</h1>
+        <h1>FutureGuide</h1>
         <nav>
           {/* Link navigasi dengan prefetch otomatis saat hover */}
           <SimplePrefetchLink 

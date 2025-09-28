@@ -180,7 +180,7 @@ export function CDNLogo({
   return (
     <CDNImage
       src={logoSrc}
-      alt="PetaTalenta Logo"
+      alt="FutureGuide Logo"
       width={dimensions.width}
       height={dimensions.height}
       cdnQuality="high"

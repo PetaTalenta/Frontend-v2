@@ -224,7 +224,7 @@ async function interactiveTokenInput() {
  * Main function
  */
 async function main() {
-  console.log('🔐 Token Helper untuk PetaTalenta');
+  console.log('🔐 Token Helper untuk FutureGuide');
   console.log('==================================');
   console.log('');
   console.log('Script ini membantu Anda mengambil dan menggunakan token authentication');

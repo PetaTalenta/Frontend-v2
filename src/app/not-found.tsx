@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Home, Search, ArrowLeft } from 'lucide-react';
 
 export const metadata = {
-  title: '404 - Page Not Found | PetaTalenta',
+  title: '404 - Page Not Found | FutureGuide',
   description: 'The page you are looking for could not be found.',
 };
 

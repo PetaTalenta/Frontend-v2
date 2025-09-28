@@ -1,5 +1,5 @@
 /**
- * KONFIGURASI OPTIMASI FONT UNTUK PETATALENTA
+ * KONFIGURASI OPTIMASI FONT UNTUK FutureGuide
  * 
  * Optimasi font untuk mengurangi CLS dan meningkatkan performa loading
  */

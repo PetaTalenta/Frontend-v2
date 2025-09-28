@@ -160,7 +160,7 @@ export function OptimizedLogo({
   return (
     <OptimizedImage
       src={logoSrc}
-      alt="PetaTalenta Logo"
+      alt="FutureGuide Logo"
       width={dimensions.width}
       height={dimensions.height}
       priority={priority}

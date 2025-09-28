@@ -229,7 +229,7 @@ export default function TestPDFExportPage() {
 
         <div className="text-center py-8">
           <p className="text-gray-500 text-sm">
-            © 2024 PetaTalenta - PDF Export Test Page
+            © 2024 FutureGuide - PDF Export Test Page
           </p>
         </div>
       </div>

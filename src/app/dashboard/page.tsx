@@ -44,7 +44,7 @@ async function getDashboardStaticData(): Promise<DashboardStaticData> {
 }
 
 export const metadata: Metadata = {
-  title: 'Dashboard - PetaTalenta',
+  title: 'Dashboard - FutureGuide',
   description: 'Dashboard utama untuk melihat progress assessment dan analisis kepribadian Anda.',
   robots: {
     index: false, // Dashboard should not be indexed

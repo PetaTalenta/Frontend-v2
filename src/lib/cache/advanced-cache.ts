@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * ADVANCED CACHING SYSTEM UNTUK PETATALENTA
+ * ADVANCED CACHING SYSTEM UNTUK FutureGuide
  * 
  * Multi-layer caching dengan TTL, compression, dan intelligent invalidation
  */
@@ -125,7 +125,7 @@ class MemoryCache {
 class LocalStorageCache {
   private prefix: string;
 
-  constructor(prefix = 'petatalenta_cache_') {
+  constructor(prefix = 'FutureGuide_cache_') {
     this.prefix = prefix;
   }
 
@@ -281,7 +281,7 @@ class CacheManager {
     try {
       const keys = Object.keys(localStorage);
       keys.forEach(key => {
-        if (key.startsWith('petatalenta_cache_')) {
+        if (key.startsWith('FutureGuide_cache_')) {
           size++;
           usage += localStorage.getItem(key)?.length || 0;
         }

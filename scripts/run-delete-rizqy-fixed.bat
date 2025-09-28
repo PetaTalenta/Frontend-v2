@@ -43,7 +43,7 @@ echo.
 echo Untuk menggunakan script ini, Anda perlu token authentication.
 echo.
 echo CARA MENDAPATKAN TOKEN:
-echo 1. Buka aplikasi PetaTalenta di browser
+echo 1. Buka aplikasi FutureGuide di browser
 echo 2. Login dengan:
 echo    Email: rizqy2458@gmail.com
 echo    Password: kiana1234

@@ -256,7 +256,7 @@ export default function ResultsPageClient({ initialResult, resultId }: ResultsPa
     if (navigator.share) {
       try {
         await navigator.share({
-          title: `Hasil Assessment - ${result.persona_profile?.archetype || 'PetaTalenta'}`,
+          title: `Hasil Assessment - ${result.persona_profile?.archetype || 'FutureGuide'}`,
           text: 'Lihat hasil assessment kepribadian dan bakat saya',
           url: url,
         });

@@ -1,8 +1,8 @@
-# AI Copilot Instructions for PetaTalenta Frontend
+# AI Copilot Instructions for FutureGuide Frontend
 
 ## Project Overview
 
-PetaTalenta is a Next.js 15 assessment platform built with App Router, TypeScript, and comprehensive performance optimizations. The system handles AI-driven talent mapping assessments with real-time WebSocket communication and sophisticated caching strategies.
+FutureGuide is a Next.js 15 assessment platform built with App Router, TypeScript, and comprehensive performance optimizations. The system handles AI-driven talent mapping assessments with real-time WebSocket communication and sophisticated caching strategies.
 
 ## Core Architecture
 
@@ -79,7 +79,7 @@ npm run optimize          # Performance optimization script
 
 ### Environment Configuration
 - Font optimization: Geist Sans/Mono with preload and display:swap
-- Image optimization: AVIF/WebP with CDN support for `*.petatalenta.com`
+- Image optimization: AVIF/WebP with CDN support for `*.FutureGuide.com`
 - Bundle analysis: Integrated with `@next/bundle-analyzer`
 
 ## Code Quality Guidelines

@@ -29,7 +29,7 @@ class UserBehaviorTracker {
   private actionBuffer: UserAction[] = [];
   private flushInterval = 5000; // 5 seconds
   private maxBufferSize = 50;
-  private storageKey = 'petatalenta_user_behavior';
+  private storageKey = 'FutureGuide_user_behavior';
 
   constructor() {
     this.session = this.initializeSession();

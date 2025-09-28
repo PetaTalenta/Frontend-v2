@@ -24,14 +24,14 @@ const nextConfig = {
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     minimumCacheTTL: 60 * 60 * 24 * 30, // 30 days
     domains: [
-      'images.petatalenta.com',
-      'static.petatalenta.com',
-      'cdn.petatalenta.com'
+      'images.FutureGuide.com',
+      'static.FutureGuide.com',
+      'cdn.FutureGuide.com'
     ],
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: '*.petatalenta.com',
+        hostname: '*.FutureGuide.com',
         port: '',
         pathname: '/**',
       },

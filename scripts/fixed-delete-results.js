@@ -50,7 +50,7 @@ function makeRequest(url, options = {}) {
       method: options.method || 'GET',
       headers: {
         'Content-Type': 'application/json',
-        'User-Agent': 'PetaTalenta-Fixed/1.0',
+        'User-Agent': 'FutureGuide-Fixed/1.0',
         ...options.headers
       }
     };

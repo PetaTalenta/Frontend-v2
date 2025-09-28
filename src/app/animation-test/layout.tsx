@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Animation Test - PetaTalenta',
+  title: 'Animation Test - FutureGuide',
   description: 'Testing Framer Motion animations for performance and user experience',
 }
 

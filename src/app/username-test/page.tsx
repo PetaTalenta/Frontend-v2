@@ -66,7 +66,7 @@ export default function UsernameTestPage() {
 
   const testCases = [
     {
-      email: 'demo@petatalenta.com',
+      email: 'demo@FutureGuide.com',
       password: 'demo123',
       expectedName: 'Demo User',
       description: 'Demo account with predefined name'

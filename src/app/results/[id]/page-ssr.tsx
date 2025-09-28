@@ -42,13 +42,13 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
 
   if (!result) {
     return {
-      title: 'Hasil Assessment Tidak Ditemukan - PetaTalenta',
+      title: 'Hasil Assessment Tidak Ditemukan - FutureGuide',
       description: 'Hasil assessment yang Anda cari tidak ditemukan.',
     };
   }
 
   const archetype = result.persona_profile?.archetype || 'Assessment';
-  const title = `Hasil ${archetype} - PetaTalenta Assessment`;
+  const title = `Hasil ${archetype} - FutureGuide Assessment`;
   const description = `Lihat hasil assessment kepribadian dan bakat untuk profil ${archetype}. Analisis RIASEC, Big Five, dan VIA Character Strengths.`;
 
   return {

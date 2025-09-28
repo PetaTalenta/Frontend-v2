@@ -91,7 +91,7 @@ async function testExternalAPI() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'User-Agent': 'PetaTalenta-Frontend/1.0',
+        'User-Agent': 'FutureGuide-Frontend/1.0',
       },
       body: JSON.stringify(testData),
       signal: AbortSignal.timeout(15000),

@@ -22,7 +22,7 @@ export default function LandingPage() {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <h1 className="text-2xl font-bold text-[#6475e9]">PetaTalenta</h1>
+                <h1 className="text-2xl font-bold text-[#6475e9]">FutureGuide</h1>
               </div>
             </div>
             <div className="flex items-center space-x-4">
@@ -71,7 +71,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-[#1f2937] mb-4">
-              Mengapa Memilih PetaTalenta?
+              Mengapa Memilih FutureGuide?
             </h2>
             <p className="text-xl text-[#6b7280] max-w-2xl mx-auto">
               Teknologi AI terdepan untuk analisis kepribadian dan pemetaan bakat yang akurat
@@ -220,7 +220,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
-              <h3 className="text-xl font-bold mb-4">PetaTalenta</h3>
+              <h3 className="text-xl font-bold mb-4">FutureGuide</h3>
               <p className="text-gray-300">
                 Platform assessment kepribadian dan bakat berbasis AI untuk pengembangan karir optimal.
               </p>
@@ -251,7 +251,7 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="border-t border-gray-700 mt-8 pt-8 text-center text-gray-300">
-            <p>&copy; 2024 PetaTalenta. All rights reserved.</p>
+            <p>&copy; 2024 FutureGuide. All rights reserved.</p>
           </div>
         </div>
       </footer>

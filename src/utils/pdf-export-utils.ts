@@ -241,7 +241,7 @@ function addSimpleCoverPage(
   // Subtitle
   pdf.setFontSize(18);
   pdf.setFont('helvetica', 'normal');
-  const subtitleText = 'PetaTalenta Assessment Report';
+  const subtitleText = 'FutureGuide Assessment Report';
   const subtitleWidth = pdf.getTextWidth(subtitleText);
   pdf.text(subtitleText, centerX - (subtitleWidth / 2), 70);
 
@@ -315,7 +315,7 @@ function addSimpleFooter(
 
   // Footer text (left aligned)
   pdf.text(
-    'PetaTalenta Assessment Report',
+    'FutureGuide Assessment Report',
     dimensions.margin,
     dimensions.pageHeight - dimensions.margin
   );

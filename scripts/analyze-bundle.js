@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * SCRIPT ANALISIS BUNDLE UNTUK PETATALENTA
+ * SCRIPT ANALISIS BUNDLE UNTUK FutureGuide
  * 
  * Menganalisis ukuran bundle dan memberikan rekomendasi optimasi
  */
@@ -330,7 +330,7 @@ function runBundleAnalyzer() {
 // ===== MAIN EXECUTION =====
 
 function main() {
-  console.log('🚀 PetaTalenta Bundle Analysis\n');
+  console.log('🚀 FutureGuide Bundle Analysis\n');
   console.log('═'.repeat(80));
   console.log('');
   

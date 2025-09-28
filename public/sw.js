@@ -1,8 +1,8 @@
 // Service Worker for caching and performance optimization
 
-const CACHE_NAME = 'petatalenta-v1';
-const STATIC_CACHE = 'petatalenta-static-v1';
-const DYNAMIC_CACHE = 'petatalenta-dynamic-v1';
+const CACHE_NAME = 'FutureGuide-v1';
+const STATIC_CACHE = 'FutureGuide-static-v1';
+const DYNAMIC_CACHE = 'FutureGuide-dynamic-v1';
 
 // Assets to cache immediately
 const STATIC_ASSETS = [

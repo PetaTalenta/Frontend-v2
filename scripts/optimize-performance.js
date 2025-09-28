@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * SCRIPT OTOMATIS UNTUK OPTIMASI PERFORMA PETATALENTA
+ * SCRIPT OTOMATIS UNTUK OPTIMASI PERFORMA FutureGuide
  * 
  * Menjalankan semua optimasi performa secara otomatis
  */
@@ -349,7 +349,7 @@ async function checkCacheConfiguration() {
 // ===== MAIN EXECUTION =====
 
 async function main() {
-  console.log('🚀 PetaTalenta Performance Optimizer\n');
+  console.log('🚀 FutureGuide Performance Optimizer\n');
   console.log('═'.repeat(60));
   console.log('');
   
