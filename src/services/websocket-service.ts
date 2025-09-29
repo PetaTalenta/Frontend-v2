@@ -340,7 +340,7 @@ class WebSocketService {
       const event: WebSocketEvent = {
         type: 'analysis-complete',
         jobId: data.jobId,
-        resultId: data.resultId,
+        resultId: data.resultId || data.result_id,
         status: data.status,
         message: data.message,
         metadata: data.metadata,

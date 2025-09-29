@@ -16,7 +16,8 @@ export default function NotificationRedirectListener() {
   const router = useRouter();
   const { user } = useAuth();
   const wsInitialized = useRef(false);
-  const redirectGuardRef = useRef(false);
+  const isHandlingRef = useRef(false);
+  const lastCompletedResultIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!user || wsInitialized.current || !isWebSocketSupported()) return;
@@ -35,8 +36,8 @@ export default function NotificationRedirectListener() {
         unsubscribe = ws.addEventListener(async (event: any) => {
           // React only to completion events
           if (event?.type === "analysis-complete" || event?.status === "completed") {
-            if (redirectGuardRef.current) return;
-            redirectGuardRef.current = true;
+            if (isHandlingRef.current) return;
+            isHandlingRef.current = true;
 
             // Grace period to allow backend to persist the result
             await new Promise((res) => setTimeout(res, 10000));
@@ -62,10 +63,17 @@ export default function NotificationRedirectListener() {
             }
 
             if (resultId) {
-              router.replace(`/results/${resultId}`);
+              // Avoid duplicate redirects to the same result
+              if (lastCompletedResultIdRef.current !== resultId) {
+                lastCompletedResultIdRef.current = resultId;
+                router.replace(`/results/${resultId}`);
+              } else {
+                // Same result again; ignore and release flag
+                isHandlingRef.current = false;
+              }
             } else {
-              // Release guard so future events can retry
-              redirectGuardRef.current = false;
+              // Release flag so future events can retry
+              isHandlingRef.current = false;
             }
           }
         });

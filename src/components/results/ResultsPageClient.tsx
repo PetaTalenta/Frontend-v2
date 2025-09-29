@@ -439,7 +439,7 @@ export default function ResultsPageClient({ initialResult, resultId }: ResultsPa
           title: 'Assessment dikirim ulang',
           description: 'Kami akan memproses ulang hasil Anda. Anda akan diarahkan ke Dashboard.',
         });
-        router.push('/dashboard');
+        router.push('/dashboard?refresh=1');
       } else {
         toast({
           title: 'Gagal submit ulang',

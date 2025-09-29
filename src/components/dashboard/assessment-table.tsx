@@ -215,7 +215,20 @@ export function AssessmentTable({ data, onRefresh, swrKey, isLoading }: Assessme
                       </TableCell>
                       <TableCell>
                         <div className="assessment-table__action-buttons">
-                          <Button variant="ghost" size="icon" className="assessment-table__action-button" onClick={() => handleView(item.id)}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="assessment-table__action-button"
+                            onClick={() => handleView(item.id)}
+                            disabled={(() => {
+                              const s = String(item.status).toLowerCase();
+                              return s === 'processing' || s === 'queued' || s === 'pending' || s === 'in_progress';
+                            })()}
+                            title={(() => {
+                              const s = String(item.status).toLowerCase();
+                              return (s === 'processing' || s === 'queued' || s === 'pending' || s === 'in_progress') ? 'Sedang diproses' : 'Lihat hasil';
+                            })()}
+                          >
                             <ExternalLink className="assessment-table__action-icon" />
                           </Button>
 
@@ -225,7 +238,16 @@ export function AssessmentTable({ data, onRefresh, swrKey, isLoading }: Assessme
                                 variant="ghost"
                                 size="icon"
                                 className="assessment-table__action-button"
-                                disabled={isDeleting === (item.result_id || item.job_id)}
+                                disabled={(() => {
+                                  const s = String(item.status).toLowerCase();
+                                  const isProcessing = s === 'processing' || s === 'queued' || s === 'pending' || s === 'in_progress';
+                                  return isProcessing || isDeleting === (item.result_id || item.job_id);
+                                })()}
+                                title={(() => {
+                                  const s = String(item.status).toLowerCase();
+                                  const isProcessing = s === 'processing' || s === 'queued' || s === 'pending' || s === 'in_progress';
+                                  return isProcessing ? 'Sedang diproses' : 'Hapus';
+                                })()}
                               >
                                 <Trash2 className="assessment-table__action-icon" />
                               </Button>

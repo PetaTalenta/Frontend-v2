@@ -232,7 +232,12 @@ export default function DashboardClient({ staticData }: DashboardClientProps) {
   // Effect: Refetch data jika ada query param ?refresh=1, lalu jika assessment terbaru selesai, redirect ke hasil
   useEffect(() => {
     if (searchParams?.get('refresh') === '1') {
-      mutateStats();
+      // Revalidate user stats AND assessment history (archive/jobs) so the table updates immediately
+      Promise.all([
+        mutateStats(),
+        mutateAssessmentHistory(),
+      ]).catch(() => {});
+
       // Cek jika assessment terbaru sudah selesai, redirect ke hasil
       if (assessmentHistory && assessmentHistory.length > 0) {
         const latest = assessmentHistory[0];
@@ -247,7 +252,7 @@ export default function DashboardClient({ staticData }: DashboardClientProps) {
       const newUrl = window.location.pathname + (params.toString() ? `?${params}` : '');
       window.history.replaceState({}, '', newUrl);
     }
-  }, [searchParams, mutateStats, assessmentHistory, router]);
+  }, [searchParams, mutateStats, mutateAssessmentHistory, assessmentHistory, router]);
   // Refresh function
   const refreshDashboardData = async () => {
     setIsRefreshing(true);
