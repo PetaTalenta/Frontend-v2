@@ -64,6 +64,8 @@ export default function ChatInterface({ assessmentResult, onBack }: ChatInterfac
       setIsLoading(true);
       setError(null);
 
+      console.info('[AI Chat] Init start', { resultId: assessmentResult.id });
+
       // 0) Load any locally cached messages first so UI isn't empty on refresh
       let localMessages: ChatMessage[] = [];
       try {
@@ -74,6 +76,7 @@ export default function ChatInterface({ assessmentResult, onBack }: ChatInterfac
           localMessages = JSON.parse(cached);
           // Do not set typing message into cache; just set messages state
           setMessages(localMessages);
+          console.info('[AI Chat] Loaded local cached messages', { count: localMessages.length });
         }
       } catch {}
 
@@ -93,6 +96,7 @@ export default function ChatInterface({ assessmentResult, onBack }: ChatInterfac
       };
 
       // Try to get existing conversation first (server + local pointer)
+      console.info('[AI Chat] Checking existing conversation on server', { resultId: assessmentResult.id });
       let existing = await apiService.getChatConversation(assessmentResult.id);
 
       if (existing?.success && existing.data) {
@@ -110,11 +114,14 @@ export default function ChatInterface({ assessmentResult, onBack }: ChatInterfac
             JSON.stringify(merged)
           );
         } catch {}
+        console.info('[AI Chat] Found existing conversation', { conversationId: existing.data.id, serverMessages: serverMessages.length, mergedCount: merged.length });
       } else {
         // Start new conversation via ApiService
+        const ctx = buildPersonaContext();
+        console.info('[AI Chat] Starting new conversation with assessment context', ctx);
         const created = await apiService.startChatConversation({
           resultId: assessmentResult.id,
-          assessmentContext: buildPersonaContext(),
+          assessmentContext: ctx,
         });
         if (created?.success && created.data) {
           setConversation(created.data);
@@ -131,6 +138,7 @@ export default function ChatInterface({ assessmentResult, onBack }: ChatInterfac
               JSON.stringify(merged)
             );
           } catch {}
+          console.info('[AI Chat] Conversation created', { conversationId: created.data.id, serverMessages: serverMessages.length, mergedCount: merged.length, hasSuggestions: !!created.data.suggestions });
         } else {
           throw new Error('Failed to create conversation');
         }
@@ -290,17 +298,6 @@ export default function ChatInterface({ assessmentResult, onBack }: ChatInterfac
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
               {error}
-              {process.env.NODE_ENV === 'development' && (
-                <div className="mt-2">
-                  <a
-                    href="/debug-chatbot"
-                    target="_blank"
-                    className="text-sm underline hover:no-underline"
-                  >
-                    🔧 Debug Chatbot API
-                  </a>
-                </div>
-              )}
             </AlertDescription>
           </Alert>
         </div>

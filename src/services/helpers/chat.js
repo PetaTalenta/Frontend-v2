@@ -5,6 +5,13 @@ import { logger } from '../../utils/env-logger';
 
 export async function startConversation(axiosInstance, API_ENDPOINTS, data) {
   try {
+    const hasSnapshot = !!data.assessmentContext;
+    const snapshotPreview = hasSnapshot ? {
+      type: data.assessmentContext?.type,
+      resultId: data.assessmentContext?.resultId,
+      personaKeys: data.assessmentContext?.persona ? Object.keys(data.assessmentContext.persona).length : 0,
+    } : null;
+
     logger.debug('Starting chat conversation:', {
       endpoint: API_ENDPOINTS.CHATBOT.CREATE_FROM_ASSESSMENT,
       payload: {
@@ -12,7 +19,18 @@ export async function startConversation(axiosInstance, API_ENDPOINTS, data) {
         conversation_type: 'career_guidance',
         include_suggestions: true,
       },
+      context_snapshot_preview: snapshotPreview,
     });
+
+    // Extra console in browser for quick verification
+    if (typeof window !== 'undefined') {
+      console.info('[AI Chat] startConversation payload', {
+        endpoint: API_ENDPOINTS.CHATBOT.CREATE_CONVERSATION,
+        resultId: data.resultId,
+        hasSnapshot,
+        snapshotPreview,
+      });
+    }
 
     // First: try generic conversations endpoint (per docs)
     try {
@@ -165,13 +183,14 @@ export async function sendMessage(axiosInstance, API_ENDPOINTS, data) {
     logger.debug('Sending chat message:', {
       conversationId: data.conversationId,
       endpoint: API_ENDPOINTS.CHATBOT.SEND_MESSAGE(data.conversationId),
+      length: (data.message || '').length,
     });
 
     const response = await axiosInstance.post(
       API_ENDPOINTS.CHATBOT.SEND_MESSAGE(data.conversationId),
       {
         content: data.message,
-        content_type: 'text',
+        type: 'text', // per API docs
         ...(data.parentMessageId ? { parent_message_id: data.parentMessageId } : {}),
       }
     );
@@ -179,16 +198,16 @@ export async function sendMessage(axiosInstance, API_ENDPOINTS, data) {
     logger.debug('Chat API response:', response.data);
 
     if (response.data.success) {
-      const apiData = response.data.data;
-      const assistant = apiData.assistant_message || {};
+      const apiData = response.data.data || {};
+      const assistant = apiData.assistant_message || apiData.aiResponse || {};
       return {
         success: true,
         data: {
           message: {
-            id: assistant.id || `msg-${Date.now()}`,
+            id: assistant.id || assistant.messageId || `msg-${Date.now()}`,
             role: 'assistant',
             content: assistant.content,
-            timestamp: new Date().toISOString(),
+            timestamp: assistant.timestamp || new Date().toISOString(),
             resultId: data.resultId,
           },
         },

@@ -6,8 +6,8 @@ export const API_CONFIG = {
   // WebSocket/Notification URL
   NOTIFICATION_URL: process.env.NEXT_PUBLIC_NOTIFICATION_URL || 'https://api.futureguide.id',
 
-  // Request timeout - OPTIMIZED for faster failure detection
-  TIMEOUT: 15000, // 15 seconds (reduced from 30s)
+  // Request timeout - OPTIMIZED for AI chat responses (5 minutes for chat processing)
+  TIMEOUT: 300000, // 5 minutes (300 seconds) for AI chat responses
 
   // Retry configuration - OPTIMIZED
   RETRY_ATTEMPTS: 3,
