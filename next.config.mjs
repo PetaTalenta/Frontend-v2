@@ -39,29 +39,9 @@ const nextConfig = {
   },
 
   // Performance optimizations
+  // Disabled optimizePackageImports to avoid Webpack runtime issues in dev
   experimental: {
-    // optimizeCss: true, // Disabled temporarily due to build issues
-    optimizePackageImports: [
-      '@radix-ui/react-accordion',
-      '@radix-ui/react-alert-dialog',
-      '@radix-ui/react-avatar',
-      '@radix-ui/react-button',
-      '@radix-ui/react-card',
-      '@radix-ui/react-dialog',
-      '@radix-ui/react-dropdown-menu',
-      '@radix-ui/react-label',
-      '@radix-ui/react-popover',
-      '@radix-ui/react-progress',
-      '@radix-ui/react-select',
-      '@radix-ui/react-separator',
-      '@radix-ui/react-slider',
-      '@radix-ui/react-switch',
-      '@radix-ui/react-tabs',
-      '@radix-ui/react-toast',
-      '@radix-ui/react-tooltip',
-      'lucide-react'
-      // Removed 'recharts' from optimizePackageImports to prevent dynamic import issues
-    ],
+    // optimizeCss: true,
   },
 
   // Compiler optimizations
@@ -164,11 +144,13 @@ const nextConfig = {
 
   // Webpack configuration for better module loading and error prevention
   webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {
-    // Handle recharts and chart libraries better
-    config.module.rules.push({
-      test: /[\\/]node_modules[\\/]recharts[\\/]/,
-      sideEffects: false,
-    });
+    // Handle recharts and chart libraries better (only in production)
+    if (!dev) {
+      config.module.rules.push({
+        test: /[\\/]node_modules[\\/]recharts[\\/]/,
+        sideEffects: false,
+      });
+    }
 
     // Add fallbacks for Node.js modules
     config.resolve.fallback = {
@@ -179,23 +161,19 @@ const nextConfig = {
       crypto: false,
     };
 
-    // Prevent webpack dynamic import issues
-    config.resolve.alias = {
-      ...config.resolve.alias,
-      // Ensure consistent module resolution (using import.meta.resolve for ES modules)
-      'react': 'react',
-      'react-dom': 'react-dom',
-    };
+    // Remove custom react/react-dom alias to avoid duplicate/react versions or HMR issues
+    // (Next.js handles this by default)
 
-    // Improve module loading reliability
-    config.optimization = {
-      ...config.optimization,
-      moduleIds: 'deterministic',
-      chunkIds: 'deterministic',
-    };
-
-    // Optimize for production
+    // Improve module loading reliability (only in production to avoid dev HMR/runtime issues)
     if (!dev) {
+      // Use deterministic ids only in production; leave Next.js defaults in dev
+      config.optimization = {
+        ...config.optimization,
+        moduleIds: 'deterministic',
+        chunkIds: 'deterministic',
+      };
+
+      // Optimize for production
       config.optimization.usedExports = true;
       config.optimization.sideEffects = false;
 
@@ -214,7 +192,7 @@ const nextConfig = {
       };
     }
 
-    // Add error handling for module loading
+    // Add error handling for module loading (keep build id for debugging)
     config.plugins.push(
       new webpack.DefinePlugin({
         'process.env.WEBPACK_BUILD_ID': JSON.stringify(buildId),
