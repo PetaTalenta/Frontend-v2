@@ -9,7 +9,7 @@ export async function startConversation(axiosInstance, API_ENDPOINTS, data) {
     const snapshotPreview = hasSnapshot ? {
       type: data.assessmentContext?.type,
       resultId: data.assessmentContext?.resultId,
-      personaKeys: data.assessmentContext?.persona ? Object.keys(data.assessmentContext.persona).length : 0,
+      personaKeys: data.assessmentContext?.profilePersona ? Object.keys(data.assessmentContext.profilePersona).length : 0,
     } : null;
 
     logger.debug('Starting chat conversation:', {
@@ -38,17 +38,8 @@ export async function startConversation(axiosInstance, API_ENDPOINTS, data) {
         API_ENDPOINTS.CHATBOT.CREATE_CONVERSATION,
         {
           title: 'Career Guidance Session',
-          context_type: 'assessment',
-          context_data: {
-            source: 'assessment',
-            assessment_id: data.resultId,
-            // Provide snapshot so backend can use cached data and avoid re-analysis
-            // Only send persona profile as context snapshot
-            assessment_snapshot: data.assessmentContext || null,
-            no_reanalysis: true,
-            use_cached: true,
-          },
-          metadata: { origin: 'results_page', reanalyze: false, use_cached: true },
+          resultsId: data.resultId,
+          profilePersona: data.assessmentContext?.profilePersona || {},
         }
       );
 
@@ -128,13 +119,9 @@ export async function startConversation(axiosInstance, API_ENDPOINTS, data) {
     const response = await axiosInstance.post(
       API_ENDPOINTS.CHATBOT.CREATE_FROM_ASSESSMENT,
       {
-        assessment_id: data.resultId,
-        conversation_type: 'career_guidance',
-        include_suggestions: false, // avoid extra processing that may re-analyze
-        no_reanalysis: true,
-        use_cached: true,
-        // Only send persona profile as context snapshot
-        assessment_snapshot: data.assessmentContext || null,
+        title: 'Career Guidance Session',
+        resultsId: data.resultId,
+        profilePersona: data.assessmentContext?.profilePersona || {},
       }
     );
 

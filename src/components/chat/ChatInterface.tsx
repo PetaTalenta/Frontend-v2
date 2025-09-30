@@ -47,10 +47,10 @@ export default function ChatInterface({ assessmentResult, onBack }: ChatInterfac
         type: 'persona_profile',
         resultId: assessmentResult.id,
         createdAt: assessmentResult.createdAt,
-        persona,
+        profilePersona: persona,
       };
     } catch {
-      return { type: 'persona_profile', resultId: assessmentResult.id, persona: {} };
+      return { type: 'persona_profile', resultId: assessmentResult.id, profilePersona: {} };
     }
   };
 
