@@ -168,6 +168,7 @@ class ApiService {
   /**
    * Register new user
    * @param {Object} userData - User registration data
+   * @param {string} userData.username - Username
    * @param {string} userData.email - User email
    * @param {string} userData.password - User password
    */
