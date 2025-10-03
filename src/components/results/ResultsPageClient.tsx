@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '../ui/button';
 import { Card, CardContent } from '../ui/card';
@@ -197,6 +197,27 @@ export default function ResultsPageClient({ initialResult, resultId }: ResultsPa
   const radarChartRef = useRef<HTMLDivElement>(null);
   const personaCardRef = useRef<HTMLDivElement>(null);
   const scoresRef = useRef<HTMLDivElement>(null);
+
+  // Clear assessment data when results are displayed (run once on mount)
+  // Safe approach: Clear directly without depending on AssessmentProvider
+  useEffect(() => {
+    console.log('🎯 Results page loaded - clearing previous assessment data...');
+    
+    // Clear assessment data directly from localStorage
+    if (typeof window !== 'undefined') {
+      try {
+        window.localStorage.removeItem('assessment-answers');
+        window.localStorage.removeItem('assessment-current-section-index');
+        window.localStorage.removeItem('assessment-name');
+        window.localStorage.removeItem('assessment-submission-time');
+        window.localStorage.removeItem('flagged-questions-encrypted');
+        window.localStorage.removeItem('flagged-questions');
+        console.log('✅ Assessment data cleared successfully');
+      } catch (e) {
+        console.error('Failed to clear assessment data:', e);
+      }
+    }
+  }, []); // Empty dependency array = run only once on mount
 
   // Helper function to extract scores from assessment_data
   const extractScores = (assessmentData: any): AssessmentScores | null => {

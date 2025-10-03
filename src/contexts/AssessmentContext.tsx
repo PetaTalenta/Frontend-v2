@@ -18,6 +18,7 @@ interface AssessmentContextType {
   setCurrentSectionIndex: (index: number) => void;
   setAnswer: (questionId: number, value: number) => void;
   resetAnswers: () => void;
+  clearAssessmentData: () => void;
   toggleFlag: (questionId: number) => void;
   getFlaggedQuestions: () => number[];
   isFlagged: (questionId: number) => boolean;
@@ -141,6 +142,32 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
   // Reset all answers
   const resetAnswers = () => setAnswers({});
 
+  // Clear all assessment data (answers, flags, progress, localStorage)
+  const clearAssessmentData = () => {
+    console.log('🧹 Clearing all assessment data...');
+    
+    // Reset state
+    setAnswers({});
+    setFlaggedQuestions({});
+    setCurrentAssessmentIndex(0);
+    setCurrentSectionIndex(0);
+    
+    // Clear localStorage
+    if (typeof window !== 'undefined') {
+      try {
+        window.localStorage.removeItem('assessment-answers');
+        window.localStorage.removeItem('assessment-current-section-index');
+        window.localStorage.removeItem('assessment-name');
+        window.localStorage.removeItem('assessment-submission-time');
+        window.localStorage.removeItem('flagged-questions-encrypted');
+        window.localStorage.removeItem('flagged-questions'); // Legacy key
+        console.log('✅ Assessment data cleared successfully');
+      } catch (e) {
+        console.error('Failed to clear localStorage:', e);
+      }
+    }
+  };
+
   // Toggle flag for a question
   const toggleFlag = (questionId: number) => {
     setFlaggedQuestions(prev => {
@@ -250,6 +277,7 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
       setCurrentSectionIndex,
       setAnswer,
       resetAnswers,
+      clearAssessmentData,
       toggleFlag,
       getFlaggedQuestions,
       isFlagged,
