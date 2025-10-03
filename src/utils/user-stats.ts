@@ -140,58 +140,16 @@ export async function fetchAssessmentHistoryFromAPI(): Promise<AssessmentData[]>
       return (t && String(t).trim()) || 'Assessment';
     };
 
-    // 1) Fetch jobs (paginate if needed) — robust stop conditions to avoid endless loops
-    const PAGE_LIMIT = 100;
-    const MAX_PAGES = 100;        // hard cap
-    const MAX_ITEMS = 5000;       // hard cap
+    // 1) Fetch jobs (limit to 20 latest items for dashboard performance)
+    const PAGE_LIMIT = 20;        // Fetch only 20 latest assessments
+    const MAX_PAGES = 1;          // Only fetch first page
+    const MAX_ITEMS = 20;         // Hard cap at 20 items
 
     const first = await apiService.getJobs({ page: 1, limit: PAGE_LIMIT, sort: 'created_at', order: 'DESC' } as any);
     let jobs: any[] = [];
     if (first?.success && Array.isArray(first.data?.jobs)) {
-      jobs = [...first.data.jobs];
-
-      // Track seen IDs to prevent duplicates and detect no-progress conditions
-      const seen = new Set<string>();
-      const getKey = (j: any, idx: number) => String(j?.id || j?.job_id || `${j?.user_id || 'u'}-${j?.created_at || 't'}-${idx}`);
-      jobs.forEach((j, idx) => seen.add(getKey(j, idx)));
-
-      let page = 1;
-      let hasMore = Boolean(first.data?.pagination?.hasMore);
-      let totalFetched = jobs.length;
-
-      // Continue while backend indicates more AND we still make progress
-      while (hasMore && page < MAX_PAGES && totalFetched < MAX_ITEMS) {
-        page += 1;
-        const resp = await apiService.getJobs({ page, limit: PAGE_LIMIT, sort: 'created_at', order: 'DESC' } as any);
-        const pageJobs = resp?.success && Array.isArray(resp.data?.jobs) ? resp.data.jobs : [];
-
-        if (!pageJobs.length) break; // no items => stop
-
-        // Add only new items (dedup by known fields)
-        let added = 0;
-        pageJobs.forEach((j: any, idx: number) => {
-          const key = getKey(j, idx);
-          if (!seen.has(key)) {
-            seen.add(key);
-            jobs.push(j);
-            added++;
-          }
-        });
-
-        if (added === 0) break; // no-progress => stop
-
-        totalFetched += added;
-
-        // Stop when this looks like last page by size
-        if (pageJobs.length < PAGE_LIMIT) break;
-
-        // Continue only if API indicates more
-        hasMore = Boolean(resp?.data?.pagination?.hasMore);
-
-        // Safety fallback if backend also returns totalPages
-        const totalPages = resp?.data?.pagination?.totalPages;
-        if (typeof totalPages === 'number' && page >= totalPages) break;
-      }
+      // Take only the first 20 items
+      jobs = [...first.data.jobs].slice(0, MAX_ITEMS);
     }
 
     // 2) Map dan enrich jobs. Output diselaraskan dengan field API.

@@ -44,68 +44,10 @@ export default function DashboardClient({ staticData }: DashboardClientProps) {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const wsInitialized = useRef(false);
-  const redirectGuardRef = useRef(false);
-  // Effect: Listen to WebSocket for assessment completion and redirect
-  useEffect(() => {
-    if (!user || wsInitialized.current || !isWebSocketSupported()) return;
-    const wsService = getWebSocketService();
-    wsInitialized.current = true;
-
-    // Get token from localStorage (same as in ai-analysis)
-    const token = localStorage.getItem('token') || localStorage.getItem('auth_token') || '';
-    if (!token) return;
-
-    // Connect and listen
-    let unsubscribe: (() => void) | null = null;
-    wsService.connect(token).then(() => {
-      unsubscribe = wsService.addEventListener(async (event) => {
-        // Tangani event completion meski resultId belum tersedia pada payload
-        if ((event.status === 'completed' || event.type === 'analysis-complete')) {
-          if (redirectGuardRef.current) return;
-          redirectGuardRef.current = true;
-
-          // Jeda 10 detik (sama seperti assessment-loading) untuk memberi waktu backend persist
-          await new Promise(res => setTimeout(res, 10000));
-
-          let resultId: string | undefined = event.resultId;
-
-          // Jika resultId tidak ada, coba ambil dari status API berdasarkan jobId
-          if (!resultId && event.jobId) {
-            for (let attempt = 0; attempt < 5 && !resultId; attempt++) {
-              try {
-                // @ts-ignore - apiService typings in JS
-                const statusResp = await apiService.getAssessmentStatus(event.jobId);
-                if (statusResp?.success && statusResp.data?.resultId) {
-                  resultId = statusResp.data.resultId as string;
-                  break;
-                }
-              } catch (e) {
-                // ignore and retry with backoff
-              }
-              // Exponential-ish backoff: 1.5s, 3s, 4.5s, 6s, 7.5s
-              await new Promise(res => setTimeout(res, 1500 * (attempt + 1)));
-            }
-          }
-
-          if (resultId) {
-            // After resolving resultId, navigate to result page
-            router.replace(`/results/${resultId}`);
-          } else {
-            // Jika masih belum ada resultId, lepaskan guard agar bisa coba lagi pada event berikutnya
-            redirectGuardRef.current = false;
-          }
-        }
-      });
-    }).catch(() => {});
-
-    // Cleanup on unmount
-    return () => {
-      if (unsubscribe) {
-        try { unsubscribe(); } catch { /* ignore */ }
-      }
-    };
-  }, [user, router]);
+  
+  // ⚠️ REMOVED: Duplicate WebSocket listener yang menyebabkan konflik
+  // Auto-redirect sekarang di-handle oleh NotificationRedirectListener (global di RootLayout)
+  // Tidak perlu listener duplikat di setiap page component
   
   // Local state for dashboard data
   const [statsData, setStatsData] = useState<StatCard[]>([]);

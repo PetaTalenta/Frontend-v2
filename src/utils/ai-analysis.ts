@@ -68,64 +68,66 @@ async function monitorWithWebSocketConnection(jobId: string): Promise<any> {
     const wsService = getWebSocketService();
     let isResolved = false;
     let timeoutId: NodeJS.Timeout | null = null;
+    let removeEventListener: (() => void) | null = null;
 
     try {
       timeoutId = setTimeout(() => {
         if (!isResolved) {
           isResolved = true;
+          if (removeEventListener) removeEventListener();
           reject(new Error('WebSocket monitoring timeout - assessment took too long'));
         }
       }, 120000);
 
-      wsService.setCallbacks({
-        onEvent: async (event: WebSocketEvent) => {
-          if (event.jobId !== jobId || isResolved) return;
-          if (event.type === 'analysis-complete' && event.resultId) {
-            if (timeoutId) clearTimeout(timeoutId);
-            isResolved = true;
-            try {
-              const statusResponse = await apiService.getAssessmentStatus(jobId);
-              const resultId = (statusResponse.success && (statusResponse.data as any).resultId)
-                ? (statusResponse.data as any).resultId
-                : event.resultId;
-              if (resultId) {
-                try {
-                  const fullResult = await apiService.getResultById(resultId);
-                  resolve(fullResult.success ? fullResult.data : { id: resultId });
-                } catch {
-                  resolve({ id: resultId });
-                }
-              } else {
-                reject(new Error('Failed to retrieve completed assessment result'));
+      // CRITICAL FIX: Register event listener BEFORE connecting to avoid race condition
+      removeEventListener = wsService.addEventListener(async (event: WebSocketEvent) => {
+        if (event.jobId !== jobId || isResolved) return;
+        if (event.type === 'analysis-complete' && event.resultId) {
+          if (timeoutId) clearTimeout(timeoutId);
+          isResolved = true;
+          if (removeEventListener) removeEventListener();
+          try {
+            const statusResponse = await apiService.getAssessmentStatus(jobId);
+            const resultId = (statusResponse.success && (statusResponse.data as any).resultId)
+              ? (statusResponse.data as any).resultId
+              : event.resultId;
+            if (resultId) {
+              try {
+                const fullResult = await apiService.getResultById(resultId);
+                resolve(fullResult.success ? fullResult.data : { id: resultId });
+              } catch {
+                resolve({ id: resultId });
               }
-            } catch (error) {
-              reject(error);
+            } else {
+              reject(new Error('Failed to retrieve completed assessment result'));
             }
-          } else if (event.type === 'analysis-failed') {
-            if (timeoutId) clearTimeout(timeoutId);
-            isResolved = true;
-            reject(new Error(event.error || 'Assessment analysis failed'));
-          }
-        },
-        onError: (error) => {
-          if (!isResolved) {
-            if (timeoutId) clearTimeout(timeoutId);
-            isResolved = true;
+          } catch (error) {
             reject(error);
           }
+        } else if (event.type === 'analysis-failed') {
+          if (timeoutId) clearTimeout(timeoutId);
+          isResolved = true;
+          if (removeEventListener) removeEventListener();
+          reject(new Error(event.error || 'Assessment analysis failed'));
         }
       });
+
+      console.log(`AI Analysis: Event listener registered for job ${jobId} (before connect)`);
 
       const status = wsService.getStatus();
       if (!status.isConnected) {
         const token = localStorage.getItem('token') || localStorage.getItem('auth_token') || '';
         if (!token) throw new Error('No authentication token available for WebSocket connection');
         await wsService.connect(token);
+        console.log(`AI Analysis: WebSocket connected for job ${jobId}`);
+      } else {
+        console.log(`AI Analysis: WebSocket already connected, reusing for job ${jobId}`);
       }
 
       wsService.subscribeToJob(jobId);
     } catch (error) {
       if (timeoutId) clearTimeout(timeoutId);
+      if (removeEventListener) removeEventListener();
       if (!isResolved) {
         isResolved = true;
         reject(error);

@@ -28,21 +28,45 @@ const Register = ({ onRegister }) => {
         onRegister(token, user);
       } else {
         // Handle API response with success: false
-        const errorMessage = response.error?.message || response.message || 'Registration failed';
+        const errorMessage = response.error?.message || response.message || 'Pendaftaran gagal. Silakan coba lagi.';
         console.error('Registration failed:', response);
         setError(errorMessage);
       }
     } catch (err) {
       console.error('Registration error:', err);
-      // Handle different types of errors
-      let errorMessage = 'Registration failed';
-
-      if (err.response?.data?.error?.message) {
-        errorMessage = err.response.data.error.message;
-      } else if (err.response?.data?.message) {
-        errorMessage = err.response.data.message;
+      
+      // Handle different types of errors with clear messages
+      let errorMessage = 'Terjadi kesalahan saat pendaftaran. Silakan coba lagi.';
+      
+      if (err.response) {
+        const status = err.response.status;
+        const serverMessage = err.response.data?.message || err.response.data?.error?.message;
+        
+        switch (status) {
+          case 400:
+            errorMessage = serverMessage || 'Data yang Anda masukkan tidak valid. Periksa kembali form pendaftaran.';
+            break;
+          case 409:
+            errorMessage = 'Email atau username sudah terdaftar. Silakan gunakan yang lain atau login.';
+            break;
+          case 422:
+            errorMessage = serverMessage || 'Format data tidak sesuai. Pastikan semua field terisi dengan benar.';
+            break;
+          case 429:
+            errorMessage = 'Terlalu banyak percobaan pendaftaran. Silakan tunggu beberapa saat.';
+            break;
+          case 500:
+          case 502:
+          case 503:
+            errorMessage = 'Server sedang mengalami gangguan. Silakan coba beberapa saat lagi.';
+            break;
+          default:
+            errorMessage = serverMessage || `Pendaftaran gagal. Kode error: ${status}`;
+        }
+      } else if (err.request) {
+        errorMessage = 'Tidak dapat terhubung ke server. Periksa koneksi internet Anda.';
       } else if (err.message) {
-        errorMessage = err.message;
+        errorMessage = `Error: ${err.message}`;
       }
 
       setError(errorMessage);
@@ -70,19 +94,19 @@ const Register = ({ onRegister }) => {
               </svg>
               <input
                 {...register('username', {
-                  required: 'Username is required',
+                  required: 'Username wajib diisi',
                   minLength: {
                     value: 3,
-                    message: 'Username must be at least 3 characters'
+                    message: 'Username minimal 3 karakter'
                   },
                   pattern: {
                     value: /^[a-zA-Z0-9_]+$/,
-                    message: 'Username can only contain letters, numbers, and underscores'
+                    message: 'Username hanya boleh mengandung huruf, angka, dan underscore'
                   }
                 })}
                 type="text"
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
-                placeholder="Enter your username"
+                placeholder="Masukkan username Anda"
               />
             </div>
             {errors.username && (
@@ -105,15 +129,15 @@ const Register = ({ onRegister }) => {
               </svg>
               <input
                 {...register('email', {
-                  required: 'Email is required',
+                  required: 'Email wajib diisi',
                   pattern: {
                     value: /^\S+@\S+$/i,
-                    message: 'Invalid email address'
+                    message: 'Format email tidak valid'
                   }
                 })}
                 type="email"
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
-                placeholder="Enter your email"
+                placeholder="Masukkan email Anda"
               />
             </div>
             {errors.email && (
@@ -136,15 +160,15 @@ const Register = ({ onRegister }) => {
               </svg>
               <input
                 {...register('password', {
-                  required: 'Password is required',
+                  required: 'Password wajib diisi',
                   minLength: {
                     value: 6,
-                    message: 'Password must be at least 6 characters'
+                    message: 'Password minimal 6 karakter'
                   }
                 })}
                 type="password"
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
-                placeholder="Enter your password"
+                placeholder="Masukkan password Anda"
               />
             </div>
             {errors.password && (
@@ -167,12 +191,12 @@ const Register = ({ onRegister }) => {
               </svg>
               <input
                 {...register('confirmPassword', {
-                  required: 'Please confirm your password',
-                  validate: value => value === password || 'Passwords do not match'
+                  required: 'Konfirmasi password wajib diisi',
+                  validate: value => value === password || 'Password tidak sama'
                 })}
                 type="password"
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
-                placeholder="Confirm your password"
+                placeholder="Konfirmasi password Anda"
               />
             </div>
             {errors.confirmPassword && (

@@ -29,7 +29,46 @@ const Login = ({ onLogin }) => {
         onLogin(token, user);
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Login failed');
+      console.error('Login error:', err);
+      
+      // Handle different types of errors with clear messages
+      let errorMessage = 'Terjadi kesalahan saat login. Silakan coba lagi.';
+      
+      if (err.response) {
+        // Server responded with error status
+        const status = err.response.status;
+        const serverMessage = err.response.data?.message || err.response.data?.error?.message;
+        
+        switch (status) {
+          case 401:
+            errorMessage = 'Email atau password yang Anda masukkan salah. Silakan periksa kembali.';
+            break;
+          case 404:
+            errorMessage = 'Akun tidak ditemukan. Pastikan email Anda sudah terdaftar.';
+            break;
+          case 422:
+            errorMessage = serverMessage || 'Data yang Anda masukkan tidak valid. Periksa kembali email dan password.';
+            break;
+          case 429:
+            errorMessage = 'Terlalu banyak percobaan login. Silakan tunggu beberapa saat dan coba lagi.';
+            break;
+          case 500:
+          case 502:
+          case 503:
+            errorMessage = 'Server sedang mengalami gangguan. Silakan coba beberapa saat lagi.';
+            break;
+          default:
+            errorMessage = serverMessage || `Gagal login. Kode error: ${status}`;
+        }
+      } else if (err.request) {
+        // Request was made but no response received
+        errorMessage = 'Tidak dapat terhubung ke server. Periksa koneksi internet Anda.';
+      } else if (err.message) {
+        // Something else happened
+        errorMessage = `Error: ${err.message}`;
+      }
+      
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -54,15 +93,15 @@ const Login = ({ onLogin }) => {
               </svg>
               <input
                 {...register('email', {
-                  required: 'Email is required',
+                  required: 'Email wajib diisi',
                   pattern: {
                     value: /^\S+@\S+$/i,
-                    message: 'Invalid email address'
+                    message: 'Format email tidak valid'
                   }
                 })}
                 type="email"
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
-                placeholder="Enter your email"
+                placeholder="Masukkan email Anda"
               />
             </div>
             {errors.email && (
@@ -84,10 +123,10 @@ const Login = ({ onLogin }) => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
               </svg>
               <input
-                {...register('password', { required: 'Password is required' })}
+                {...register('password', { required: 'Password wajib diisi' })}
                 type={showPassword ? 'text' : 'password'}
                 className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
-                placeholder="Enter your password"
+                placeholder="Masukkan password Anda"
               />
               <button
                 type="button"

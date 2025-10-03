@@ -53,7 +53,9 @@ export default function AssessmentQuestionsList() {
 
   // Paging controls
   const handlePrevSection = () => {
-    if (currentSectionIndex > 0) setCurrentSectionIndex(currentSectionIndex - 1);
+    if (currentSectionIndex > 0) {
+      setCurrentSectionIndex(currentSectionIndex - 1);
+    }
   };
 
   const handlePrevPhase = () => {
@@ -90,12 +92,20 @@ export default function AssessmentQuestionsList() {
     if (currentSectionIndex < categories.length - 1) {
       // Navigate to next section within current assessment
       setCurrentSectionIndex(currentSectionIndex + 1);
+      // Scroll to top smoothly
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
       // Last section of current assessment - check if we can go to next phase
-      if (currentAssessmentIndex < 2) { // Not on the last phase (VIA)
+      if (currentAssessmentIndex < assessmentTypes.length - 1) { // Not on the last phase
         // Move to next phase
         setCurrentAssessmentIndex(currentAssessmentIndex + 1);
         setCurrentSectionIndex(0); // Reset to first section of new phase
+        // Scroll to top smoothly
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        toast.success('Pindah ke Phase Selanjutnya', {
+          description: `Anda telah menyelesaikan ${currentAssessment.name}. Melanjutkan ke phase berikutnya.`,
+          duration: 3000,
+        });
       }
     }
   };
@@ -112,9 +122,9 @@ export default function AssessmentQuestionsList() {
   const percent = Math.round((answered / total) * 100);
 
   // Check if we're on the final phase and final section
-  const isLastPhase = currentAssessmentIndex === 2; // VIA Character Strengths is index 2
+  const isLastPhase = currentAssessmentIndex === assessmentTypes.length - 1; // Last phase check
   const isLastSection = currentSectionIndex === categories.length - 1;
-  const isPhaseTransition = isLastSection && !isLastPhase; // Last section of Phase 1 or 2
+  const isPhaseTransition = isLastSection && !isLastPhase; // Last section of non-final phase
 
   // Check if we're at the beginning of Phase 2 or Phase 3
   const isPhaseBeginning = currentSectionIndex === 0 && currentAssessmentIndex > 0;
@@ -182,14 +192,7 @@ export default function AssessmentQuestionsList() {
                         {!(isLastPhase && isLastSection) && (
                           <button
                             onClick={handleNextSection}
-                            disabled={currentSectionIndex === categories.length - 1}
-                            className={`px-4 sm:px-6 py-2 rounded-lg border font-semibold flex items-center gap-2 w-full sm:w-auto justify-center text-sm sm:text-base ${
-                              isPhaseTransition
-                                ? 'border-[#6475e9] text-white bg-[#6475e9] hover:bg-[#5a6fd8]'
-                                : currentSectionIndex === categories.length - 1
-                                ? 'border-[#eaecf0] text-[#64707d] bg-[#f5f7fb] cursor-not-allowed'
-                                : 'border-[#6475e9] text-white bg-[#6475e9] hover:bg-[#5a6fd8]'
-                            }`}
+                            className="px-4 sm:px-6 py-2 rounded-lg border font-semibold flex items-center gap-2 w-full sm:w-auto justify-center text-sm sm:text-base border-[#6475e9] text-white bg-[#6475e9] hover:bg-[#5a6fd8]"
                           >
                             <span>
                               {isPhaseTransition

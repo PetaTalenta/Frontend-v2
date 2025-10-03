@@ -74,6 +74,7 @@ class AssessmentService {
   private activeMonitors = new Map<string, MonitoringState>();
   private wsService: any = null;
   private wsInitialized = false;
+  private wsEventListenerCleanup: (() => void) | null = null;
 
 
   // Guard against duplicate submissions across component remounts (e.g., React Strict Mode)
@@ -398,6 +399,7 @@ class AssessmentService {
 
   /**
    * Try WebSocket monitoring with fallback
+   * FIXED: Better connection reuse and error handling
    */
   private async tryWebSocketMonitoring(
     jobId: string,
@@ -407,7 +409,9 @@ class AssessmentService {
     onError: (error: any) => void
   ) {
     try {
+      // Initialize WebSocket service (singleton)
       if (!this.wsInitialized) {
+        console.log(`📡 Assessment Service: Initializing WebSocket service for job ${jobId}`);
         const { getWebSocketService, isWebSocketSupported } = await import('./notificationService');
 
         if (!isWebSocketSupported()) {
@@ -418,53 +422,85 @@ class AssessmentService {
         this.wsInitialized = true;
       }
 
-      // Set up WebSocket event handlers
-      this.wsService.setCallbacks({
-        onEvent: (event: any) => {
-          if (event.jobId === jobId && state.isActive) {
-            if (event.type === 'analysis-complete') {
-              // Wait a short delay before fetching the result to allow backend to persist
-              const initialDelay = CONFIG.TIMEOUTS.INITIAL_RESULT_DELAY || 0;
-              setTimeout(() => {
-                if (!state.isActive) return;
-                this.getAssessmentResult(event.resultId || jobId)
-                  .then(onSuccess)
-                  .catch(onError);
-              }, initialDelay);
-            } else if (event.type === 'analysis-failed') {
-              const friendly = sanitizeBackendErrorMessage(event?.error);
-              onError(createSafeError(new Error(friendly), 'ASSESSMENT_FAILED'));
-            }
+      // Clean up previous event listener if exists
+      if (this.wsEventListenerCleanup) {
+        console.log(`🧹 Assessment Service: Cleaning up previous listener for job ${jobId}`);
+        this.wsEventListenerCleanup();
+        this.wsEventListenerCleanup = null;
+      }
+
+      // CRITICAL: Register event listener BEFORE connecting to avoid race condition
+      console.log(`📝 Assessment Service: Registering event listener for job ${jobId}`);
+      this.wsEventListenerCleanup = this.wsService.addEventListener((event: any) => {
+        // Only handle events for this specific job
+        if (event.jobId === jobId && state.isActive) {
+          console.log(`📨 Assessment Service: Received event for job ${jobId}:`, event.type);
+
+          if (event.type === 'analysis-complete') {
+            console.log(`✅ Assessment Service: Analysis complete for job ${jobId}, result ID:`, event.resultId);
+
+            // Wait a short delay before fetching the result to allow backend to persist
+            const initialDelay = CONFIG.TIMEOUTS.INITIAL_RESULT_DELAY || 0;
+            setTimeout(() => {
+              if (!state.isActive) {
+                console.log(`⚠️ Assessment Service: Monitoring stopped for job ${jobId}, skipping result fetch`);
+                return;
+              }
+
+              console.log(`🔍 Assessment Service: Fetching result for job ${jobId}`);
+              this.getAssessmentResult(event.resultId || jobId)
+                .then((result) => {
+                  console.log(`✅ Assessment Service: Result fetched successfully for job ${jobId}`);
+                  onSuccess(result);
+                })
+                .catch((error) => {
+                  console.error(`❌ Assessment Service: Failed to fetch result for job ${jobId}:`, error);
+                  onError(error);
+                });
+            }, initialDelay);
+          } else if (event.type === 'analysis-failed') {
+            console.error(`❌ Assessment Service: Analysis failed for job ${jobId}:`, event.error);
+            const friendly = sanitizeBackendErrorMessage(event?.error);
+            onError(createSafeError(new Error(friendly), 'ASSESSMENT_FAILED'));
           }
-        },
-        onError: (error: Error) => {
-          console.warn(`Assessment Service: WebSocket error for job ${jobId}, falling back to polling`);
-          state.websocketFailed = true;
-          this.startPollingMonitoring(jobId, state, options, onSuccess, onError);
         }
       });
 
-      // Connect and subscribe
+      console.log(`✅ Assessment Service: Event listener registered for job ${jobId}`);
+
+      // Get authentication token
       const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
       if (!token) {
         throw new Error('No authentication token');
       }
 
-      await this.wsService.connect(token);
-      this.wsService.subscribeToJob(jobId);
+      // Check if already connected (reuse existing connection)
+      const status = this.wsService.getStatus();
+      console.log(`📊 Assessment Service: WebSocket status:`, status);
 
-      console.log(`Assessment Service: WebSocket monitoring active for job ${jobId}`);
+      if (!status.isConnected) {
+        console.log(`🔌 Assessment Service: Connecting WebSocket for job ${jobId}...`);
+        await this.wsService.connect(token);
+        console.log(`✅ Assessment Service: WebSocket connected for job ${jobId}`);
+      } else {
+        console.log(`♻️ Assessment Service: Reusing existing WebSocket connection for job ${jobId}`);
+      }
+
+      // Subscribe to job updates
+      console.log(`📡 Assessment Service: Subscribing to job ${jobId}`);
+      this.wsService.subscribeToJob(jobId);
+      console.log(`✅ Assessment Service: WebSocket monitoring active for job ${jobId}`);
 
       // Start backup polling after configured timeout
       setTimeout(() => {
         if (state.isActive && !state.websocketFailed) {
-          console.log(`Assessment Service: Starting backup polling for job ${jobId} (WebSocket fallback)`);
+          console.log(`⏰ Assessment Service: Starting backup polling for job ${jobId} (WebSocket fallback after ${CONFIG.TIMEOUTS.WEBSOCKET_FALLBACK}ms)`);
           this.startPollingMonitoring(jobId, state, options, onSuccess, onError);
         }
       }, CONFIG.TIMEOUTS.WEBSOCKET_FALLBACK);
 
     } catch (error) {
-      console.warn(`Assessment Service: WebSocket setup failed for job ${jobId}, using polling:`, error);
+      console.warn(`⚠️ Assessment Service: WebSocket setup failed for job ${jobId}, falling back to polling:`, error);
       state.websocketFailed = true;
       this.startPollingMonitoring(jobId, state, options, onSuccess, onError);
     }

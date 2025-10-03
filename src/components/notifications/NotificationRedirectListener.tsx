@@ -2,95 +2,167 @@
 
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { getWebSocketService, isWebSocketSupported } from "../../services/notificationService";
-import apiService from "../../services/apiService";
 import { useAuth } from "../../contexts/AuthContext";
+import { toast } from "sonner";
+import { useSWRConfig } from "swr";
+import { getWebSocketService, WebSocketEvent } from "../../services/websocket-service";
 
 /**
- * Global listener that redirects to the result page when an analysis-complete
- * notification arrives from the notification service / WebSocket.
+ * SIMPLIFIED Global WebSocket Notification Listener
  *
- * Mounted once in RootLayout so the redirect works from anywhere in the app.
+ * Alur:
+ * 1. User login → WebSocket connect
+ * 2. Submit assessment → job queued
+ * 3. Worker starts → event: analysis-started
+ * 4. Worker done → event: analysis-complete / analysis-failed
  */
 export default function NotificationRedirectListener() {
   const router = useRouter();
   const { user } = useAuth();
-  const wsInitialized = useRef(false);
-  const isHandlingRef = useRef(false);
-  const lastCompletedResultIdRef = useRef<string | null>(null);
+  const { mutate } = useSWRConfig();
+  const lastRedirectRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!user || wsInitialized.current || !isWebSocketSupported()) return;
+    // Only run when user is authenticated
+    if (!user) {
+      console.log("⏸️ [NotificationRedirect] No user, skipping setup");
+      return;
+    }
 
-    const ws = getWebSocketService();
-    wsInitialized.current = true;
+    const token = localStorage.getItem("token") || localStorage.getItem("auth_token");
+    if (!token) {
+      console.log("⏸️ [NotificationRedirect] No token, skipping setup");
+      return;
+    }
 
-    const token =
-      (typeof window !== "undefined" && (localStorage.getItem("token") || localStorage.getItem("auth_token"))) || "";
-    if (!token) return;
+    console.log("🔌 [NotificationRedirect] Setting up WebSocket for user:", user.id);
 
-    let unsubscribe: (() => void) | null = null;
+    const wsService = getWebSocketService();
 
-    ws.connect(token)
-      .then(() => {
-        unsubscribe = ws.addEventListener(async (event: any) => {
-          // React only to completion events
-          if (event?.type === "analysis-complete" || event?.status === "completed") {
-            if (isHandlingRef.current) return;
-            isHandlingRef.current = true;
+    // Check current connection status
+    const status = wsService.getStatus();
+    console.log("📊 [NotificationRedirect] Current WebSocket status:", status);
 
-            // Grace period to allow backend to persist the result
-            await new Promise((res) => setTimeout(res, 10000));
+    // Event handler - handles all notification events
+    const handleEvent = (event: WebSocketEvent) => {
+      console.log("📨 [NotificationRedirect] Event received:", event.type, event);
 
-            let resultId: string | undefined = event?.resultId;
-
-            // Fallback: fetch resultId from status API using jobId if not present
-            if (!resultId && event?.jobId) {
-              for (let attempt = 0; attempt < 5 && !resultId; attempt++) {
-                try {
-                  // @ts-ignore JS service typing
-                  const status = await apiService.getAssessmentStatus(event.jobId);
-                  if (status?.success && status.data?.resultId) {
-                    resultId = status.data.resultId as string;
-                    break;
-                  }
-                } catch (_e) {
-                  // ignore and retry
-                }
-                // Backoff: 1.5s, 3s, 4.5s, 6s, 7.5s
-                await new Promise((res) => setTimeout(res, 1500 * (attempt + 1)));
-              }
-            }
-
-            if (resultId) {
-              // Avoid duplicate redirects to the same result
-              if (lastCompletedResultIdRef.current !== resultId) {
-                lastCompletedResultIdRef.current = resultId;
-                router.replace(`/results/${resultId}`);
-              } else {
-                // Same result again; ignore and release flag
-                isHandlingRef.current = false;
-              }
-            } else {
-              // Release flag so future events can retry
-              isHandlingRef.current = false;
-            }
-          }
+      // 1. Analysis Started
+      if (event.type === 'analysis-started') {
+        const name = event.assessment_name || event.metadata?.assessmentName || "Assessment";
+        console.log("📊 [NotificationRedirect] Analysis started:", name);
+        toast.info("Analysis Started", {
+          description: `Processing ${name}...`,
+          duration: 3000
         });
-      })
-      .catch(() => {
-        // silent
-      });
+      }
 
-    return () => {
-      if (unsubscribe) {
-        try {
-          unsubscribe();
-        } catch {}
+      // 2. Analysis Complete - CRITICAL FOR AUTO-REDIRECT
+      if (event.type === 'analysis-complete') {
+        const resultId = event.result_id || event.resultId;
+        const assessmentName = event.assessment_name || event.metadata?.assessmentName || "Assessment";
+
+        console.log("🎉 [NotificationRedirect] Analysis complete! Result ID:", resultId);
+
+        if (!resultId) {
+          console.warn("⚠️ [NotificationRedirect] No result_id in event!");
+          return;
+        }
+
+        // Prevent duplicate redirects
+        if (lastRedirectRef.current === resultId) {
+          console.log("ℹ️ [NotificationRedirect] Already redirected to this result");
+          return;
+        }
+
+        // Don't redirect if already on result page
+        if (window.location.pathname === `/results/${resultId}`) {
+          console.log("ℹ️ [NotificationRedirect] Already on result page");
+          return;
+        }
+
+        lastRedirectRef.current = resultId;
+
+        // Invalidate SWR cache for dashboard auto-update
+        if (user?.id) {
+          console.log("🔄 [NotificationRedirect] Invalidating cache for user:", user.id);
+          mutate((key) => typeof key === 'string' && key.includes(`user-stats-${user.id}`));
+          mutate((key) => typeof key === 'string' && key.includes(`assessment-history-${user.id}`));
+          mutate((key) => typeof key === 'string' && key.includes(`latest-result-${user.id}`));
+        }
+
+        // Show toast and redirect
+        toast.success("Analysis Complete!", {
+          description: `${assessmentName} ready! Opening results...`,
+          duration: 3000
+        });
+
+        console.log(`🔀 [NotificationRedirect] Redirecting to /results/${resultId} in 500ms`);
+        setTimeout(() => {
+          console.log(`🔀 [NotificationRedirect] Executing redirect now!`);
+          router.push(`/results/${resultId}`);
+        }, 500);
+      }
+
+      // 3. Analysis Failed
+      if (event.type === 'analysis-failed') {
+        console.error("❌ [NotificationRedirect] Analysis failed:", event.error);
+        toast.error("Analysis Failed", {
+          description: event.error || "Please try again",
+          duration: 5000
+        });
       }
     };
-  }, [user, router]);
+
+    // CRITICAL: Register listener BEFORE connecting to avoid race condition
+    console.log("📝 [NotificationRedirect] Registering event listener...");
+    const removeListener = wsService.addEventListener(handleEvent);
+    console.log("✅ [NotificationRedirect] Event listener registered");
+
+    // Connect to WebSocket - SIMPLIFIED
+    console.log("🔌 [NotificationRedirect] Connecting...");
+    wsService.connect(token)
+      .then(() => {
+        const newStatus = wsService.getStatus();
+        console.log("✅ [NotificationRedirect] Connected:", newStatus);
+
+        // Show toast only for new connections
+        if (!status.isConnected) {
+          toast.success("Notifications ready", { duration: 2000 });
+        }
+      })
+      .catch((error) => {
+        console.error("❌ [NotificationRedirect] Failed:", error);
+
+        // Check if server is unavailable
+        const isServerDown = error.message?.includes('Server unavailable') ||
+                             error.message?.includes('Backend') ||
+                             error.message?.includes('running');
+
+        if (isServerDown) {
+          console.warn("🚫 [NotificationRedirect] Backend server offline");
+          toast.warning("Backend server offline", {
+            description: "Real-time notifications disabled. Start the backend server.",
+            duration: 8000
+          });
+          return;
+        }
+
+        // Show generic error for other failures
+        if (!error.message?.includes('timeout')) {
+          toast.error("Notifications unavailable", {
+            description: "You may not receive real-time updates",
+            duration: 3000
+          });
+        }
+      });
+
+    // Cleanup on unmount or user change
+    return () => {
+      console.log("🧹 [NotificationRedirect] Cleaning up listener (NOT disconnecting - shared connection)");
+      removeListener();
+    };
+  }, [user]); // Only re-run when user changes (login/logout)
 
   return null;
 }
-

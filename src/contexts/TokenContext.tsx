@@ -110,42 +110,52 @@ export const TokenProvider: React.FC<TokenProviderProps> = ({ children }) => {
           const { getWebSocketService } = await import('../services/websocket-service');
           const service = getWebSocketService();
 
-          service.setCallbacks({
-            onEvent: (event) => {
-              if (event.type === 'token-balance-updated' && event.metadata?.balance !== undefined) {
-                console.log('TokenContext: Received token balance update via WebSocket:', event.metadata.balance);
-                updateTokenBalance(event.metadata.balance);
-              }
-            },
-            onConnected: () => {
-              console.log('TokenContext: WebSocket connected for token updates');
-              setWsConnected(true);
-            },
-            onDisconnected: () => {
-              console.log('TokenContext: WebSocket disconnected');
-              setWsConnected(false);
-            },
-            onError: (error) => {
-              console.warn('TokenContext: WebSocket error, will use manual refresh only:', error);
-              setWsConnected(false);
+          // CRITICAL FIX: Register event listener BEFORE connecting to avoid race condition
+          const removeEventListener = service.addEventListener((event) => {
+            if (event.type === 'token-balance-updated' && event.metadata?.balance !== undefined) {
+              console.log('TokenContext: Received token balance update via WebSocket:', event.metadata.balance);
+              updateTokenBalance(event.metadata.balance);
             }
           });
 
+          console.log('TokenContext: Event listener registered (before connect)');
+
           const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
           if (token) {
-            await service.connect(token);
+            // Check if already connected
+            const status = service.getStatus();
+            if (!status.isConnected) {
+              await service.connect(token);
+              console.log('TokenContext: WebSocket connected');
+            } else {
+              console.log('TokenContext: WebSocket already connected, reusing connection');
+            }
             setWsService(service);
+            setWsConnected(true);
           }
+
+          // Return cleanup function
+          return removeEventListener;
         } catch (error) {
           console.warn('TokenContext: Failed to initialize WebSocket for token updates:', error);
+          return undefined;
         }
       };
 
-      initWebSocket();
+      let cleanup: (() => void) | undefined;
+      initWebSocket().then((cleanupFn) => {
+        cleanup = cleanupFn;
+      });
+
+      return () => {
+        // Only remove event listener, don't disconnect shared WebSocket
+        if (cleanup) {
+          cleanup();
+        }
+      };
     } else {
       setTokenInfo(null);
       if (wsService) {
-        wsService.disconnect();
         setWsService(null);
         setWsConnected(false);
       }
