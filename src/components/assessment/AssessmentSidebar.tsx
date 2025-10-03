@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAssessment } from '../../contexts/AssessmentContext';
 import { assessmentTypes } from '../../data/assessmentQuestions';
-import { canNavigateToSection, getOrderedCategories, validateSectionCompletion } from '../../utils/assessment-calculations';
+import { canNavigateToSection, getOrderedCategories, validateSectionCompletion, areAllPhasesComplete } from '../../utils/assessment-calculations';
 import { toast } from 'sonner';
 import { Send } from 'lucide-react';
 
@@ -54,12 +54,11 @@ export default function AssessmentSidebar({ isOpen = false, onToggle }: Assessme
     try {
       setIsSubmitting(true);
 
-      const answeredCount = Object.values(answers).filter(answer => answer !== null).length;
-      const totalQuestions = Object.keys(answers).length;
-      const completionRate = totalQuestions > 0 ? (answeredCount / totalQuestions) * 100 : 0;
-
-      if (completionRate < 50) {
-        toast.error(`Selesaikan minimal 50% soal untuk mendapatkan hasil yang bermakna. Saat ini: ${Math.round(completionRate)}%`);
+      // Check if all three phases are complete
+      const phaseValidation = areAllPhasesComplete(answers);
+      
+      if (!phaseValidation.allComplete) {
+        toast.error(phaseValidation.message || 'Harap selesaikan semua fase assessment');
         setIsSubmitting(false);
         return;
       }
@@ -845,9 +844,9 @@ export default function AssessmentSidebar({ isOpen = false, onToggle }: Assessme
       <div className="pt-4 border-t border-[#eaecf0]">
         <button
           onClick={handleSubmit}
-          disabled={isSubmitting || progress.overallProgress < 50}
+          disabled={isSubmitting || !areAllPhasesComplete(answers).allComplete}
           className="w-full px-4 py-2 rounded-lg bg-[#6475e9] hover:bg-[#5a6acf] disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-sm font-medium transition-colors flex items-center justify-center gap-2"
-          title={progress.overallProgress < 50 ? 'Selesaikan minimal 50% soal untuk submit' : 'Submit assessment untuk mendapatkan hasil'}
+          title={!areAllPhasesComplete(answers).allComplete ? 'Selesaikan semua 3 fase (Big Five, RIASEC, VIA) untuk submit' : 'Submit assessment untuk mendapatkan hasil'}
         >
           {isSubmitting ? (
             <>

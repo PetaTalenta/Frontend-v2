@@ -497,6 +497,41 @@ export function getDominantRiasecType(riasecScores: RiasecScores): {
 }
 
 /**
+ * Check if all three assessment phases are complete
+ * Returns true only if Big Five (Phase 1), RIASEC (Phase 2), and VIA (Phase 3) are all completed
+ */
+export function areAllPhasesComplete(answers: Record<number, number | null>): {
+  allComplete: boolean;
+  phase1Complete: boolean;
+  phase2Complete: boolean;
+  phase3Complete: boolean;
+  message?: string;
+} {
+  const phase1 = isAssessmentComplete(answers, 0); // Big Five
+  const phase2 = isAssessmentComplete(answers, 1); // RIASEC
+  const phase3 = isAssessmentComplete(answers, 2); // VIA
+
+  const allComplete = phase1.isComplete && phase2.isComplete && phase3.isComplete;
+
+  let message = '';
+  if (!allComplete) {
+    const incomplete: string[] = [];
+    if (!phase1.isComplete) incomplete.push('Big Five (Phase 1)');
+    if (!phase2.isComplete) incomplete.push('RIASEC (Phase 2)');
+    if (!phase3.isComplete) incomplete.push('VIA Character Strengths (Phase 3)');
+    message = `Harap selesaikan semua fase: ${incomplete.join(', ')}`;
+  }
+
+  return {
+    allComplete,
+    phase1Complete: phase1.isComplete,
+    phase2Complete: phase2.isComplete,
+    phase3Complete: phase3.isComplete,
+    message
+  };
+}
+
+/**
  * Get top VIA character strengths
  */
 export function getTopViaStrengths(viaScores: ViaScores, count: number = 5): Array<{

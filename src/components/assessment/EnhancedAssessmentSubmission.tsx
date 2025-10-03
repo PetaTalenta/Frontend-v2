@@ -17,6 +17,7 @@ import {
 import { useAssessment } from '../../hooks/useAssessment';
 import AssessmentStatusMonitor from './AssessmentStatusMonitor';
 import { AssessmentResult } from '../../types/assessment-results';
+import { areAllPhasesComplete } from '../../utils/assessment-calculations';
 
 interface EnhancedAssessmentSubmissionProps {
   answers: Record<number, number | null>;
@@ -83,10 +84,11 @@ export default function EnhancedAssessmentSubmission({
     reset();
   };
 
-  // Count answered questions
+  // Count answered questions and check phase completion
   const answeredCount = Object.values(answers).filter(answer => answer !== null).length;
   const totalQuestions = Object.keys(answers).length;
   const completionRate = totalQuestions > 0 ? (answeredCount / totalQuestions) * 100 : 0;
+  const phaseValidation = areAllPhasesComplete(answers);
 
   return (
     <div className={`space-y-6 ${className}`}>
@@ -122,12 +124,11 @@ export default function EnhancedAssessmentSubmission({
               />
             </div>
             
-            {completionRate < 50 && (
+            {!phaseValidation.allComplete && (
               <Alert>
                 <AlertTriangle className="h-4 w-4" />
                 <AlertDescription>
-                  Complete at least 50% of questions for meaningful results. 
-                  Current: {Math.round(completionRate)}%
+                  {phaseValidation.message}
                 </AlertDescription>
               </Alert>
             )}
