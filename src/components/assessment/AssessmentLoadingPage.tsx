@@ -128,6 +128,7 @@ export default function AssessmentLoadingPage({
 }: AssessmentLoadingPageProps) {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [elapsedTime, setElapsedTime] = useState(0);
+  const [currentProgressStep, setCurrentProgressStep] = useState(0); // 0 = Processing, 1 = Analysis, 2 = Report
 
   // Trivia state and rotation (see docs/trivia.md)
   const [currentTrivia, setCurrentTrivia] = useState<any | null>(null);
@@ -225,19 +226,28 @@ export default function AssessmentLoadingPage({
   const getProgressSteps = () => {
     const steps = [...PROGRESS_STEPS];
 
-    // Update steps based on current workflow status
-    if (workflowState.status === 'processing' || workflowState.status === 'generating') {
-      steps[0].status = 'completed'; // Processing completed
-      steps[1].status = 'active';    // Analysis active
-      steps[2].status = 'pending';   // Report pending
-    } else if (workflowState.status === 'completed') {
+    // Update steps based on workflow status or auto-progression
+    if (workflowState.status === 'completed') {
+      // All steps completed
       steps[0].status = 'completed';
       steps[1].status = 'completed';
       steps[2].status = 'completed';
     } else {
-      steps[0].status = 'active';    // Processing active
-      steps[1].status = 'pending';   // Analysis pending
-      steps[2].status = 'pending';   // Report pending
+      // Use currentProgressStep for auto-progression
+      // Step 0 = Processing active, Step 1 = Analysis active, Step 2 = Report active
+      if (currentProgressStep >= 0) {
+        steps[0].status = 'completed'; // Processing completed
+      }
+      if (currentProgressStep >= 1) {
+        steps[1].status = 'active';    // Analysis active
+      } else {
+        steps[1].status = 'pending';   // Analysis pending
+      }
+      if (currentProgressStep >= 2) {
+        steps[2].status = 'active';    // Report active
+      } else {
+        steps[2].status = 'pending';   // Report pending
+      }
     }
 
     return steps;
@@ -259,6 +269,15 @@ export default function AssessmentLoadingPage({
 
     return () => clearInterval(interval);
   }, []);
+
+  // Auto-progress indicator: Processing -> Analysis after 3 seconds
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setCurrentProgressStep(1); // Move to Analysis (index 1)
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, []); // Only run once on mount
 
   // Trivia lifecycle: start/stop rotation based on status
   useEffect(() => {
