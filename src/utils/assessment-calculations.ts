@@ -281,28 +281,32 @@ export function canNavigateToSection(
 
   // For forward navigation within the same assessment
   if (targetAssessmentIndex === currentAssessmentIndex) {
-    // Only allow navigation to the immediate next section
-    if (targetSectionIndex !== currentSectionIndex + 1) {
-      return {
-        canNavigate: false,
-        reason: 'Hanya bisa melanjutkan ke bagian tepat berikutnya'
-      };
+    // Check if all sections before the target section are completed
+    // This allows free navigation to any section that has all previous sections completed
+    const assessment = assessmentTypes[currentAssessmentIndex];
+    if (!assessment) {
+      return { canNavigate: false, reason: 'Assessment tidak ditemukan' };
     }
 
-    // Check if current section is complete
-    const currentSectionValidation = validateSectionCompletion(
-      answers,
-      currentAssessmentIndex,
-      currentSectionIndex
-    );
+    const categories = getOrderedCategories(assessment.id, assessment.questions);
+    
+    // Check if all sections between current and target are completed
+    for (let i = currentSectionIndex; i < targetSectionIndex; i++) {
+      const sectionValidation = validateSectionCompletion(
+        answers,
+        currentAssessmentIndex,
+        i
+      );
 
-    if (!currentSectionValidation.isComplete) {
-      const missingCount = currentSectionValidation.totalQuestions - currentSectionValidation.answeredQuestions;
-      return {
-        canNavigate: false,
-        reason: `Selesaikan ${missingCount} soal di bagian saat ini terlebih dahulu`,
-        missingQuestions: missingCount
-      };
+      if (!sectionValidation.isComplete) {
+        const missingCount = sectionValidation.totalQuestions - sectionValidation.answeredQuestions;
+        const sectionName = categories[i] || `Bagian ${i + 1}`;
+        return {
+          canNavigate: false,
+          reason: `Selesaikan ${missingCount} soal di "${sectionName}" terlebih dahulu`,
+          missingQuestions: missingCount
+        };
+      }
     }
 
     return { canNavigate: true };
@@ -310,15 +314,32 @@ export function canNavigateToSection(
 
   // For navigation to a different assessment
   if (targetAssessmentIndex > currentAssessmentIndex) {
-    // Only allow navigation to the immediate next assessment
+    // Check if target assessment has been worked on before
+    const targetAssessment = assessmentTypes[targetAssessmentIndex];
+    if (!targetAssessment) {
+      return { canNavigate: false, reason: 'Assessment tidak ditemukan' };
+    }
+
+    // Check if user has answered at least one question in the target assessment
+    const hasAnsweredInTarget = targetAssessment.questions.some(q => 
+      answers[q.id] !== null && answers[q.id] !== undefined
+    );
+
+    // If target assessment has been started, allow free navigation to any section
+    if (hasAnsweredInTarget) {
+      return { canNavigate: true };
+    }
+
+    // For new/unstarted assessments, only allow sequential access
     if (targetAssessmentIndex !== currentAssessmentIndex + 1) {
+      const assessmentName = assessmentTypes[targetAssessmentIndex]?.name || 'Phase ini';
       return {
         canNavigate: false,
-        reason: 'Hanya bisa melanjutkan ke assessment tepat berikutnya'
+        reason: `Selesaikan phase sebelumnya untuk membuka ${assessmentName}`
       };
     }
 
-    // Must start from the first section of the next assessment
+    // Must start from the first section of a new assessment
     if (targetSectionIndex !== 0) {
       return {
         canNavigate: false,

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { scaleConfigurations, assessmentTypes, AssessmentType, Question } from '../../data/assessmentQuestions';
 import AssessmentQuestionCard from './AssessmentQuestionCard';
@@ -46,6 +46,23 @@ export default function AssessmentQuestionsList() {
     return <div className="text-red-500">Kategori assessment tidak ditemukan.</div>;
   }
 
+  // Auto-correct invalid section index and log navigation changes
+  useEffect(() => {
+    console.log('Navigation state:', {
+      currentAssessmentIndex,
+      currentSectionIndex,
+      categoriesLength: categories.length,
+      assessmentId: currentAssessment.id,
+      categories: categories
+    });
+
+    if (currentSectionIndex < 0 || currentSectionIndex >= categories.length) {
+      console.error(`⚠️ INVALID INDEX DETECTED! currentSectionIndex: ${currentSectionIndex}, categories.length: ${categories.length}`);
+      console.error('Auto-correcting to index 0...');
+      setCurrentSectionIndex(0);
+    }
+  }, [currentSectionIndex, currentAssessmentIndex, categories, currentAssessment.id, setCurrentSectionIndex]);
+
   // Handler to update answer for a question
   const handleAnswer = (questionId: number, value: number) => {
     setAnswer(questionId, value);
@@ -63,12 +80,8 @@ export default function AssessmentQuestionsList() {
       setCurrentAssessmentIndex(currentAssessmentIndex - 1);
       // Set to the last section of the previous phase
       const prevAssessment = assessmentTypes[currentAssessmentIndex - 1];
-      const prevCategories = Object.keys(prevAssessment.questions.reduce((acc: any, q: any) => {
-        acc[q.category] = acc[q.category] || [];
-        acc[q.category].push(q);
-        return acc;
-      }, {}));
-      setCurrentSectionIndex(prevCategories.length - 1);
+      const prevCategories = getOrderedCategories(prevAssessment.id, prevAssessment.questions);
+      setCurrentSectionIndex(Math.max(0, prevCategories.length - 1));
     }
   };
 
@@ -112,11 +125,31 @@ export default function AssessmentQuestionsList() {
 
   const { user } = useAuth();
 
-
+  // Validate currentSectionIndex is within bounds
+  if (currentSectionIndex < 0 || currentSectionIndex >= categories.length) {
+    console.error(`Invalid currentSectionIndex: ${currentSectionIndex}, categories length: ${categories.length}`);
+    // Reset to first section if out of bounds
+    setCurrentSectionIndex(0);
+    return <div className="text-yellow-600">Memuat ulang section...</div>;
+  }
 
   // Current section data
   const category = categories[currentSectionIndex];
+  
+  // Validate category exists in grouped questions
+  if (!category || !grouped[category]) {
+    console.error(`Category "${category}" not found in grouped questions`);
+    return <div className="text-red-500">Kategori tidak ditemukan. Silakan refresh halaman.</div>;
+  }
+  
   const questions = grouped[category];
+  
+  // Additional validation: ensure questions is an array
+  if (!questions || !Array.isArray(questions) || questions.length === 0) {
+    console.error(`Questions array is invalid for category "${category}":`, questions);
+    return <div className="text-red-500">Soal tidak ditemukan untuk kategori ini. Silakan refresh halaman.</div>;
+  }
+  
   const answered = questions.filter((q: any) => answers[q.id] != null).length;
   const total = questions.length;
   const percent = Math.round((answered / total) * 100);
@@ -129,9 +162,15 @@ export default function AssessmentQuestionsList() {
   // Check if we're at the beginning of Phase 2 or Phase 3
   const isPhaseBeginning = currentSectionIndex === 0 && currentAssessmentIndex > 0;
 
-
-
-
+  // Safety check: if data is not ready, show loading
+  if (!questions || !Array.isArray(questions) || questions.length === 0) {
+    console.warn('Questions not ready for rendering');
+    return (
+      <div className="flex items-center justify-center py-8">
+        <div className="text-gray-600">Memuat soal...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col items-center w-full px-4 lg:px-0">

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAssessment } from '../../contexts/AssessmentContext';
 import { assessmentTypes } from '../../data/assessmentQuestions';
-import { canNavigateToSection, getOrderedCategories } from '../../utils/assessment-calculations';
+import { canNavigateToSection, getOrderedCategories, validateSectionCompletion } from '../../utils/assessment-calculations';
 import { toast } from 'sonner';
 import { Send } from 'lucide-react';
 
@@ -112,13 +112,41 @@ export default function AssessmentSidebar({ isOpen = false, onToggle }: Assessme
   const viaCategories = Object.keys(viaGrouped);
 
   const handlePhaseClick = (assessmentIndex: number) => {
-    // Check if navigation to this phase is allowed
+    // For already worked-on phases, find the last completed section or first incomplete section
+    const targetAssessment = assessmentTypes[assessmentIndex];
+    let targetSectionIndex = 0;
+
+    // Check if this phase has been worked on before
+    const hasAnsweredInPhase = targetAssessment.questions.some(q => 
+      answers[q.id] !== null && answers[q.id] !== undefined
+    );
+
+    if (hasAnsweredInPhase && assessmentIndex !== currentAssessmentIndex) {
+      // Find the appropriate section to navigate to:
+      // 1. First incomplete section, or
+      // 2. Last section if all are complete
+      const phaseCategories = getOrderedCategories(targetAssessment.id, targetAssessment.questions);
+      
+      for (let i = 0; i < phaseCategories.length; i++) {
+        const sectionValidation = validateSectionCompletion(answers, assessmentIndex, i);
+        if (!sectionValidation.isComplete) {
+          targetSectionIndex = i;
+          break;
+        }
+        // If this is the last section and it's complete, stay on it
+        if (i === phaseCategories.length - 1 && sectionValidation.isComplete) {
+          targetSectionIndex = i;
+        }
+      }
+    }
+
+    // Check if navigation to this phase and section is allowed
     const navigationCheck = canNavigateToSection(
       answers,
       currentAssessmentIndex,
       currentSectionIndex,
       assessmentIndex,
-      0 // First section of target assessment
+      targetSectionIndex
     );
 
     if (!navigationCheck.canNavigate) {
@@ -130,7 +158,7 @@ export default function AssessmentSidebar({ isOpen = false, onToggle }: Assessme
     }
 
     setCurrentAssessmentIndex(assessmentIndex);
-    setCurrentSectionIndex(0); // Reset to first section of new assessment
+    setCurrentSectionIndex(targetSectionIndex);
   };
 
   // Helper function to check if a phase is accessible
