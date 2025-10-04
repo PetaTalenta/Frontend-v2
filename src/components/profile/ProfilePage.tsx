@@ -23,9 +23,15 @@ import {
   EyeOff,
   Loader2,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  Trash2,
+  AlertTriangle
 } from 'lucide-react';
 import apiService from '../../services/apiService';
+import authV2Service from '../../services/authV2Service';
+import { getFirebaseErrorMessage } from '../../utils/firebase-errors';
+import { API_ENDPOINTS, API_CONFIG } from '../../config/api';
+import axios from 'axios';
 
 interface UserProfile {
   user: {
@@ -63,7 +69,7 @@ interface PasswordFormData {
 }
 
 export default function ProfilePage() {
-  const { user, token, logout, updateUser } = useAuth();
+  const { user, token, logout, updateUser, authVersion } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
@@ -74,6 +80,10 @@ export default function ProfilePage() {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [partialUpdateWarning, setPartialUpdateWarning] = useState('');
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const [formData, setFormData] = useState<ProfileFormData>({
     username: '',
@@ -173,8 +183,11 @@ export default function ProfilePage() {
     setIsUpdating(true);
     setError('');
     setSuccess('');
+    setPartialUpdateWarning('');
 
     try {
+      console.log('ProfilePage: Starting profile update (Auth Version:', authVersion, ')');
+
       // Validate and prepare data
       const updateData: any = {};
 
@@ -229,9 +242,7 @@ export default function ProfilePage() {
         }
       }
 
-
-
-      console.log('ProfilePage: Sending update data:', updateData);
+      console.log('ProfilePage: Validated update data:', updateData);
 
       // Check if there's actually data to update
       if (Object.keys(updateData).length === 0) {
@@ -239,38 +250,130 @@ export default function ProfilePage() {
         return;
       }
 
-      const result = await apiService.updateProfile(updateData);
+      // AUTH V2: Split updates - Firebase Auth only supports displayName/photoURL
+      if (authVersion === 'v2') {
+        console.log('ProfilePage: Using Auth V2 dual-update strategy');
+        
+        // Separate auth fields (displayName) from user fields
+        const authFields: any = {};
+        const userFields: any = {};
 
-      if (result && result.success) {
-        setSuccess('Profile updated successfully');
-        setIsEditing(false);
-
-        // Update AuthContext with new data if it was changed
-        const authUpdates: any = {};
+        // Map username to displayName for Auth V2
         if (updateData.username) {
-          authUpdates.username = updateData.username;
+          authFields.displayName = updateData.username;
         }
         if (updateData.full_name) {
-          authUpdates.name = updateData.full_name;
+          authFields.displayName = updateData.full_name; // Use full_name as displayName
         }
 
-        if (Object.keys(authUpdates).length > 0) {
-          console.log('ProfilePage: Updating AuthContext after profile save:', authUpdates);
-          updateUser(authUpdates);
+        // All other fields go to user service (if we had one)
+        if (updateData.date_of_birth) userFields.date_of_birth = updateData.date_of_birth;
+        if (updateData.gender) userFields.gender = updateData.gender;
+
+        let authUpdateSuccess = false;
+        let userUpdateSuccess = false;
+        const errors: string[] = [];
+
+        // Update auth fields (displayName only for V2)
+        if (Object.keys(authFields).length > 0) {
+          try {
+            console.log('ProfilePage: Updating Firebase auth fields:', authFields);
+            await authV2Service.updateProfile(authFields);
+            authUpdateSuccess = true;
+            console.log('ProfilePage: Firebase auth update successful');
+          } catch (authError: any) {
+            console.error('ProfilePage: Firebase auth update failed:', authError);
+            const errorMsg = getFirebaseErrorMessage(authError);
+            errors.push(`Auth update failed: ${errorMsg}`);
+          }
         }
 
-        await loadProfile(); // Reload profile data
-      } else {
-        // Handle specific error cases
-        if (result?.error?.code === 'INVALID_SCHOOL_ID') {
-          setError(`School validation failed: ${result.error.message}. Please select a valid school from the dropdown or verify the school ID.`);
+        // Update user fields via V1 API (fallback for non-auth fields)
+        // Note: This requires the backend to support partial profile updates
+        if (Object.keys(userFields).length > 0) {
+          try {
+            console.log('ProfilePage: Updating user profile fields via V1 API:', userFields);
+            const result = await apiService.updateProfile(userFields);
+            
+            if (result && result.success) {
+              userUpdateSuccess = true;
+              console.log('ProfilePage: User fields update successful');
+            } else {
+              errors.push(result?.message || 'Failed to update user profile fields');
+            }
+          } catch (userError: any) {
+            console.error('ProfilePage: User fields update failed:', userError);
+            errors.push('Failed to update user profile fields');
+          }
+        }
+
+        // Handle results
+        if (authUpdateSuccess || userUpdateSuccess) {
+          if (authUpdateSuccess && !userUpdateSuccess && Object.keys(userFields).length > 0) {
+            setPartialUpdateWarning('Display name updated successfully, but other profile fields could not be updated.');
+          } else if (!authUpdateSuccess && userUpdateSuccess && Object.keys(authFields).length > 0) {
+            setPartialUpdateWarning('Profile fields updated successfully, but display name could not be updated.');
+          } else {
+            setSuccess('Profile updated successfully');
+          }
+          
+          setIsEditing(false);
+
+          // Update AuthContext with new data
+          const authUpdates: any = {};
+          if (authFields.displayName) {
+            authUpdates.username = authFields.displayName;
+            authUpdates.name = authFields.displayName;
+          }
+
+          if (Object.keys(authUpdates).length > 0) {
+            console.log('ProfilePage: Updating AuthContext after V2 profile save:', authUpdates);
+            updateUser(authUpdates);
+          }
+
+          await loadProfile(); // Reload profile data
         } else {
-          setError(result?.message || result?.error?.message || 'Failed to update profile');
+          setError(errors.join(' ') || 'Failed to update profile');
+        }
+
+      } else {
+        // AUTH V1: Single unified update (backward compatibility)
+        console.log('ProfilePage: Using Auth V1 unified update');
+        
+        const result = await apiService.updateProfile(updateData);
+
+        if (result && result.success) {
+          setSuccess('Profile updated successfully');
+          setIsEditing(false);
+
+          // Update AuthContext with new data if it was changed
+          const authUpdates: any = {};
+          if (updateData.username) {
+            authUpdates.username = updateData.username;
+          }
+          if (updateData.full_name) {
+            authUpdates.name = updateData.full_name;
+          }
+
+          if (Object.keys(authUpdates).length > 0) {
+            console.log('ProfilePage: Updating AuthContext after V1 profile save:', authUpdates);
+            updateUser(authUpdates);
+          }
+
+          await loadProfile(); // Reload profile data
+        } else {
+          // Handle specific error cases
+          if (result?.error?.code === 'INVALID_SCHOOL_ID') {
+            setError(`School validation failed: ${result.error.message}. Please select a valid school from the dropdown or verify the school ID.`);
+          } else {
+            setError(result?.message || result?.error?.message || 'Failed to update profile');
+          }
         }
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error updating profile:', err);
-      setError('Failed to update profile');
+      const errorMsg = authVersion === 'v2' ? getFirebaseErrorMessage(err) : 'Failed to update profile';
+      setError(errorMsg);
     } finally {
       setIsUpdating(false);
     }
@@ -278,6 +381,13 @@ export default function ProfilePage() {
 
   const handleChangePassword = async () => {
     if (!token) return;
+
+    // AUTH V2: Firebase password changes require reauthentication
+    // Recommend using the password reset flow instead
+    if (authVersion === 'v2') {
+      setError('For security reasons, Firebase authentication requires using the password reset flow. Please use the "Forgot Password" feature from the login page to change your password.');
+      return;
+    }
 
     if (passwordData.newPassword !== passwordData.confirmPassword) {
       setError('New passwords do not match');
@@ -294,6 +404,7 @@ export default function ProfilePage() {
     setSuccess('');
 
     try {
+      // AUTH V1: Use traditional password change
       const result = await apiService.changePassword({
         currentPassword: passwordData.currentPassword,
         newPassword: passwordData.newPassword
@@ -310,11 +421,73 @@ export default function ProfilePage() {
       } else {
         setError(result?.message || 'Failed to change password');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error changing password:', err);
       setError('Failed to change password');
     } finally {
       setIsChangingPassword(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!token) return;
+
+    // Validate password for both V1 and V2
+    if (!deletePassword || deletePassword.trim().length === 0) {
+      setError('Password is required to delete your account');
+      return;
+    }
+
+    setIsDeleting(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      console.log('ProfilePage: Starting account deletion (Auth Version:', authVersion, ')');
+
+      if (authVersion === 'v2') {
+        // AUTH V2: Use Firebase account deletion endpoint
+        console.log('ProfilePage: Using Auth V2 deleteAccount');
+        await authV2Service.deleteAccount(deletePassword);
+        console.log('ProfilePage: Auth V2 account deletion successful');
+      } else {
+        // AUTH V1: Use traditional deletion endpoint
+        console.log('ProfilePage: Using Auth V1 account deletion');
+        const response = await axios.delete(
+          `${API_CONFIG.BASE_URL}${API_ENDPOINTS.AUTH.DELETE_ACCOUNT}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            data: { password: deletePassword }
+          }
+        );
+        
+        if (!response.data || !response.data.success) {
+          throw new Error(response.data?.message || 'Failed to delete account');
+        }
+        console.log('ProfilePage: Auth V1 account deletion successful');
+      }
+
+      // Show success message briefly before logout
+      setSuccess('Account deleted successfully. Redirecting...');
+      setShowDeleteModal(false);
+      
+      // Wait 2 seconds then logout
+      setTimeout(() => {
+        console.log('ProfilePage: Logging out after account deletion');
+        logout();
+      }, 2000);
+
+    } catch (err: any) {
+      console.error('Error deleting account:', err);
+      const errorMsg = authVersion === 'v2' 
+        ? getFirebaseErrorMessage(err)
+        : (err.response?.data?.message || err.message || 'Failed to delete account');
+      
+      setError(errorMsg);
+      setIsDeleting(false);
     }
   };
 
@@ -378,6 +551,13 @@ export default function ProfilePage() {
           <Alert className="border-[#bbf7d0] bg-[#dcfce7]">
             <CheckCircle className="h-4 w-4 text-[#16a34a]" />
             <AlertDescription className="text-[#166534]">{success}</AlertDescription>
+          </Alert>
+        )}
+
+        {partialUpdateWarning && (
+          <Alert className="border-orange-200 bg-orange-50">
+            <AlertCircle className="h-4 w-4 text-orange-600" />
+            <AlertDescription className="text-orange-800">{partialUpdateWarning}</AlertDescription>
           </Alert>
         )}
 
@@ -683,6 +863,115 @@ export default function ProfilePage() {
             </CardContent>
           )}
         </Card>
+
+        {/* Danger Zone - Account Deletion */}
+        <Card className="border-destructive">
+          <CardHeader>
+            <div>
+              <CardTitle className="text-destructive flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5" strokeWidth={1.75} />
+                Danger Zone
+              </CardTitle>
+              <CardDescription>Irreversible account actions</CardDescription>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between p-4 border border-destructive/20 rounded-lg bg-destructive/5">
+              <div>
+                <h4 className="font-semibold text-foreground">Delete Account</h4>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Once you delete your account, there is no going back. Please be certain.
+                </p>
+              </div>
+              <Button
+                variant="destructive"
+                onClick={() => setShowDeleteModal(true)}
+                className="ml-4"
+              >
+                <Trash2 className="w-4 h-4 mr-2" strokeWidth={1.75} />
+                Delete Account
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Delete Account Confirmation Modal */}
+        {showDeleteModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <Card className="w-full max-w-md border-destructive">
+              <CardHeader>
+                <CardTitle className="text-destructive flex items-center gap-2">
+                  <AlertTriangle className="w-5 h-5" strokeWidth={1.75} />
+                  Confirm Account Deletion
+                </CardTitle>
+                <CardDescription>
+                  This action cannot be undone. This will permanently delete your account and remove all your data from our servers.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Alert className="border-destructive/20 bg-destructive/10">
+                  <AlertCircle className="h-4 w-4 text-destructive" />
+                  <AlertDescription className="text-destructive">
+                    <strong>Warning:</strong> All your assessment results, profile data, and token balance will be permanently deleted.
+                  </AlertDescription>
+                </Alert>
+
+                <div className="space-y-2">
+                  <Label htmlFor="deletePassword">
+                    {authVersion === 'v2' 
+                      ? 'Enter your password to confirm' 
+                      : 'Enter your password to confirm'}
+                  </Label>
+                  <Input
+                    id="deletePassword"
+                    type="password"
+                    value={deletePassword}
+                    onChange={(e) => setDeletePassword(e.target.value)}
+                    placeholder="Enter your password"
+                    disabled={isDeleting}
+                    autoFocus
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    {authVersion === 'v2' 
+                      ? 'Your Firebase account password is required for security.' 
+                      : 'Your current password is required for security.'}
+                  </p>
+                </div>
+
+                <div className="flex justify-end space-x-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowDeleteModal(false);
+                      setDeletePassword('');
+                      setError('');
+                    }}
+                    disabled={isDeleting}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={handleDeleteAccount}
+                    disabled={isDeleting || !deletePassword}
+                  >
+                    {isDeleting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" strokeWidth={1.75} />
+                        Deleting...
+                      </>
+                    ) : (
+                      <>
+                        <Trash2 className="w-4 h-4 mr-2" strokeWidth={1.75} />
+                        Delete My Account
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </div>
   );

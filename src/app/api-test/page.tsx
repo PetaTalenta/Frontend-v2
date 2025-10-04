@@ -108,7 +108,7 @@ export default function ApiTestPage() {
     setIsLoading(true);
     try {
       const baseUrl = await getApiBaseUrl();
-      const response = await fetch(`${baseUrl}/auth/register`, {
+      const response = await fetch(`${baseUrl}/auth/v2/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: `test-${Date.now()}@example.com`, password: 'testpassword' })

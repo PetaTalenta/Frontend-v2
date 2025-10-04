@@ -1,11 +1,15 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import apiService from '../../services/apiService';
 import authV2Service from '../../services/authV2Service';
 import tokenService from '../../services/tokenService';
-import { shouldUseAuthV2 } from '../../config/auth-v2-config';
 import { getFirebaseErrorMessage } from '../../utils/firebase-errors';
 
+/**
+ * Register Component - Auth V2 (Firebase) Only
+ * 
+ * Uses Firebase Authentication for all registration operations.
+ * Legacy Auth V1 (JWT) has been disabled.
+ */
 const Register = ({ onRegister }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -18,117 +22,64 @@ const Register = ({ onRegister }) => {
     setError('');
 
     try {
+      // Validate required fields
+      if (!data.email || !data.password) {
+        setError('Email dan password wajib diisi');
+        setIsLoading(false);
+        return;
+      }
+
       const email = data.email.toLowerCase().trim();
       const password = data.password;
       const username = data.username?.trim();
 
-      // Determine which auth version to use
-      const useAuthV2 = shouldUseAuthV2(email);
+      // ===== Auth V2 (Firebase) Flow =====
+      console.log('🔐 Registering with Auth V2 (Firebase)...');
+      
+      // For V2, username becomes displayName (optional)
+      const v2Response = await authV2Service.register({
+        email,
+        password,
+        displayName: username || null,
+        photoURL: null
+      });
 
-      if (useAuthV2) {
-        // ===== Auth V2 (Firebase) Flow =====
-        try {
-          // For V2, username becomes displayName (optional)
-          const v2Response = await authV2Service.register(
-            email,
-            password,
-            username || undefined, // displayName (optional)
-            undefined // photoURL (optional, not collected in form yet)
-          );
+      // Extract V2 response structure
+      const { uid, idToken, refreshToken, email: userEmail, displayName, photoURL } = v2Response;
 
-          // Extract V2 response structure
-          const { uid, idToken, refreshToken, email: userEmail, displayName, photoURL } = v2Response;
+      // Store V2 tokens using tokenService
+      tokenService.storeTokens(idToken, refreshToken, uid);
 
-          // Store V2 tokens using tokenService
-          tokenService.storeTokens(idToken, refreshToken, uid);
+      // Store user info for session restoration
+      localStorage.setItem('uid', uid);
+      localStorage.setItem('email', userEmail);
+      if (displayName) localStorage.setItem('displayName', displayName);
+      if (photoURL) localStorage.setItem('photoURL', photoURL);
 
-          // Store user info for session restoration
-          localStorage.setItem('uid', uid);
-          localStorage.setItem('email', userEmail);
-          if (displayName) localStorage.setItem('displayName', displayName);
-          if (photoURL) localStorage.setItem('photoURL', photoURL);
+      // Map V2 user structure to consistent format
+      const user = {
+        id: uid,
+        username: displayName || userEmail.split('@')[0],
+        email: userEmail,
+        displayName: displayName || null,
+        photoURL: photoURL || null
+      };
 
-          // Map V2 user structure to V1 format for backward compatibility
-          const mappedUser = {
-            id: uid,
-            username: displayName || userEmail.split('@')[0],
-            email: userEmail,
-            displayName: displayName || null,
-            photoURL: photoURL || null
-          };
+      // Store user
+      localStorage.setItem('user', JSON.stringify(user));
 
-          // Store mapped user
-          localStorage.setItem('user', JSON.stringify(mappedUser));
+      console.log('✅ Auth V2 registration successful');
 
-          // Pass to AuthContext
-          onRegister(idToken, mappedUser);
-
-        } catch (v2Error) {
-          console.error('Auth V2 Registration error:', v2Error);
-          // Use Firebase error mapping
-          const errorMessage = getFirebaseErrorMessage(v2Error);
-          setError(errorMessage);
-        }
-
-      } else {
-        // ===== Auth V1 (Legacy JWT) Flow =====
-        const response = await apiService.register({
-          username,
-          email,
-          password
-        });
-
-        if (response.success) {
-          const { token, user } = response.data;
-          localStorage.setItem('token', token);
-          localStorage.setItem('user', JSON.stringify(user));
-          onRegister(token, user);
-        } else {
-          // Handle API response with success: false
-          const errorMessage = response.error?.message || response.message || 'Pendaftaran gagal. Silakan coba lagi.';
-          console.error('Registration failed:', response);
-          setError(errorMessage);
-        }
-      }
+      // Pass to AuthContext
+      onRegister(idToken, user);
 
     } catch (err) {
-      console.error('Registration error:', err);
+      console.error('❌ Auth V2 Registration error:', err);
       
-      // Handle V1 errors (V2 errors already handled above)
-      let errorMessage = 'Terjadi kesalahan saat pendaftaran. Silakan coba lagi.';
-      
-      if (err.response) {
-        const status = err.response.status;
-        const serverMessage = err.response.data?.message || err.response.data?.error?.message;
-        
-        switch (status) {
-          case 400:
-            errorMessage = serverMessage || 'Data yang Anda masukkan tidak valid. Periksa kembali form pendaftaran.';
-            break;
-          case 409:
-            errorMessage = 'Email atau username sudah terdaftar. Silakan gunakan yang lain atau login.';
-            break;
-          case 422:
-            errorMessage = serverMessage || 'Format data tidak sesuai. Pastikan semua field terisi dengan benar.';
-            break;
-          case 429:
-            errorMessage = 'Terlalu banyak percobaan pendaftaran. Silakan tunggu beberapa saat.';
-            break;
-          case 500:
-          case 502:
-          case 503:
-            errorMessage = 'Server sedang mengalami gangguan. Silakan coba beberapa saat lagi.';
-            break;
-          default:
-            errorMessage = serverMessage || `Pendaftaran gagal. Kode error: ${status}`;
-        }
-      } else if (err.request) {
-        errorMessage = 'Tidak dapat terhubung ke server. Periksa koneksi internet Anda.';
-      } else if (err.message) {
-        errorMessage = `Error: ${err.message}`;
-      }
-
+      // Use Firebase error mapping
+      const errorMessage = getFirebaseErrorMessage(err);
       setError(errorMessage);
+      
     } finally {
       setIsLoading(false);
     }

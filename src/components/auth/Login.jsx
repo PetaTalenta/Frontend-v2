@@ -1,11 +1,16 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import apiService from '../../services/apiService';
+import Link from 'next/link';
 import authV2Service from '../../services/authV2Service';
 import tokenService from '../../services/tokenService';
-import { shouldUseAuthV2 } from '../../config/auth-v2-config';
 import { getFirebaseErrorMessage } from '../../utils/firebase-errors';
 
+/**
+ * Login Component - Auth V2 (Firebase) Only
+ * 
+ * Uses Firebase Authentication for all login operations.
+ * Legacy Auth V1 (JWT) has been disabled.
+ */
 const Login = ({ onLogin }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -18,106 +23,58 @@ const Login = ({ onLogin }) => {
     setError('');
 
     try {
+      // Validate required fields
+      if (!data.email || !data.password) {
+        setError('Email dan password wajib diisi');
+        setIsLoading(false);
+        return;
+      }
+
       // Convert email to lowercase before sending to API
       const email = data.email.toLowerCase().trim();
       const password = data.password;
 
-      // Determine which auth version to use based on feature flag
-      const useAuthV2 = shouldUseAuthV2(email);
-
-      if (useAuthV2) {
-        // ===== Auth V2 (Firebase) Flow =====
-        try {
-          const v2Response = await authV2Service.login(email, password);
-          
-          // Extract V2 response structure
-          const { idToken, refreshToken, uid, email: userEmail, displayName, photoURL } = v2Response;
-          
-          // Store V2 tokens using tokenService
-          tokenService.storeTokens(idToken, refreshToken, uid);
-          
-          // Store user info for session restoration
-          localStorage.setItem('uid', uid);
-          localStorage.setItem('email', userEmail);
-          if (displayName) localStorage.setItem('displayName', displayName);
-          if (photoURL) localStorage.setItem('photoURL', photoURL);
-          
-          // Map V2 user structure to V1 format for backward compatibility
-          const mappedUser = {
-            id: uid,
-            username: displayName || userEmail.split('@')[0], // Fallback to email prefix
-            email: userEmail,
-            displayName: displayName || null,
-            photoURL: photoURL || null
-          };
-          
-          // Store mapped user for consistency
-          localStorage.setItem('user', JSON.stringify(mappedUser));
-          
-          // Pass to AuthContext (uses V2 token format)
-          onLogin(idToken, mappedUser);
-          
-        } catch (v2Error) {
-          console.error('Auth V2 Login error:', v2Error);
-          // Use Firebase error mapping for user-friendly messages
-          const errorMessage = getFirebaseErrorMessage(v2Error);
-          setError(errorMessage);
-        }
-        
-      } else {
-        // ===== Auth V1 (Legacy JWT) Flow =====
-        const loginData = { email, password };
-        const response = await apiService.login(loginData);
-
-        if (response.success) {
-          const { token, user } = response.data;
-          localStorage.setItem('token', token);
-          localStorage.setItem('user', JSON.stringify(user));
-          onLogin(token, user);
-        }
-      }
+      // ===== Auth V2 (Firebase) Flow =====
+      console.log('🔐 Logging in with Auth V2 (Firebase)...');
+      
+      const v2Response = await authV2Service.login(email, password);
+      
+      // Extract V2 response structure
+      const { idToken, refreshToken, uid, email: userEmail, displayName, photoURL } = v2Response;
+      
+      // Store V2 tokens using tokenService
+      tokenService.storeTokens(idToken, refreshToken, uid);
+      
+      // Store user info for session restoration
+      localStorage.setItem('uid', uid);
+      localStorage.setItem('email', userEmail);
+      if (displayName) localStorage.setItem('displayName', displayName);
+      if (photoURL) localStorage.setItem('photoURL', photoURL);
+      
+      // Map V2 user structure to consistent format
+      const user = {
+        id: uid,
+        username: displayName || userEmail.split('@')[0], // Fallback to email prefix
+        email: userEmail,
+        displayName: displayName || null,
+        photoURL: photoURL || null
+      };
+      
+      // Store user for consistency
+      localStorage.setItem('user', JSON.stringify(user));
+      
+      console.log('✅ Auth V2 login successful');
+      
+      // Pass to AuthContext (uses V2 token format)
+      onLogin(idToken, user);
       
     } catch (err) {
-      console.error('Login error:', err);
+      console.error('❌ Auth V2 Login error:', err);
       
-      // Handle V1 errors (V2 errors already handled above)
-      let errorMessage = 'Terjadi kesalahan saat login. Silakan coba lagi.';
-      
-      if (err.response) {
-        // Server responded with error status
-        const status = err.response.status;
-        const serverMessage = err.response.data?.message || err.response.data?.error?.message;
-        
-        switch (status) {
-          case 401:
-            errorMessage = 'Email atau password yang Anda masukkan salah. Silakan periksa kembali.';
-            break;
-          case 404:
-            errorMessage = 'Akun tidak ditemukan. Pastikan email Anda sudah terdaftar.';
-            break;
-          case 422:
-            errorMessage = serverMessage || 'Data yang Anda masukkan tidak valid. Periksa kembali email dan password.';
-            break;
-          case 429:
-            errorMessage = 'Terlalu banyak percobaan login. Silakan tunggu beberapa saat dan coba lagi.';
-            break;
-          case 500:
-          case 502:
-          case 503:
-            errorMessage = 'Server sedang mengalami gangguan. Silakan coba beberapa saat lagi.';
-            break;
-          default:
-            errorMessage = serverMessage || `Gagal login. Kode error: ${status}`;
-        }
-      } else if (err.request) {
-        // Request was made but no response received
-        errorMessage = 'Tidak dapat terhubung ke server. Periksa koneksi internet Anda.';
-      } else if (err.message) {
-        // Something else happened
-        errorMessage = `Error: ${err.message}`;
-      }
-      
+      // Use Firebase error mapping for user-friendly messages
+      const errorMessage = getFirebaseErrorMessage(err);
       setError(errorMessage);
+      
     } finally {
       setIsLoading(false);
     }
@@ -219,9 +176,12 @@ const Login = ({ onLogin }) => {
           </div>
 
           <div className="text-sm">
-            <a href="#" className="font-medium text-blue-600 hover:text-blue-500 transition-colors">
-              Forgot your password?
-            </a>
+            <Link 
+              href="/forgot-password" 
+              className="font-medium text-blue-600 hover:text-blue-500 transition-colors"
+            >
+              Lupa password?
+            </Link>
           </div>
         </div>
 
