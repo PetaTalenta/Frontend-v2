@@ -27,16 +27,42 @@ class ApiService {
       }
     };
 
-    // Add request interceptor to include auth token
+    // Add request interceptor to include auth token (supports both V1 and V2)
     this.axiosInstance.interceptors.request.use(
-      (config) => {
-        const token = getToken();
-        if (token) {
-          config.headers.Authorization = `Bearer ${token}`;
-          logger.debug('API Request: add bearer token');
-        } else {
-          logger.warn('API Request: no auth token');
+      async (config) => {
+        try {
+          // Try to get Auth V2 token first (if user is using V2)
+          const tokenService = (await import('./tokenService')).default;
+          const authVersion = tokenService.getAuthVersion();
+
+          if (authVersion === 'v2') {
+            // Auth V2: Use Firebase ID token
+            const idToken = tokenService.getIdToken();
+            if (idToken) {
+              config.headers.Authorization = `Bearer ${idToken}`;
+              logger.debug('API Request: add Auth V2 Firebase token');
+            } else {
+              logger.warn('API Request: no Auth V2 token found');
+            }
+          } else {
+            // Auth V1: Use legacy JWT token
+            const token = getToken();
+            if (token) {
+              config.headers.Authorization = `Bearer ${token}`;
+              logger.debug('API Request: add Auth V1 bearer token');
+            } else {
+              logger.warn('API Request: no auth token');
+            }
+          }
+        } catch (error) {
+          // Fallback to V1 token if tokenService not available
+          logger.debug('API Request: falling back to Auth V1 token');
+          const token = getToken();
+          if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+          }
         }
+
         logger.debug(`API Request: ${config.method?.toUpperCase()} ${config.url}`);
         return config;
       },
@@ -46,13 +72,13 @@ class ApiService {
       }
     );
 
-    // Add response interceptor for error handling
+    // Add response interceptor for error handling with auto token refresh
     this.axiosInstance.interceptors.response.use(
       (response) => {
         logger.debug(`API Response: ${response.status} ${response.config.method?.toUpperCase()} ${response.config.url}`);
         return response;
       },
-      (error) => {
+      async (error) => {
         // Log detailed error information (compact in production)
         logger.error('API Response Error', {
           status: error.response?.status,
@@ -62,8 +88,49 @@ class ApiService {
         });
 
         const status = error.response?.status;
-        if (status === 401) {
-          // Delegate side-effects to registered handler
+        const originalRequest = error.config;
+
+        // CRITICAL: Handle 401 Unauthorized with auto token refresh (for Auth V2)
+        if (status === 401 && !originalRequest._retry) {
+          originalRequest._retry = true; // Mark to prevent infinite loops
+
+          try {
+            // Dynamic import to avoid circular dependency
+            const tokenService = (await import('./tokenService')).default;
+            const authVersion = tokenService.getAuthVersion();
+
+            // Only attempt auto-refresh for Auth V2 users
+            if (authVersion === 'v2') {
+              logger.debug('API: 401 detected, attempting token refresh for Auth V2...');
+
+              // Attempt to refresh token
+              const newIdToken = await tokenService.refreshAuthToken();
+
+              // Update the Authorization header with new token
+              originalRequest.headers.Authorization = `Bearer ${newIdToken}`;
+
+              // Retry the original request with new token
+              logger.debug('API: Token refreshed, retrying original request');
+              return this.axiosInstance(originalRequest);
+            }
+          } catch (refreshError) {
+            logger.error('API: Token refresh failed, clearing session', refreshError);
+
+            // Token refresh failed - clear tokens and trigger auth error handler
+            try {
+              const tokenService = (await import('./tokenService')).default;
+              tokenService.clearTokens();
+            } catch (e) {
+              // Ignore cleanup errors
+            }
+
+            // Delegate to auth error handler (e.g., redirect to login)
+            try { this.handlers.onAuthError?.(error); } catch (_) {}
+
+            return Promise.reject(error);
+          }
+
+          // For Auth V1 users, just trigger auth error handler
           try { this.handlers.onAuthError?.(error); } catch (_) {}
         } else if (status === 402) {
           logger.error('Insufficient token balance for API request');

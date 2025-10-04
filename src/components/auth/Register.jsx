@@ -1,6 +1,10 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import apiService from '../../services/apiService';
+import authV2Service from '../../services/authV2Service';
+import tokenService from '../../services/tokenService';
+import { shouldUseAuthV2 } from '../../config/auth-v2-config';
+import { getFirebaseErrorMessage } from '../../utils/firebase-errors';
 
 const Register = ({ onRegister }) => {
   const [isLoading, setIsLoading] = useState(false);
@@ -14,28 +18,83 @@ const Register = ({ onRegister }) => {
     setError('');
 
     try {
-      // Convert email to lowercase before sending to API
-      const response = await apiService.register({
-        username: data.username.trim(),
-        email: data.email.toLowerCase().trim(),
-        password: data.password
-      });
+      const email = data.email.toLowerCase().trim();
+      const password = data.password;
+      const username = data.username?.trim();
 
-      if (response.success) {
-        const { token, user } = response.data;
-        localStorage.setItem('token', token);
-        localStorage.setItem('user', JSON.stringify(user));
-        onRegister(token, user);
+      // Determine which auth version to use
+      const useAuthV2 = shouldUseAuthV2(email);
+
+      if (useAuthV2) {
+        // ===== Auth V2 (Firebase) Flow =====
+        try {
+          // For V2, username becomes displayName (optional)
+          const v2Response = await authV2Service.register(
+            email,
+            password,
+            username || undefined, // displayName (optional)
+            undefined // photoURL (optional, not collected in form yet)
+          );
+
+          // Extract V2 response structure
+          const { uid, idToken, refreshToken, email: userEmail, displayName, photoURL } = v2Response;
+
+          // Store V2 tokens using tokenService
+          tokenService.storeTokens(idToken, refreshToken, uid);
+
+          // Store user info for session restoration
+          localStorage.setItem('uid', uid);
+          localStorage.setItem('email', userEmail);
+          if (displayName) localStorage.setItem('displayName', displayName);
+          if (photoURL) localStorage.setItem('photoURL', photoURL);
+
+          // Map V2 user structure to V1 format for backward compatibility
+          const mappedUser = {
+            id: uid,
+            username: displayName || userEmail.split('@')[0],
+            email: userEmail,
+            displayName: displayName || null,
+            photoURL: photoURL || null
+          };
+
+          // Store mapped user
+          localStorage.setItem('user', JSON.stringify(mappedUser));
+
+          // Pass to AuthContext
+          onRegister(idToken, mappedUser);
+
+        } catch (v2Error) {
+          console.error('Auth V2 Registration error:', v2Error);
+          // Use Firebase error mapping
+          const errorMessage = getFirebaseErrorMessage(v2Error);
+          setError(errorMessage);
+        }
+
       } else {
-        // Handle API response with success: false
-        const errorMessage = response.error?.message || response.message || 'Pendaftaran gagal. Silakan coba lagi.';
-        console.error('Registration failed:', response);
-        setError(errorMessage);
+        // ===== Auth V1 (Legacy JWT) Flow =====
+        const response = await apiService.register({
+          username,
+          email,
+          password
+        });
+
+        if (response.success) {
+          const { token, user } = response.data;
+          localStorage.setItem('token', token);
+          localStorage.setItem('user', JSON.stringify(user));
+          onRegister(token, user);
+        } else {
+          // Handle API response with success: false
+          const errorMessage = response.error?.message || response.message || 'Pendaftaran gagal. Silakan coba lagi.';
+          console.error('Registration failed:', response);
+          setError(errorMessage);
+        }
       }
+
     } catch (err) {
       console.error('Registration error:', err);
       
-      // Handle different types of errors with clear messages
+      // Handle V1 errors (V2 errors already handled above)
       let errorMessage = 'Terjadi kesalahan saat pendaftaran. Silakan coba lagi.';
       
       if (err.response) {
@@ -86,7 +145,7 @@ const Register = ({ onRegister }) => {
         <div className="space-y-4">
           <div>
             <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
-              Username
+              Username / Display Name <span className="text-gray-500 text-xs">(Optional)</span>
             </label>
             <div className="relative">
               <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -94,21 +153,23 @@ const Register = ({ onRegister }) => {
               </svg>
               <input
                 {...register('username', {
-                  required: 'Username wajib diisi',
                   minLength: {
                     value: 3,
                     message: 'Username minimal 3 karakter'
                   },
                   pattern: {
-                    value: /^[a-zA-Z0-9_]+$/,
-                    message: 'Username hanya boleh mengandung huruf, angka, dan underscore'
+                    value: /^[a-zA-Z0-9_ ]+$/,
+                    message: 'Username hanya boleh mengandung huruf, angka, spasi, dan underscore'
                   }
                 })}
                 type="text"
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
-                placeholder="Masukkan username Anda"
+                placeholder="Masukkan nama tampilan Anda (opsional)"
               />
             </div>
+            <p className="mt-1 text-xs text-gray-500">
+              Jika tidak diisi, akan menggunakan email Anda sebagai display name
+            </p>
             {errors.username && (
               <p className="mt-1 text-sm text-red-600 flex items-center">
                 <svg className="h-4 w-4 mr-1" fill="currentColor" viewBox="0 0 20 20">

@@ -22,7 +22,8 @@ export const API_ENDPOINTS = {
   // Gateway info
   GATEWAY_INFO: '/',
 
-  // Auth endpoints
+  // Auth endpoints (V1 - Legacy)
+  // These endpoints will be maintained for backward compatibility during migration
   AUTH: {
     LOGIN: '/api/auth/login',
     REGISTER: '/api/auth/register',
@@ -37,6 +38,32 @@ export const API_ENDPOINTS = {
     SCHOOLS: '/api/auth/schools',
     SCHOOLS_BY_LOCATION: '/api/auth/schools/by-location',
     SCHOOL_USERS: (schoolId) => `/api/auth/schools/${schoolId}/users`,
+  },
+
+  // Auth V2 endpoints (Firebase-based)
+  // New authentication service with Firebase integration
+  // All endpoints accessed via API Gateway at /api/auth/v2/*
+  AUTH_V2: {
+    // Public endpoints (no authentication required)
+    LOGIN: '/api/auth/v2/login',
+    REGISTER: '/api/auth/v2/register',
+    REFRESH: '/api/auth/v2/refresh',
+    FORGOT_PASSWORD: '/api/auth/v2/forgot-password',
+    RESET_PASSWORD: '/api/auth/v2/reset-password',
+    HEALTH: '/api/auth/v2/health',
+    
+    // Protected endpoints (require Firebase ID token)
+    LOGOUT: '/api/auth/v2/logout',
+    PROFILE: '/api/auth/v2/profile', // PATCH only - limited to displayName & photoURL
+    DELETE_USER: '/api/auth/v2/user', // DELETE - requires password confirmation
+    
+    // Notes:
+    // - Tokens expire after 1 hour (use REFRESH endpoint)
+    // - Profile updates limited to displayName and photoURL only
+    // - Other profile fields (bio, phone, etc.) should use separate user service
+    // - No TOKEN_BALANCE endpoint (use user service)
+    // - No SCHOOLS endpoints (use school service)
+    // - No GET profile endpoint (data from login/register or use user service)
   },
 
   // Admin endpoints
@@ -115,6 +142,7 @@ export const API_ENDPOINTS = {
     READY: '/health/ready',
     DETAILED: '/health/detailed',
     AUTH: '/api/auth/health',
+    AUTH_V2: '/api/auth/v2/health',
     ARCHIVE: '/api/archive/health',
     ASSESSMENT: '/api/assessment/health',
   },

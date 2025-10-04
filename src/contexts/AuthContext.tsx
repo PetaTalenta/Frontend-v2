@@ -4,6 +4,10 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { useRouter } from 'next/navigation';
 import { clearDemoAssessmentData } from '../utils/user-stats';
 import apiService from '../services/apiService';
+import authV2Service from '../services/authV2Service';
+import tokenService from '../services/tokenService';
+import { shouldUseAuthV2 } from '../config/auth-v2-config';
+import useTokenRefresh from '../hooks/useTokenRefresh';
 
 interface User {
   id: string;
@@ -11,6 +15,8 @@ interface User {
   name?: string;
   username?: string;
   avatar?: string;
+  displayName?: string; // For Auth V2 compatibility
+  photoURL?: string; // For Auth V2 compatibility
 }
 
 interface AuthContextType {
@@ -18,6 +24,7 @@ interface AuthContextType {
   token: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  authVersion: 'v1' | 'v2'; // Track which auth version user is using
   login: (token: string, user: User) => Promise<void>;
   logout: () => void;
   register: (token: string, user: User) => Promise<void>;
@@ -41,46 +48,99 @@ interface AuthProviderProps {
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
+  const [authVersion, setAuthVersion] = useState<'v1' | 'v2'>('v1');
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
+  
+  // Initialize token refresh hook for Auth V2
+  const { startRefreshTimer, stopRefreshTimer } = useTokenRefresh();
 
   useEffect(() => {
     console.log('AuthContext: useEffect starting, isLoading:', isLoading);
 
-    // Check for existing token on app start
-    const savedToken = localStorage.getItem('token');
-    const savedUser = localStorage.getItem('user');
+    // Detect auth version and restore session
+    const detectedVersion = tokenService.getAuthVersion() as 'v1' | 'v2';
+    setAuthVersion(detectedVersion);
+    console.log('AuthContext: Detected auth version:', detectedVersion);
 
-    console.log('AuthContext: savedToken exists:', !!savedToken);
-    console.log('AuthContext: savedUser exists:', !!savedUser);
+    if (detectedVersion === 'v2') {
+      // Auth V2: Restore from tokenService
+      const idToken = tokenService.getIdToken();
+      const savedUser = localStorage.getItem('user');
 
-    if (savedToken && savedUser) {
-      try {
-        const parsedUser = JSON.parse(savedUser);
-        setToken(savedToken);
-        setUser(parsedUser);
+      console.log('AuthContext V2: idToken exists:', !!idToken);
+      console.log('AuthContext V2: savedUser exists:', !!savedUser);
 
-        // Ensure cookie is set for server-side middleware
-        document.cookie = `token=${savedToken}; path=/; max-age=${7 * 24 * 60 * 60}`;
-        console.log('AuthContext: Restored existing authentication for user:', parsedUser.name);
+      if (idToken && savedUser) {
+        try {
+          const parsedUser = JSON.parse(savedUser);
+          setToken(idToken);
+          setUser(parsedUser);
 
-        // Always try to fetch the latest username from profile to ensure it's up to date
-        console.log('AuthContext: Triggering username fetch from profile on mount...');
-        fetchUsernameFromProfile(savedToken);
-      } catch (error) {
-        // Clear invalid data
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT';
-        console.log('AuthContext: Cleared invalid authentication data, error:', error);
+          console.log('AuthContext V2: Restored existing authentication for user:', parsedUser.email);
+
+          // Check if token needs refresh
+          if (tokenService.isTokenExpired()) {
+            console.log('AuthContext V2: Token expired, will refresh on first API call');
+          }
+        } catch (error) {
+          // Clear invalid data
+          tokenService.clearTokens();
+          localStorage.removeItem('user');
+          console.log('AuthContext V2: Cleared invalid authentication data, error:', error);
+        }
+      } else {
+        console.log('AuthContext V2: No existing authentication found');
       }
     } else {
-      console.log('AuthContext: No existing authentication found, user needs to login');
+      // Auth V1: Original logic
+      const savedToken = localStorage.getItem('token');
+      const savedUser = localStorage.getItem('user');
+
+      console.log('AuthContext V1: savedToken exists:', !!savedToken);
+      console.log('AuthContext V1: savedUser exists:', !!savedUser);
+
+      if (savedToken && savedUser) {
+        try {
+          const parsedUser = JSON.parse(savedUser);
+          setToken(savedToken);
+          setUser(parsedUser);
+
+          // Ensure cookie is set for server-side middleware
+          document.cookie = `token=${savedToken}; path=/; max-age=${7 * 24 * 60 * 60}`;
+          console.log('AuthContext V1: Restored existing authentication for user:', parsedUser.name);
+
+          // Always try to fetch the latest username from profile to ensure it's up to date
+          console.log('AuthContext V1: Triggering username fetch from profile on mount...');
+          fetchUsernameFromProfile(savedToken);
+        } catch (error) {
+          // Clear invalid data
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT';
+          console.log('AuthContext V1: Cleared invalid authentication data, error:', error);
+        }
+      } else {
+        console.log('AuthContext V1: No existing authentication found, user needs to login');
+      }
     }
 
     console.log('AuthContext: Setting isLoading to false');
     setIsLoading(false);
   }, []);
+
+  // Token refresh timer for Auth V2 users
+  useEffect(() => {
+    if (authVersion === 'v2' && user && token) {
+      console.log('[AuthContext] Starting token refresh timer for Auth V2 user:', user.email);
+      startRefreshTimer();
+
+      return () => {
+        console.log('[AuthContext] Stopping token refresh timer');
+        stopRefreshTimer();
+      };
+    }
+  }, [authVersion, user, token, startRefreshTimer, stopRefreshTimer]);
 
   const login = async (newToken: string, newUser: User) => {
     console.log('AuthContext: User logging in:', newUser.email);
@@ -197,14 +257,33 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    console.log('AuthContext: Logout initiated, auth version:', authVersion);
+
+    if (authVersion === 'v2') {
+      // Auth V2: Revoke refresh tokens via API
+      try {
+        await authV2Service.logout();
+        console.log('AuthContext V2: Logout API call successful');
+      } catch (error) {
+        console.error('AuthContext V2: Logout API call failed (continuing anyway):', error);
+      }
+      
+      // Clear V2 tokens
+      tokenService.clearTokens();
+    } else {
+      // Auth V1: Clear V1 tokens
+      localStorage.removeItem('token');
+      document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT';
+    }
+
+    // Clear common data
     setToken(null);
     setUser(null);
-    localStorage.removeItem('token');
     localStorage.removeItem('user');
+    setAuthVersion('v1'); // Reset to v1
 
-    // Clear cookie
-    document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT';
+    console.log('AuthContext: Logout complete, redirecting to auth page');
 
     // Redirect to login page
     router.push('/auth');
@@ -213,6 +292,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const value: AuthContextType = {
     user,
     token,
+    authVersion,
     isLoading,
     login,
     logout,
