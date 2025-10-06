@@ -23,12 +23,24 @@ class IndexedDBCache {
   private storeName = 'cache';
   private db: IDBDatabase | null = null;
   private initPromise: Promise<void> | null = null;
+  private isClient = typeof window !== 'undefined' && typeof indexedDB !== 'undefined';
 
   constructor() {
-    this.initPromise = this.init();
+    // ✅ Only initialize on client-side
+    if (this.isClient) {
+      this.initPromise = this.init();
+    } else {
+      // Resolve immediately on server-side
+      this.initPromise = Promise.resolve();
+    }
   }
 
   private async init(): Promise<void> {
+    // ✅ Guard: Skip on server-side
+    if (!this.isClient) {
+      return Promise.resolve();
+    }
+
     return new Promise((resolve, reject) => {
       const request = indexedDB.open(this.dbName, this.dbVersion);
 
@@ -55,7 +67,12 @@ class IndexedDBCache {
     });
   }
 
-  private async ensureDB(): Promise<IDBDatabase> {
+  private async ensureDB(): Promise<IDBDatabase | null> {
+    // ✅ Return null on server-side
+    if (!this.isClient) {
+      return null;
+    }
+
     if (!this.db) {
       await this.initPromise;
     }
@@ -68,6 +85,8 @@ class IndexedDBCache {
   // Set data in cache
   async set<T>(key: string, data: T, options: CacheOptions = {}): Promise<void> {
     const db = await this.ensureDB();
+    // ✅ Skip on server-side
+    if (!db) return;
     const {
       ttl = 24 * 60 * 60 * 1000, // Default 24 hours
       tags = [],
@@ -108,6 +127,8 @@ class IndexedDBCache {
   // Get data from cache
   async get<T>(key: string): Promise<T | null> {
     const db = await this.ensureDB();
+    // ✅ Return null on server-side
+    if (!db) return null;
 
     return new Promise((resolve, reject) => {
       const transaction = db.transaction([this.storeName], 'readonly');
@@ -146,6 +167,8 @@ class IndexedDBCache {
   // Delete specific key
   async delete(key: string): Promise<void> {
     const db = await this.ensureDB();
+    // ✅ Skip on server-side
+    if (!db) return;
 
     return new Promise((resolve, reject) => {
       const transaction = db.transaction([this.storeName], 'readwrite');
@@ -160,6 +183,8 @@ class IndexedDBCache {
   // Clear all cache
   async clear(): Promise<void> {
     const db = await this.ensureDB();
+    // ✅ Skip on server-side
+    if (!db) return;
 
     return new Promise((resolve, reject) => {
       const transaction = db.transaction([this.storeName], 'readwrite');
@@ -174,6 +199,8 @@ class IndexedDBCache {
   // Delete entries by tags
   async deleteByTags(tags: string[]): Promise<void> {
     const db = await this.ensureDB();
+    // ✅ Skip on server-side
+    if (!db) return;
 
     return new Promise((resolve, reject) => {
       const transaction = db.transaction([this.storeName], 'readwrite');
@@ -207,6 +234,9 @@ class IndexedDBCache {
   // Clean up expired entries
   async cleanup(): Promise<number> {
     const db = await this.ensureDB();
+    // ✅ Return 0 on server-side
+    if (!db) return 0;
+
     let deletedCount = 0;
 
     return new Promise((resolve, reject) => {
@@ -241,6 +271,10 @@ class IndexedDBCache {
     newestEntry: number;
   }> {
     const db = await this.ensureDB();
+    // ✅ Return empty stats on server-side
+    if (!db) {
+      return { totalEntries: 0, totalSize: 0, expiredEntries: 0, oldestEntry: 0, newestEntry: 0 };
+    }
 
     return new Promise((resolve, reject) => {
       const transaction = db.transaction([this.storeName], 'readonly');
@@ -269,6 +303,8 @@ class IndexedDBCache {
   // Get all keys
   async keys(): Promise<string[]> {
     const db = await this.ensureDB();
+    // ✅ Return empty array on server-side
+    if (!db) return [];
 
     return new Promise((resolve, reject) => {
       const transaction = db.transaction([this.storeName], 'readonly');
@@ -281,8 +317,69 @@ class IndexedDBCache {
   }
 }
 
-// Singleton instance
-export const indexedDBCache = new IndexedDBCache();
+// ✅ Lazy singleton instance - only create on client-side
+let _indexedDBCacheInstance: IndexedDBCache | null = null;
+
+function getIndexedDBCache(): IndexedDBCache {
+  if (!_indexedDBCacheInstance) {
+    _indexedDBCacheInstance = new IndexedDBCache();
+  }
+  return _indexedDBCacheInstance;
+}
+
+// Export getter instead of direct instance
+export const indexedDBCache = {
+  get isClient() {
+    return typeof window !== 'undefined' && typeof indexedDB !== 'undefined';
+  },
+
+  async set<T>(key: string, data: T, options?: any): Promise<void> {
+    if (!this.isClient) return;
+    return getIndexedDBCache().set(key, data, options);
+  },
+
+  async get<T>(key: string): Promise<T | null> {
+    if (!this.isClient) return null;
+    return getIndexedDBCache().get(key);
+  },
+
+  async has(key: string): Promise<boolean> {
+    if (!this.isClient) return false;
+    return getIndexedDBCache().has(key);
+  },
+
+  async delete(key: string): Promise<void> {
+    if (!this.isClient) return;
+    return getIndexedDBCache().delete(key);
+  },
+
+  async clear(): Promise<void> {
+    if (!this.isClient) return;
+    return getIndexedDBCache().clear();
+  },
+
+  async deleteByTags(tags: string[]): Promise<void> {
+    if (!this.isClient) return;
+    return getIndexedDBCache().deleteByTags(tags);
+  },
+
+  async cleanup(): Promise<number> {
+    if (!this.isClient) return 0;
+    return getIndexedDBCache().cleanup();
+  },
+
+  async getStats(): Promise<any> {
+    if (!this.isClient) {
+      return { totalEntries: 0, totalSize: 0, expiredEntries: 0, oldestEntry: 0, newestEntry: 0 };
+    }
+    return getIndexedDBCache().getStats();
+  },
+
+  async keys(): Promise<string[]> {
+    if (!this.isClient) return [];
+    return getIndexedDBCache().keys();
+  }
+};
 
 // Utility functions for common caching patterns
 export const cacheUtils = {
@@ -336,5 +433,42 @@ export const cacheUtils = {
   // Clear API cache
   async clearAPICache(): Promise<void> {
     await indexedDBCache.deleteByTags(['api']);
+  },
+
+  // Invalidate by tags
+  async invalidateByTags(tags: string[]): Promise<void> {
+    await indexedDBCache.deleteByTags(tags);
+  },
+
+  // Invalidate by pattern
+  async invalidateByPattern(pattern: string | RegExp): Promise<void> {
+    if (!indexedDBCache.isClient) return;
+
+    const allKeys = await indexedDBCache.keys();
+    const regex = typeof pattern === 'string' ? new RegExp(pattern) : pattern;
+    const keysToDelete = allKeys.filter(key => regex.test(key));
+
+    await Promise.all(keysToDelete.map(key => indexedDBCache.delete(key)));
+  },
+
+  // Get cache stats
+  async getCacheStats(): Promise<{
+    totalEntries: number;
+    totalSize: number;
+    oldestEntry: number | null;
+    newestEntry: number | null;
+  }> {
+    const stats = await indexedDBCache.getStats();
+    return {
+      totalEntries: stats.totalEntries,
+      totalSize: stats.totalSize,
+      oldestEntry: stats.oldestEntry,
+      newestEntry: stats.newestEntry
+    };
+  },
+
+  // Clear expired entries
+  async clearExpired(): Promise<number> {
+    return indexedDBCache.cleanup();
   }
 };

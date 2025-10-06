@@ -237,3 +237,29 @@ export const liveDataConfig: SWRConfiguration = {
   revalidateOnFocus: true,
   revalidateOnReconnect: true,
 };
+
+/**
+ * ✅ CACHE FIX: Config khusus untuk token balance
+ * Token balance perlu update real-time setelah assessment/purchase
+ * Reduced deduping dari 5s ke 1s untuk mencegah stale data
+ */
+export const tokenBalanceConfig: SWRConfiguration = {
+  ...swrConfig,
+  dedupingInterval: 1000,            // ✅ 1 second (reduced from 5s)
+  revalidateOnFocus: true,           // ✅ Refresh saat user kembali ke tab
+  revalidateOnReconnect: true,       // ✅ Refresh saat reconnect
+  keepPreviousData: false,           // ✅ Don't show stale data during fetch
+  refreshInterval: 30000,            // ✅ Auto-refresh setiap 30 detik
+  
+  // Custom error handler untuk token balance
+  onError: (error, key) => {
+    console.error('[SWR Token Balance] Error:', error.message || error);
+  },
+  
+  // Success handler untuk debugging
+  onSuccess: (data, key) => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[SWR Token Balance] Updated:', data?.balance ?? 'N/A');
+    }
+  },
+};

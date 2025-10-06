@@ -1,5 +1,6 @@
 import { apiService } from '../services/apiService';
 import { TOKEN_CONFIG, hasEnoughTokensForAssessment, getInsufficientTokensMessage } from '../config/token-config';
+import tokenService from '../services/tokenService';
 
 export interface TokenBalanceInfo {
   balance: number;
@@ -18,15 +19,117 @@ export interface TokenTransaction {
   timestamp: string;
 }
 
+// ===== CACHE WITH TTL IMPLEMENTATION =====
+
 /**
- * Check user's current token balance with enhanced error handling and debugging
+ * ✅ CACHE FIX: Cached token balance with expiration
  */
-export async function checkTokenBalance(): Promise<TokenBalanceInfo> {
-  console.log('Token Balance Utility: Starting token balance check...');
+interface CachedTokenBalance {
+  data: {
+    balance: number;
+    userId: string;
+  };
+  timestamp: number;
+  expiresAt: number;
+}
+
+/**
+ * ✅ CACHE FIX: Get cached balance with TTL validation
+ * @param userId - User ID for cache key
+ * @returns Cached balance or null if expired/invalid
+ */
+function getCachedBalance(userId: string): number | null {
+  if (typeof window === 'undefined') return null;
+
+  const cacheKey = `tokenBalanceCache_${userId}`;
+  const cached = localStorage.getItem(cacheKey);
+  
+  if (!cached) return null;
+  
+  try {
+    const parsed: CachedTokenBalance = JSON.parse(cached);
+    
+    // ✅ Check expiration
+    if (Date.now() > parsed.expiresAt) {
+      console.log('Token Balance Cache: Expired, removing cache');
+      localStorage.removeItem(cacheKey);
+      return null;
+    }
+    
+    // ✅ Validate user ID to prevent cross-user data leakage
+    if (parsed.data.userId !== userId) {
+      console.warn('Token Balance Cache: User ID mismatch, clearing cache', {
+        cached: parsed.data.userId,
+        current: userId
+      });
+      localStorage.removeItem(cacheKey);
+      return null;
+    }
+    
+    console.log('Token Balance Cache: Hit', { balance: parsed.data.balance, userId });
+    return parsed.data.balance;
+  } catch (error) {
+    console.error('Token Balance Cache: Error parsing cache, clearing', error);
+    localStorage.removeItem(cacheKey);
+    return null;
+  }
+}
+
+/**
+ * ✅ CACHE FIX: Set cached balance with TTL
+ * @param userId - User ID for cache key
+ * @param balance - Token balance to cache
+ * @param ttlMs - Time to live in milliseconds (default: 30 seconds)
+ */
+function setCachedBalance(userId: string, balance: number, ttlMs: number = 30000): void {
+  if (typeof window === 'undefined') return;
+
+  const cacheKey = `tokenBalanceCache_${userId}`;
+  const ttl = ttlMs;
+  
+  const cacheData: CachedTokenBalance = {
+    data: { balance, userId },
+    timestamp: Date.now(),
+    expiresAt: Date.now() + ttl
+  };
+  
+  try {
+    localStorage.setItem(cacheKey, JSON.stringify(cacheData));
+    console.log('Token Balance Cache: Set', { balance, userId, expiresIn: `${ttl}ms` });
+  } catch (error) {
+    console.error('Token Balance Cache: Error setting cache', error);
+  }
+}
+
+/**
+ * ✅ CACHE FIX: Clear cached balance for specific user
+ * @param userId - User ID for cache key
+ */
+function clearCachedBalance(userId: string): void {
+  if (typeof window === 'undefined') return;
+
+  const cacheKey = `tokenBalanceCache_${userId}`;
+  localStorage.removeItem(cacheKey);
+  
+  // Also clear legacy global cache key
+  localStorage.removeItem('tokenBalanceCache');
+  
+  console.log('Token Balance Cache: Cleared for user', userId);
+}
+
+/**
+ * Check user's current token balance with enhanced error handling and user validation
+ *
+ * @param expectedUserId - Optional user ID to validate against current session
+ * @param skipCache - If true, skip cache and fetch fresh from API
+ * @returns TokenBalanceInfo with balance data or error
+ */
+export async function checkTokenBalance(expectedUserId?: string, skipCache: boolean = false): Promise<TokenBalanceInfo> {
+  console.log('Token Balance Utility: Starting token balance check...', { expectedUserId, skipCache });
 
   try {
-    // Check if user is authenticated
-    const token = localStorage.getItem('token');
+    // ✅ CRITICAL FIX: Use tokenService instead of direct localStorage access
+    const token = tokenService.getIdToken();
     if (!token) {
       console.error('Token Balance Utility: No authentication token found');
       return {
@@ -37,6 +140,40 @@ export async function checkTokenBalance(): Promise<TokenBalanceInfo> {
       };
     }
 
+    // ✅ CRITICAL FIX: Validate user ID to prevent cross-user data leakage
+    const userStr = localStorage.getItem('user');
+    const currentUserId = userStr ? JSON.parse(userStr).id : null;
+
+    if (expectedUserId && currentUserId !== expectedUserId) {
+      console.warn('Token Balance Utility: User ID mismatch detected', {
+        expected: expectedUserId,
+        current: currentUserId
+      });
+      return {
+        balance: -1,
+        hasEnoughTokens: false,
+        message: 'User session changed. Please refresh.',
+        error: true,
+      };
+    }
+
+    // ✅ CACHE FIX: Check cache first (unless skipCache is true)
+    if (!skipCache && currentUserId) {
+      const cachedBalance = getCachedBalance(currentUserId);
+      if (cachedBalance !== null) {
+        console.log('Token Balance Utility: Using cached balance');
+        return {
+          balance: cachedBalance,
+          hasEnoughTokens: hasEnoughTokensForAssessment(cachedBalance),
+          lastUpdated: new Date().toISOString(),
+          message: hasEnoughTokensForAssessment(cachedBalance)
+            ? `You have ${cachedBalance} tokens available.`
+            : getInsufficientTokensMessage(cachedBalance),
+          error: false,
+        };
+      }
+    }
+
     console.log('Token Balance Utility: Calling API service...');
     const response = await apiService.getTokenBalance();
 
@@ -44,8 +181,12 @@ export async function checkTokenBalance(): Promise<TokenBalanceInfo> {
       success: response.success,
       hasData: !!response.data,
       apiSource: response.apiSource,
-      errorCode: response.error?.code
+      errorCode: response.error?.code,
+      userId: currentUserId
     });
+
+    // ✅ DEBUG: Log full response.data structure to identify correct field
+    console.log('Token Balance Utility: Full response.data:', response.data);
 
     if (response && response.success === false) {
       const errorMessage = response.error?.message || 'Failed to fetch token balance';
@@ -70,33 +211,20 @@ export async function checkTokenBalance(): Promise<TokenBalanceInfo> {
       };
     }
 
-    // Enhanced parsing with validation across multiple possible response shapes
-    const candidates = [
-      response?.data?.tokenBalance,
-      response?.data?.balance,
-      response?.data?.token_balance,
-      response?.data?.tokens,
-      response?.data?.user?.token_balance,
-      response?.data?.user?.tokenBalance,
-      response?.tokenBalance,
-      response?.token_balance,
-      response?.balance,
-      response?.tokens,
-      typeof response?.data === 'number' ? response.data : undefined,
-      typeof response?.data === 'string' ? response.data : undefined,
-    ];
-    const firstValid = candidates.find(v =>
-      (typeof v === 'number' && !Number.isNaN(v)) ||
-      (typeof v === 'string' && v.trim() !== '' && !Number.isNaN(Number(v)))
-    );
-    const balance = typeof firstValid === 'string' ? Number(firstValid) : firstValid as number;
+    // ✅ CRITICAL FIX: Parse balance with correct field priority
+    // Based on actual API response structure - token_balance (underscore) is primary field
+    const balance = response?.data?.token_balance  // Primary field from backend
+      ?? response?.data?.tokenBalance              // Camel case variant
+      ?? response?.data?.balance                   // Generic field
+      ?? (typeof response?.data === 'number' ? response.data : undefined);
+
     const lastUpdated = response?.data?.lastUpdated || response?.lastUpdated || new Date().toISOString();
 
-    console.log('Token Balance Utility: Parsed data candidates:', {
-      candidates,
-      chosen: balance,
+    console.log('Token Balance Utility: Parsed balance:', {
+      balance,
       lastUpdated,
-      isValidBalance: typeof balance === 'number' && !isNaN(balance as number)
+      isValidBalance: typeof balance === 'number' && !isNaN(balance as number),
+      userId: currentUserId
     });
 
     // Validate balance with safe fallback
@@ -114,6 +242,11 @@ export async function checkTokenBalance(): Promise<TokenBalanceInfo> {
 
     if (balance < 0) {
       console.warn('Token Balance Utility: Negative balance received:', balance);
+    }
+
+    // ✅ CACHE FIX: Store valid balance in cache
+    if (currentUserId && typeof balance === 'number' && !isNaN(balance)) {
+      setCachedBalance(currentUserId, balance);
     }
 
     const result = {
@@ -197,14 +330,24 @@ export function formatTokenTransaction(transaction: TokenTransaction): string {
 }
 
 /**
- * Force refresh token balance with cache busting and enhanced debugging
+ * ✅ CACHE FIX: Force refresh token balance with cache busting
+ * Clears all caches and fetches fresh data from API
  */
-export async function forceRefreshTokenBalance(): Promise<TokenBalanceInfo> {
+export async function forceRefreshTokenBalance(userId?: string): Promise<TokenBalanceInfo> {
   console.log('=== FORCE REFRESH TOKEN BALANCE ===');
 
-  // Clear all possible caches
+  // ✅ CACHE FIX: Clear user-specific and legacy caches
   if (typeof window !== 'undefined') {
-    localStorage.removeItem('tokenBalanceCache');
+    if (userId) {
+      clearCachedBalance(userId);
+    } else {
+      // Clear all possible cache keys if no userId provided
+      const userStr = localStorage.getItem('user');
+      const currentUserId = userStr ? JSON.parse(userStr).id : null;
+      if (currentUserId) {
+        clearCachedBalance(currentUserId);
+      }
+    }
     console.log('Cleared localStorage cache');
   }
 
@@ -213,7 +356,8 @@ export async function forceRefreshTokenBalance(): Promise<TokenBalanceInfo> {
 
   try {
     console.log('Starting force refresh...');
-    const result = await checkTokenBalance();
+    // ✅ CACHE FIX: Skip cache when force refreshing
+    const result = await checkTokenBalance(userId, true);
     console.log('Force refresh completed:', result);
     return result;
   } catch (error) {
@@ -263,7 +407,8 @@ export async function clearAllCachesAndRefresh(): Promise<TokenBalanceInfo> {
 export async function testDirectTokenBalanceCall(): Promise<any> {
   console.log('=== TESTING DIRECT API CALL ===');
 
-  const token = localStorage.getItem('token');
+  // ✅ FIX: Use tokenService instead of direct localStorage
+  const token = tokenService.getIdToken();
   if (!token) {
     throw new Error('No authentication token found');
   }
@@ -307,7 +452,8 @@ export async function testDirectTokenBalanceCall(): Promise<any> {
 export async function testSimpleTokenBalance(): Promise<any> {
   console.log('=== TESTING SIMPLE TOKEN BALANCE ===');
 
-  const token = localStorage.getItem('token');
+  // ✅ FIX: Use tokenService instead of direct localStorage
+  const token = tokenService.getIdToken();
   if (!token) {
     throw new Error('No authentication token found');
   }
@@ -381,7 +527,8 @@ export async function clearCacheAndRefresh(): Promise<FixResult> {
  */
 export async function fixAuthenticationIssues(): Promise<FixResult> {
   try {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    // ✅ FIX: Use tokenService instead of direct localStorage
+    const token = typeof window !== 'undefined' ? tokenService.getIdToken() : null;
     const user = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
 
     if (!token || !user) {
@@ -463,7 +610,8 @@ export async function fixApiEndpointIssues(): Promise<FixResult> {
  */
 export async function forceRefreshTokenBalanceFix(): Promise<FixResult> {
   try {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    // ✅ FIX: Use tokenService instead of direct localStorage
+    const token = typeof window !== 'undefined' ? tokenService.getIdToken() : null;
     if (!token) {
       return { success: false, message: 'No authentication token found', nextSteps: ['Please login again'] };
     }

@@ -1,9 +1,17 @@
 // Centralized token and user storage utilities
 // Provides a single source of truth for auth-related localStorage access
+//
+// ⚠️ DEPRECATED: Use tokenService instead for Auth V2 compatibility
+// This file is kept for backward compatibility only
 
-const TOKEN_KEYS = ['token', 'auth_token', 'authToken'] as const;
+const TOKEN_KEYS = ['authV2_idToken', 'token', 'auth_token', 'authToken'] as const;
 const USER_KEYS = ['user', 'user_data'] as const;
 
+/**
+ * Get token from localStorage
+ * ✅ UPDATED: Now checks Auth V2 key first
+ * @deprecated Use tokenService.getIdToken() instead
+ */
 export function getToken(): string | null {
   for (const key of TOKEN_KEYS) {
     const val = localStorage.getItem(key);
@@ -12,14 +20,29 @@ export function getToken(): string | null {
   return null;
 }
 
+/**
+ * Set token to localStorage
+ * ✅ UPDATED: Now syncs to Auth V2 key as well
+ * @deprecated Use tokenService.storeTokens() instead
+ */
 export function setToken(token: string) {
-  // Write to a primary key and keep legacy keys in sync
+  // Write to Auth V2 key (primary)
+  localStorage.setItem('authV2_idToken', token);
+
+  // Also write to legacy keys for backward compatibility
   localStorage.setItem('auth_token', token);
   for (const key of TOKEN_KEYS) {
-    localStorage.setItem(key, token);
+    if (key !== 'authV2_idToken') {
+      localStorage.setItem(key, token);
+    }
   }
 }
 
+/**
+ * Clear token from localStorage
+ * ✅ UPDATED: Now clears Auth V2 key as well
+ * @deprecated Use tokenService.clearTokens() instead
+ */
 export function clearToken() {
   for (const key of TOKEN_KEYS) {
     localStorage.removeItem(key);

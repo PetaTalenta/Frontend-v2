@@ -13,6 +13,7 @@ import {
 import { calculateAllScores, validateAnswers } from '../utils/assessment-calculations';
 import { generateApiOnlyAnalysis } from '../utils/ai-analysis';
 import { createSafeError, safeErrorCallback, validateApiResponse } from '../utils/safe-error-handling';
+import { ensureValidToken } from '../utils/token-validation';
 
 // Consolidated configuration - Updated to match documentation
 const CONFIG = {
@@ -59,6 +60,8 @@ interface AssessmentOptions {
   preferWebSocket?: boolean;
   // Optional error callback to report monitoring errors without misusing onProgress
   onError?: (error: any) => void;
+  // ✅ User ID untuk per-user submission tracking
+  userId?: string;
 }
 
 interface MonitoringState {
@@ -74,11 +77,42 @@ class AssessmentService {
   private activeMonitors = new Map<string, MonitoringState>();
   private wsService: any = null;
   private wsInitialized = false;
-  private wsEventListenerCleanup: (() => void) | null = null;
 
+  // ✅ Map-based tracking untuk multiple concurrent jobs
+  // Prevents memory leaks dari orphaned listeners
+  private wsEventListeners = new Map<string, () => void>();
 
-  // Guard against duplicate submissions across component remounts (e.g., React Strict Mode)
-  private currentSubmissionPromise: Promise<AssessmentResult> | null = null;
+  // ✅ Per-user submission tracking dengan data hash
+  // Prevents wrong results untuk different users/data
+  private submissionPromises = new Map<string, Promise<AssessmentResult>>();
+
+  /**
+   * Generate unique submission key dari user ID + data hash
+   * Prevents wrong results untuk different users/data
+   */
+  private generateSubmissionKey(scores: any, assessmentName: string, userId?: string): string {
+    // Get user ID from localStorage if not provided
+    const user = userId || localStorage.getItem('userId') || 'anonymous';
+
+    // Create data hash dari scores + assessment name
+    const dataString = JSON.stringify({ scores, assessmentName });
+    const dataHash = this.simpleHash(dataString);
+
+    return `${user}-${dataHash}`;
+  }
+
+  /**
+   * Simple hash function untuk data deduplication
+   */
+  private simpleHash(str: string): string {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32bit integer
+    }
+    return Math.abs(hash).toString(36);
+  }
 
   /**
    * Submit assessment from answers
@@ -116,20 +150,24 @@ class AssessmentService {
   ): Promise<AssessmentResult> {
     console.log('Assessment Service: Submitting assessment...');
 
-    // If a submission is already in-flight, reuse that promise to prevent double submit
-    if (this.currentSubmissionPromise) {
-      console.warn('Assessment Service: Submission already in progress. Reusing existing promise.');
-      return this.currentSubmissionPromise;
+    // ✅ Generate unique submission key per user + data
+    const submissionKey = this.generateSubmissionKey(scores, assessmentName, options.userId);
+
+    // ✅ If same submission is already in-flight, reuse that promise
+    const existingPromise = this.submissionPromises.get(submissionKey);
+    if (existingPromise) {
+      console.warn(`Assessment Service: Submission already in progress for key: ${submissionKey}. Reusing existing promise.`);
+      return existingPromise;
     }
 
-    // Create a guarded submission promise and store it
-    this.currentSubmissionPromise = (async () => {
+    // ✅ Create a guarded submission promise and store it with key
+    const submissionPromise = (async () => {
       try {
         // Submit to API
-  const submitResponse = await this.submitToAPI(scores, assessmentName, options.onTokenBalanceUpdate, options.answers);
+        const submitResponse = await this.submitToAPI(scores, assessmentName, options.onTokenBalanceUpdate, options.answers);
         const jobId = submitResponse.data.jobId;
 
-        console.log(`Assessment Service: Submitted with jobId: ${jobId}`);
+        console.log(`Assessment Service: Submitted with jobId: ${jobId}, key: ${submissionKey}`);
 
         // Monitor the assessment
         const result = await this.monitorAssessment(jobId, options);
@@ -138,16 +176,21 @@ class AssessmentService {
         console.error('Assessment Service: Submission failed:', error);
         throw createSafeError(error, 'SUBMISSION_ERROR');
       } finally {
-        // Clear the in-flight promise once it settles
-        this.currentSubmissionPromise = null;
+        // ✅ Clear the in-flight promise for this specific key
+        this.submissionPromises.delete(submissionKey);
+        console.log(`Assessment Service: Cleared submission promise for key: ${submissionKey}`);
       }
     })();
 
-    return this.currentSubmissionPromise;
+    // ✅ Store promise with unique key
+    this.submissionPromises.set(submissionKey, submissionPromise);
+
+    return submissionPromise;
   }
 
   /**
    * Submit assessment data to API
+   * ✅ FIXED: Now validates and refreshes token before submission
    */
   private async submitToAPI(
     scores: AssessmentScores,
@@ -155,10 +198,19 @@ class AssessmentService {
     onTokenBalanceUpdate?: () => Promise<void>,
     answers?: Record<number, number|null>
   ): Promise<{ data: { jobId: string; status: string } }> {
-    const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
+    console.log('Assessment Service: Validating authentication token...');
 
-    if (!token) {
-      throw createSafeError('No authentication token found', 'AUTH_ERROR');
+    // ✅ CRITICAL FIX: Validate and refresh token before submission
+    let token: string;
+    try {
+      token = await ensureValidToken();
+      console.log('Assessment Service: ✅ Token validated successfully');
+    } catch (error) {
+      console.error('Assessment Service: ❌ Token validation failed:', error);
+      throw createSafeError(
+        error instanceof Error ? error.message : 'Authentication failed. Please login again.',
+        'AUTH_ERROR'
+      );
     }
 
     const apiData = convertScoresToApiData(scores, assessmentName, answers);
@@ -222,7 +274,12 @@ class AssessmentService {
               'VALIDATION_ERROR'
             );
           case 401:
-            throw createSafeError('Authentication failed. Please login again.', 'AUTH_ERROR');
+            // ✅ ENHANCED: Better 401 error handling with token refresh hint
+            console.error('Assessment Service: 401 Unauthorized - Token may be expired');
+            throw createSafeError(
+              'Authentication failed. Your session may have expired. Please login again.',
+              'AUTH_ERROR'
+            );
           case 402:
             throw createSafeError('Insufficient tokens. Please purchase more tokens.', 'INSUFFICIENT_TOKENS');
           case 403:
@@ -422,16 +479,17 @@ class AssessmentService {
         this.wsInitialized = true;
       }
 
-      // Clean up previous event listener if exists
-      if (this.wsEventListenerCleanup) {
+      // ✅ Clean up previous event listener untuk same jobId (if exists)
+      const existingCleanup = this.wsEventListeners.get(jobId);
+      if (existingCleanup) {
         console.log(`🧹 Assessment Service: Cleaning up previous listener for job ${jobId}`);
-        this.wsEventListenerCleanup();
-        this.wsEventListenerCleanup = null;
+        existingCleanup();
+        this.wsEventListeners.delete(jobId);
       }
 
       // CRITICAL: Register event listener BEFORE connecting to avoid race condition
       console.log(`📝 Assessment Service: Registering event listener for job ${jobId}`);
-      this.wsEventListenerCleanup = this.wsService.addEventListener((event: any) => {
+      const cleanup = this.wsService.addEventListener((event: any) => {
         // Only handle events for this specific job
         if (event.jobId === jobId && state.isActive) {
           console.log(`📨 Assessment Service: Received event for job ${jobId}:`, event.type);
@@ -466,7 +524,9 @@ class AssessmentService {
         }
       });
 
-      console.log(`✅ Assessment Service: Event listener registered for job ${jobId}`);
+      // ✅ Store cleanup function untuk later removal
+      this.wsEventListeners.set(jobId, cleanup);
+      console.log(`✅ Assessment Service: Event listener registered and tracked for job ${jobId}`);
 
       // Get authentication token
       const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
@@ -501,6 +561,14 @@ class AssessmentService {
 
     } catch (error) {
       console.warn(`⚠️ Assessment Service: WebSocket setup failed for job ${jobId}, falling back to polling:`, error);
+
+      // ✅ Ensure cleanup even on error
+      const cleanup = this.wsEventListeners.get(jobId);
+      if (cleanup) {
+        cleanup();
+        this.wsEventListeners.delete(jobId);
+      }
+
       state.websocketFailed = true;
       this.startPollingMonitoring(jobId, state, options, onSuccess, onError);
     }
@@ -830,12 +898,21 @@ class AssessmentService {
 
   /**
    * Stop monitoring a job
+   * ✅ IMPROVED: Cleanup event listener untuk prevent memory leaks
    */
   private stopMonitoring(jobId: string) {
     const state = this.activeMonitors.get(jobId);
     if (state) {
       state.isActive = false;
       this.activeMonitors.delete(jobId);
+
+      // ✅ Cleanup event listener
+      const cleanup = this.wsEventListeners.get(jobId);
+      if (cleanup) {
+        console.log(`🧹 Assessment Service: Cleaning up event listener for job ${jobId}`);
+        cleanup();
+        this.wsEventListeners.delete(jobId);
+      }
 
       // Unsubscribe from WebSocket if active
       if (this.wsService && !state.websocketFailed) {

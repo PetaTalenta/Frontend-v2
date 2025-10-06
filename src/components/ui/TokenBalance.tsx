@@ -86,15 +86,11 @@ export const TokenWarning: React.FC<TokenWarningProps> = ({ onClose }) => {
         </div>
         <div className="flex-1">
           <h3 className="text-orange-800 font-semibold text-sm">
-            Insufficient Token Balance
+            Token habis
           </h3>
           <p className="text-orange-700 text-sm mt-1">
-            You have {tokenInfo.balance} tokens. Token validation is now handled by the backend.
+            Kamu memiliki {tokenInfo.balance} token. Silahkan beli token untuk melanjutkan.
           </p>
-          <div className="mt-2 text-xs text-orange-600">
-            <p>• Complete assessments to earn 5 bonus tokens</p>
-            <p>• Your token balance will be updated automatically</p>
-          </div>
         </div>
         {onClose && (
           <button

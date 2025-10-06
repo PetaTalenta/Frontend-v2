@@ -16,12 +16,8 @@ export default function AssessmentLoadingPageRoute() {
   const [answers, setAnswers] = useState<Record<number, number | null> | null>(null);
   const [assessmentName, setAssessmentName] = useState<string>('AI-Driven Talent Mapping');
 
-  // Submission guard to prevent multiple submissions
+  // ✅ SIMPLIFIED: Single submission guard
   const submissionAttempted = useRef(false);
-  const isSubmitting = useRef(false);
-
-  // Track useEffect calls to detect multiple submissions
-  const useEffectCallCount = useRef(0);
 
   // Get assessment hook with simplified interface
   const {
@@ -37,42 +33,26 @@ export default function AssessmentLoadingPageRoute() {
   } = useAssessment({
     preferWebSocket: true,
     onComplete: (result) => {
-      console.log('Assessment completed successfully:', result);
-      console.log(`Assessment Loading: Received result with ID: ${result.id}, navigating to /results/${result.id}`);
-      isSubmitting.current = false;
+      console.log(`[AssessmentLoading] ✅ Completed: ${result.id}`);
 
-      // NOTE: History source of truth is Archive API now; skip local history write
-      // (Left intentionally empty to avoid conflicting localStorage entries)
-
-      // Clear saved answers to prevent re-submission on refresh
+      // Clear saved answers to prevent re-submission
       try {
         localStorage.removeItem('assessment-answers');
         localStorage.removeItem('assessment-name');
         localStorage.removeItem('assessment-submission-time');
       } catch (e) {
-        console.warn('Assessment Loading: Failed to clear saved answers after completion', e);
+        console.warn('[AssessmentLoading] Failed to clear saved answers:', e);
       }
 
-      // Redirect to comprehensive results page
+      // Navigate to results
       setTimeout(() => {
-        console.log(`Assessment Loading: Executing navigation to /results/${result.id}`);
         router.push(`/results/${result.id}`);
       }, 500);
     },
     onError: (error) => {
-      console.error('Assessment failed:', error);
-      isSubmitting.current = false;
-      // Reset submission guard on error to allow retry
+      console.error('[AssessmentLoading] ❌ Failed:', error);
+      // Reset guard to allow retry
       submissionAttempted.current = false;
-
-      // Show specific error message for different failure types
-      if (error?.message?.includes('WebSocket')) {
-        console.error('WebSocket connection error - assessment requires real-time connection');
-      } else if (error?.message?.includes('timeout')) {
-        console.error('Assessment timeout - server took too long to respond');
-      } else if (error?.message?.includes('Analysis timeout')) {
-        console.error('Analysis timeout - assessment processing took longer than expected');
-      }
     },
     onTokenBalanceUpdate: async () => {
       console.log('Token balance updated');
@@ -123,118 +103,66 @@ export default function AssessmentLoadingPageRoute() {
     }
   }, [authLoading, isAuthenticated, router, searchParams]);
 
-  // Auto-submit when answers are loaded and workflow is idle (with guards)
-  // FIXED: Simplified approach to prevent multiple submissions
+  // ✅ SIMPLIFIED: Auto-submit when answers are loaded
   useEffect(() => {
-    useEffectCallCount.current += 1;
-    console.log(`Assessment Loading: useEffect called (call #${useEffectCallCount.current}) - checking submission conditions...`);
+    if (!answers) return;
 
-    const tryAutoSubmit = async () => {
-      if (!answers) return;
+    // Check for recent submission (cooldown)
+    if (hasRecentSubmission(answers)) {
+      console.log('[AssessmentLoading] Recent submission detected, skipping auto-submit');
+      submissionAttempted.current = true;
+      return;
+    }
 
-      // Extra guard: prevent resubmission if a recent submission exists (e.g., after page refresh)
-      try {
-        if (hasRecentSubmission(answers)) {
-          console.warn('Assessment Loading: Recent submission detected in session/localStorage - skipping auto-submit to avoid duplicate');
-          submissionAttempted.current = true;
-          isSubmitting.current = false;
-          return;
-        }
-      } catch (e) {
-        console.warn('Assessment Loading: hasRecentSubmission check failed, continuing cautiously', e);
-      }
+    // Check if ready to submit
+    if (isIdle && !isProcessing && !isCompleted && !isFailed && !submissionAttempted.current) {
+      console.log('[AssessmentLoading] Auto-submitting assessment...');
 
-      if (
-        isIdle &&
-        !isProcessing &&
-        !isCompleted &&
-        !isFailed &&
-        !submissionAttempted.current &&
-        !isSubmitting.current
-      ) {
-        console.log('Assessment Loading: Auto-submitting assessment with answers (guarded):', Object.keys(answers).length, 'answers');
-        console.log('Assessment Loading: Submission guards - submissionAttempted:', submissionAttempted.current, 'isSubmitting:', isSubmitting.current);
+      submissionAttempted.current = true;
+      markRecentSubmission(answers);
 
-        submissionAttempted.current = true;
-        isSubmitting.current = true;
+      // Submit with small delay for hooks to stabilize
+      setTimeout(() => {
+        submitFromAnswers(answers, assessmentName);
+      }, 100);
+    }
+  }, [answers, isIdle, isProcessing, isCompleted, isFailed, assessmentName, submitFromAnswers]);
 
-        // Mark recent submission to prevent duplicate after refresh
-        try {
-          markRecentSubmission(answers);
-        } catch (e) {
-          console.warn('Assessment Loading: markRecentSubmission failed', e);
-        }
-
-        // Submit with a small delay to ensure all hooks are ready
-        setTimeout(() => {
-          console.log('Assessment Loading: Executing submitFromAnswers - guarded call');
-          submitFromAnswers(answers, assessmentName);
-        }, 100);
-      } else {
-        console.log('Assessment Loading: Auto-submit conditions not met:', {
-          hasAnswers: !!answers,
-          isIdle,
-          isProcessing,
-          isCompleted,
-          isFailed,
-          submissionAttempted: submissionAttempted.current,
-          isSubmitting: isSubmitting.current
-        });
-      }
-    };
-
-    tryAutoSubmit();
-  }, [answers, isIdle, isProcessing, isCompleted, isFailed, assessmentName]); // Removed submitFromAnswers to prevent loops
-
-  // Handle cancel
+  // ✅ SIMPLIFIED: Handle cancel
   const handleCancel = () => {
     cancel();
-    isSubmitting.current = false;
     submissionAttempted.current = false;
-    // Clear saved data
     localStorage.removeItem('assessment-answers');
     localStorage.removeItem('assessment-name');
     router.push('/assessment');
   };
 
-  // Handle retry
+  // ✅ SIMPLIFIED: Handle retry
   const handleRetry = async () => {
-    console.log('Assessment Loading: Retrying assessment...');
-    isSubmitting.current = false;
+    console.log('[AssessmentLoading] Retrying assessment...');
     submissionAttempted.current = false;
 
-    try {
-      if (answers) {
-        // Reset and retry
-        reset();
-        setTimeout(() => {
-          submissionAttempted.current = true;
-          isSubmitting.current = true;
-          submitFromAnswers(answers, assessmentName);
-        }, 500);
-      }
-    } catch (error) {
-      console.error('Retry failed:', error);
-      // Reset guards to allow another retry attempt
-      isSubmitting.current = false;
-      submissionAttempted.current = false;
+    if (answers) {
+      reset();
+      setTimeout(() => {
+        submissionAttempted.current = true;
+        submitFromAnswers(answers, assessmentName);
+      }, 500);
     }
   };
 
   // Handle back to assessment (for failed state)
   const handleBackToAssessment = () => {
-    isSubmitting.current = false;
     submissionAttempted.current = false;
     // Clear saved data
     localStorage.removeItem('assessment-answers');
     localStorage.removeItem('assessment-name');
-  router.push('/dashboard');
+    router.push('/dashboard');
   };
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      isSubmitting.current = false;
       submissionAttempted.current = false;
     };
   }, []);

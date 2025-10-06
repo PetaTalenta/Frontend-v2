@@ -169,7 +169,7 @@ class StorageManager {
   /**
    * Debounced write untuk frequent updates
    * Hanya akan write setelah tidak ada update selama `delay` ms
-   * 
+   *
    * @param key - Storage key
    * @param value - Value to store
    * @param delay - Debounce delay dalam ms (default: 300ms)
@@ -189,6 +189,110 @@ class StorageManager {
     }, delay);
 
     this.writeDebounceTimers.set(key, timer);
+  }
+
+  /**
+   * ✅ Atomic multi-key update
+   * Prevents race conditions saat update multiple keys sekaligus
+   *
+   * @param items - Object dengan key-value pairs untuk di-update
+   * @returns Promise yang resolve ketika semua writes selesai
+   *
+   * @example
+   * // Update user data dan token atomically
+   * await storageManager.setMultiple({
+   *   'user': userData,
+   *   'token': newToken,
+   *   'lastLogin': Date.now()
+   * });
+   */
+  async setMultiple(items: Record<string, StorageValue>): Promise<void> {
+    const keys = Object.keys(items);
+
+    if (keys.length === 0) {
+      return;
+    }
+
+    // ✅ Sort keys untuk prevent deadlock
+    const sortedKeys = keys.sort();
+    const lockPromises: Promise<void>[] = [];
+
+    try {
+      // ✅ Wait for all existing locks untuk sorted keys
+      for (const key of sortedKeys) {
+        const existingLock = this.locks.get(key);
+        if (existingLock && Date.now() - existingLock.timestamp < 5000) {
+          lockPromises.push(existingLock.promise);
+        }
+      }
+
+      // Wait for all existing locks to complete
+      if (lockPromises.length > 0) {
+        await Promise.all(lockPromises);
+      }
+
+      // ✅ Create single atomic write operation
+      const atomicWritePromise = new Promise<void>((resolve, reject) => {
+        try {
+          if (typeof window === 'undefined') {
+            resolve();
+            return;
+          }
+
+          // Perform all writes atomically
+          for (const key of sortedKeys) {
+            const serialized = JSON.stringify(items[key]);
+            localStorage.setItem(key, serialized);
+          }
+
+          resolve();
+        } catch (error: any) {
+          if (error.name === 'QuotaExceededError') {
+            this.handleQuotaExceeded();
+            // Retry once after cleanup
+            try {
+              for (const key of sortedKeys) {
+                const serialized = JSON.stringify(items[key]);
+                localStorage.setItem(key, serialized);
+              }
+              resolve();
+            } catch (retryError) {
+              this.logErrorThrottled(
+                'setMultiple',
+                '[StorageManager] Failed to set multiple items even after cleanup',
+                retryError
+              );
+              reject(retryError);
+            }
+          } else {
+            this.logErrorThrottled(
+              'setMultiple',
+              '[StorageManager] Failed to set multiple items',
+              error
+            );
+            reject(error);
+          }
+        } finally {
+          // Remove all locks after write completes
+          sortedKeys.forEach(key => this.locks.delete(key));
+        }
+      });
+
+      // ✅ Set locks for all keys
+      const timestamp = Date.now();
+      sortedKeys.forEach(key => {
+        this.locks.set(key, {
+          promise: atomicWritePromise,
+          timestamp
+        });
+      });
+
+      await atomicWritePromise;
+    } catch (error) {
+      // Cleanup locks on error
+      sortedKeys.forEach(key => this.locks.delete(key));
+      throw error;
+    }
   }
 
   /**

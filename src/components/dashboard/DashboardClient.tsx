@@ -1,8 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { getWebSocketService, isWebSocketSupported } from '../../services/websocket-service';
-import apiService from '../../services/apiService';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import Header from './header';
 import { StatsCard } from './stats-card';
@@ -13,9 +11,9 @@ import { ProgressCard } from './progress-card';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { calculateUserStats, formatStatsForDashboard, fetchAssessmentHistoryFromAPI as formatAssessmentHistory, calculateUserProgress } from '../../utils/user-stats';
 
-import type { StatCard, ProgressItem } from '../../types/dashboard';
+import type { StatCard, ProgressItem, AssessmentData } from '../../types/dashboard';
 import type { OceanScores, ViaScores } from '../../types/assessment-results';
-import useSWR from 'swr';
+import { useDashboardData, invalidateDashboardData } from '../../hooks/useDashboardData';
 
 interface DashboardStaticData {
   defaultStats: {
@@ -44,7 +42,7 @@ export default function DashboardClient({ staticData }: DashboardClientProps) {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
-  
+
   // ⚠️ REMOVED: Duplicate WebSocket listener yang menyebabkan konflik
   // Auto-redirect sekarang di-handle oleh NotificationRedirectListener (global di RootLayout)
   // Tidak perlu listener duplikat di setiap page component
@@ -58,60 +56,45 @@ export default function DashboardClient({ staticData }: DashboardClientProps) {
   const [oceanScores, setOceanScores] = useState<OceanScores | undefined>();
   const [viaScores, setViaScores] = useState<ViaScores | undefined>();
 
-  // SWR for user stats with caching
-  const { data: userStats, error: statsError, mutate: mutateStats } = useSWR(
-    user ? `user-stats-${user.id}` : null,
-    () => calculateUserStats(user!.id),
-    {
-      revalidateOnFocus: false,
-      revalidateOnReconnect: true,
-      dedupingInterval: 60000, // 1 minute
-      refreshInterval: 5000, // refetch otomatis setiap 5 detik
-    }
-  );
+  // ✅ Use SWR-based dashboard data hook
+  const {
+    assessmentHistory,
+    isLoadingHistory,
+    isValidatingHistory,
+    historyError: assessmentError,
+    userStats,
+    isLoadingStats,
+    statsError,
+    latestResult,
+    isLoadingResult,
+    resultError,
+    refreshHistory,
+    refreshStats,
+    refreshAll,
+    addAssessmentOptimistic,
+    updateAssessmentOptimistic,
+    removeAssessmentOptimistic,
+  } = useDashboardData({
+    userId: user?.id || '',
+    enabled: !!user
+  });
 
-  // SWR for latest assessment result - using API results list to derive latest
-  const { data: latestResult, error: resultError } = useSWR(
-    user ? `latest-result-${user.id}` : null,
-    async () => {
-      // @ts-ignore: api accepts sort/order
-      const resp = await apiService.getResults({ limit: 1, status: 'completed', sort: 'created_at', order: 'DESC' } as any);
-      return resp.success && resp.data?.results?.length ? resp.data.results[0] : null;
-    },
-    {
-      revalidateOnFocus: false,
-      revalidateOnReconnect: true,
-      dedupingInterval: 300000,
-      refreshInterval: 5000,
-      fallbackData: null,
-    }
-  );
-
-  // SWR for assessment history (cache-first + revalidate); skeleton shown if no cache
-  const assessmentHistoryKey = user ? `assessment-history-${user.id}` : null;
-  const { data: assessmentHistory, error: assessmentError, isLoading: isAssessmentLoading, mutate: mutateAssessmentHistory } = useSWR(
-    assessmentHistoryKey,
-    () => formatAssessmentHistory(),
-    {
-      revalidateOnFocus: false,
-      revalidateOnReconnect: true,
-      dedupingInterval: 60000,
-    }
-  );
-
-  // Load dashboard data
+  // ✅ Load dashboard data - background sync (non-blocking)
   const loadDashboardData = useCallback(async () => {
     if (!user || !userStats) return;
 
     try {
-      setIsLoading(true);
+      // ✅ Don't show loading spinner - data already visible from cache
+      // setIsLoading(true); // Removed - non-blocking background sync
 
-      // Format data for dashboard components
-      const formattedStats = formatStatsForDashboard(userStats);
-      const formattedProgress = await calculateUserProgress(userStats);
+      // ✅ Fetch all data in parallel (non-blocking)
+      const [formattedStats, formattedProgress] = await Promise.all([
+        formatStatsForDashboard(userStats),
+        calculateUserProgress(userStats)
+      ]);
 
+      // ✅ Update state smoothly (no loading spinner)
       setStatsData(formattedStats);
-      // Assessment table data is provided via SWR (cache-first); no local state update here
       setProgressData(formattedProgress);
 
       // Set scores from latest result
@@ -119,13 +102,13 @@ export default function DashboardClient({ staticData }: DashboardClientProps) {
         setOceanScores(latestResult.assessment_data.ocean);
         setViaScores(latestResult.assessment_data.viaIs);
       } else {
-        // Do not inject mock data into the table; leave scores empty if no latest result
         setOceanScores(undefined);
         setViaScores(undefined);
       }
 
     } catch (error) {
-      console.error('Dashboard: Error loading data:', error);
+      console.error('Dashboard: Background sync error:', error);
+      // ✅ Don't show error to user - cached data still visible
       
       // Use static data as fallback
       setStatsData([
@@ -173,12 +156,16 @@ export default function DashboardClient({ staticData }: DashboardClientProps) {
 
   // Effect: Refetch data jika ada query param ?refresh=1, lalu jika assessment terbaru selesai, redirect ke hasil
   useEffect(() => {
-    if (searchParams?.get('refresh') === '1') {
-      // Revalidate user stats AND assessment history (archive/jobs) so the table updates immediately
-      Promise.all([
-        mutateStats(),
-        mutateAssessmentHistory(),
-      ]).catch(() => {});
+    if (searchParams?.get('refresh') === '1' && user) {
+      // ✅ Invalidate cache dan revalidate using SWR hook
+      invalidateDashboardData(user.id)
+        .then(() => {
+          console.log('[Dashboard] Cache invalidated, revalidating...');
+          return refreshAll();
+        })
+        .catch(err => {
+          console.error('[Dashboard] Failed to invalidate cache:', err);
+        });
 
       // Cek jika assessment terbaru sudah selesai, redirect ke hasil
       if (assessmentHistory && assessmentHistory.length > 0) {
@@ -194,12 +181,13 @@ export default function DashboardClient({ staticData }: DashboardClientProps) {
       const newUrl = window.location.pathname + (params.toString() ? `?${params}` : '');
       window.history.replaceState({}, '', newUrl);
     }
-  }, [searchParams, mutateStats, mutateAssessmentHistory, assessmentHistory, router]);
-  // Refresh function
+  }, [searchParams, refreshAll, assessmentHistory, router, user]);
+
+  // ✅ Refresh function using SWR hook
   const refreshDashboardData = async () => {
     setIsRefreshing(true);
     try {
-      await mutateStats(); // Refresh SWR cache
+      await refreshAll(); // Refresh all SWR data
       await loadDashboardData();
     } catch (error) {
       console.error('Dashboard: Error refreshing data:', error);
@@ -208,14 +196,14 @@ export default function DashboardClient({ staticData }: DashboardClientProps) {
     }
   };
 
-  // Refresh only assessment history table (no full dashboard refresh)
+  // ✅ Refresh only assessment history table (using SWR hook)
   const refreshAssessmentHistory = useCallback(async () => {
     try {
-      await mutateAssessmentHistory();
+      await refreshHistory();
     } catch (error) {
       console.error('Dashboard: Error refreshing assessment history:', error);
     }
-  }, [mutateAssessmentHistory]);
+  }, [refreshHistory]);
 
   // Loading state
   if (authLoading || isLoading) {
@@ -284,10 +272,27 @@ export default function DashboardClient({ staticData }: DashboardClientProps) {
     );
   }
 
+  // ✅ Show skeleton only if NO data available (SWR handles this with keepPreviousData)
+  const showSkeleton = isLoadingHistory && !assessmentHistory;
+
+  // ✅ Show sync indicator if background revalidation in progress
+  const isSyncing = isValidatingHistory && assessmentHistory;
+
   return (
     <div className="dashboard-full-height">
       <div className="dashboard-container">
         <Header logout={logout} />
+
+        {/* ✅ Subtle sync indicator */}
+        {isSyncing && (
+          <div className="fixed top-4 right-4 z-50">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-2 flex items-center gap-2 shadow-sm">
+              <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full" />
+              <span className="text-sm text-blue-700">Syncing latest data...</span>
+            </div>
+          </div>
+        )}
+
         <div className="dashboard-main-grid">
           {/* Main Content */}
           <div
@@ -305,8 +310,9 @@ export default function DashboardClient({ staticData }: DashboardClientProps) {
               <AssessmentTable
                 data={assessmentHistory || []}
                 onRefresh={refreshAssessmentHistory}
-                swrKey={assessmentHistoryKey || undefined}
-                isLoading={isAssessmentLoading && !(assessmentHistory && assessmentHistory.length > 0)}
+                swrKey={`assessment-history-${user?.id}`}
+                isLoading={isLoadingHistory}
+                isValidating={isValidatingHistory}
               />
             </div>
           </div>

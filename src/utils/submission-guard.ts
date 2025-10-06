@@ -1,306 +1,211 @@
 /**
- * Enhanced Submission Guard Utilities
- * Prevents duplicate assessment submissions with improved session tracking
+ * Simplified Submission Guard Utilities
+ *
+ * ✅ REFACTORED: Removed complex atomic locks and redundant state tracking
+ *
+ * Prevents duplicate assessment submissions with simple, reliable checks:
+ * - Single Map-based state tracking
+ * - Cooldown period to prevent rapid resubmissions
+ * - Clear error messages and logging
+ *
+ * @module submission-guard
  */
 
 interface SubmissionState {
-  isSubmitting: boolean;
-  submissionId: string | null;
+  submissionId: string;
   timestamp: number;
   source: 'header' | 'loading-page' | 'workflow' | 'unknown';
-  retryCount: number;
 }
 
-interface SessionState {
-  submissionAttempts: number;
-  lastSubmissionTime: number;
-  completedSubmissions: Set<string>;
-}
+// ✅ SIMPLIFIED: Single Map for tracking active submissions
+const activeSubmissions = new Map<string, SubmissionState>();
 
-// Global submission state tracking with enhanced metadata
-const submissionStates = new Map<string, SubmissionState>();
-
-// Session-level tracking to prevent cross-component conflicts
-const sessionState: SessionState = {
-  submissionAttempts: 0,
-  lastSubmissionTime: 0,
-  completedSubmissions: new Set<string>()
-};
-
-// Track first-time submissions per session to prevent initial double submission
-const sessionFirstSubmissions = new Set<string>();
-
-// Atomic operation lock to prevent race conditions
-let atomicLock = false;
+// ✅ SIMPLIFIED: Single Set for tracking completed submissions in current session
+const completedInSession = new Set<string>();
 
 /**
  * Generate unique submission key from answers
  */
 function generateSubmissionKey(answers: Record<number, number | null>): string {
-  // Create a hash-like key from answers
   const answersString = JSON.stringify(answers);
-  return btoa(answersString).slice(0, 16); // Use base64 encoding for uniqueness
+  return btoa(answersString).slice(0, 16);
 }
 
 /**
- * Atomic operation wrapper to prevent race conditions
+ * ✅ SIMPLIFIED: Check if submission is in progress
  */
-async function withAtomicLock<T>(operation: () => Promise<T> | T): Promise<T> {
-  // Wait for any existing atomic operation to complete
-  while (atomicLock) {
-    await new Promise(resolve => setTimeout(resolve, 10));
+export function isSubmissionInProgress(
+  answers: Record<number, number | null>
+): boolean {
+  const key = generateSubmissionKey(answers);
+  const state = activeSubmissions.get(key);
+
+  if (!state) return false;
+
+  // Auto-cleanup timed out submissions (3 minutes max)
+  const now = Date.now();
+  const maxSubmissionTime = 3 * 60 * 1000;
+
+  if (now - state.timestamp > maxSubmissionTime) {
+    console.log(`[SubmissionGuard] Cleaning up timed out submission: ${state.submissionId}`);
+    activeSubmissions.delete(key);
+    return false;
   }
 
-  atomicLock = true;
-  try {
-    return await operation();
-  } finally {
-    atomicLock = false;
+  return true;
+}
+
+/**
+ * ✅ SIMPLIFIED: Mark submission as started
+ */
+export function markSubmissionStarted(
+  answers: Record<number, number | null>,
+  source: 'header' | 'loading-page' | 'workflow' | 'unknown' = 'unknown'
+): string {
+  const key = generateSubmissionKey(answers);
+  const submissionId = `sub-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
+
+  activeSubmissions.set(key, {
+    submissionId,
+    timestamp: Date.now(),
+    source
+  });
+
+  console.log(`[SubmissionGuard] ✅ Started: ${submissionId} from ${source}`);
+  return submissionId;
+}
+
+/**
+ * ✅ SIMPLIFIED: Mark submission as completed
+ */
+export function markSubmissionCompleted(answers: Record<number, number | null>): void {
+  const key = generateSubmissionKey(answers);
+  const state = activeSubmissions.get(key);
+
+  if (state) {
+    console.log(`[SubmissionGuard] ✅ Completed: ${state.submissionId}`);
+    completedInSession.add(key);
+    activeSubmissions.delete(key);
   }
 }
 
 /**
- * Enhanced submission progress check with session validation
+ * ✅ SIMPLIFIED: Mark submission as failed
  */
-export async function isSubmissionInProgress(
-  answers: Record<number, number | null>,
-  source: 'header' | 'loading-page' | 'workflow' | 'unknown' = 'unknown'
-): Promise<boolean> {
-  return await withAtomicLock(() => {
-    const key = generateSubmissionKey(answers);
-    const state = submissionStates.get(key);
+export function markSubmissionFailed(answers: Record<number, number | null>): void {
+  const key = generateSubmissionKey(answers);
+  const state = activeSubmissions.get(key);
 
-    if (!state) return false;
-
-    // Check if submission is still active (within 3 minutes for faster recovery)
-    const now = Date.now();
-    const maxSubmissionTime = 3 * 60 * 1000; // 3 minutes
-
-    if (now - state.timestamp > maxSubmissionTime) {
-      // Submission has timed out, remove it
-      console.log(`Submission Guard: Cleaning up timed out submission ${state.submissionId}`);
-      submissionStates.delete(key);
-      return false;
-    }
-
-    // Check for session-level conflicts
-    if (sessionState.lastSubmissionTime > 0 &&
-        now - sessionState.lastSubmissionTime < 2000) { // 2 second cooldown
-      console.warn(`Submission Guard: Session cooldown active, blocking ${source} submission`);
-      return true;
-    }
-
-    return state.isSubmitting;
-  });
+  if (state) {
+    console.log(`[SubmissionGuard] ❌ Failed: ${state.submissionId}`);
+    activeSubmissions.delete(key);
+  }
 }
 
 /**
- * Enhanced submission marking with session tracking
+ * ✅ SIMPLIFIED: Clear all submission states
  */
-export async function markSubmissionStarted(
-  answers: Record<number, number | null>,
-  source: 'header' | 'loading-page' | 'workflow' | 'unknown' = 'unknown'
-): Promise<string> {
-  return await withAtomicLock(() => {
-    const key = generateSubmissionKey(answers);
-    const submissionId = `submission-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    const now = Date.now();
-
-    // Update session state
-    sessionState.submissionAttempts++;
-    sessionState.lastSubmissionTime = now;
-
-    submissionStates.set(key, {
-      isSubmitting: true,
-      submissionId,
-      timestamp: now,
-      source,
-      retryCount: 0
-    });
-
-    console.log(`Submission Guard: Marked submission started with ID: ${submissionId} from ${source} (attempt #${sessionState.submissionAttempts})`);
-    return submissionId;
-  });
+export function clearAllSubmissionStates(): void {
+  activeSubmissions.clear();
+  completedInSession.clear();
+  console.log('[SubmissionGuard] All states cleared');
 }
 
 /**
- * Enhanced completion marking with session tracking
+ * ✅ SIMPLIFIED: Get current submission state for debugging
  */
-export async function markSubmissionCompleted(answers: Record<number, number | null>): Promise<void> {
-  return await withAtomicLock(() => {
-    const key = generateSubmissionKey(answers);
-    const state = submissionStates.get(key);
-
-    if (state) {
-      console.log(`Submission Guard: Marked submission completed for ID: ${state.submissionId} from ${state.source}`);
-
-      // Add to completed submissions for session tracking
-      sessionState.completedSubmissions.add(state.submissionId);
-
-      // Clean up submission state
-      submissionStates.delete(key);
-    }
-  });
+export function getSubmissionState(answers: Record<number, number | null>): SubmissionState | null {
+  const key = generateSubmissionKey(answers);
+  return activeSubmissions.get(key) || null;
 }
 
 /**
- * Enhanced failure marking with retry tracking
+ * ✅ SIMPLIFIED: Get statistics for debugging
  */
-export async function markSubmissionFailed(answers: Record<number, number | null>): Promise<void> {
-  return await withAtomicLock(() => {
-    const key = generateSubmissionKey(answers);
-    const state = submissionStates.get(key);
-
-    if (state) {
-      console.log(`Submission Guard: Marked submission failed for ID: ${state.submissionId} from ${state.source} (retry count: ${state.retryCount})`);
-
-      // Increment retry count but don't delete immediately to prevent rapid retries
-      state.retryCount++;
-      state.timestamp = Date.now(); // Update timestamp for timeout calculation
-
-      // Only delete if retry count exceeds limit
-      if (state.retryCount >= 3) {
-        console.log(`Submission Guard: Removing failed submission after ${state.retryCount} retries`);
-        submissionStates.delete(key);
-      }
-    }
-  });
-}
-
-/**
- * Clear all submission states (for cleanup)
- */
-export async function clearAllSubmissionStates(): Promise<void> {
-  return await withAtomicLock(() => {
-    submissionStates.clear();
-    sessionState.submissionAttempts = 0;
-    sessionState.lastSubmissionTime = 0;
-    sessionState.completedSubmissions.clear();
-    sessionFirstSubmissions.clear();
-    console.log('Submission Guard: All submission states and session data cleared');
-  });
-}
-
-/**
- * Clear session submission tracking (called after successful completion)
- */
-export async function clearSessionSubmissionTracking(): Promise<void> {
-  return await withAtomicLock(() => {
-    sessionFirstSubmissions.clear();
-    console.log('Submission Guard: Session submission tracking cleared');
-  });
-}
-
-/**
- * Get session statistics for debugging
- */
-export function getSessionStats(): SessionState & { activeSubmissions: number } {
+export function getSessionStats() {
   return {
-    ...sessionState,
-    activeSubmissions: submissionStates.size
+    activeSubmissions: activeSubmissions.size,
+    completedInSession: completedInSession.size
   };
 }
 
 /**
- * Get current submission state for debugging
- */
-export function getSubmissionState(answers: Record<number, number | null>): SubmissionState | null {
-  const key = generateSubmissionKey(answers);
-  return submissionStates.get(key) || null;
-}
-
-/**
- * Enhanced submission guard wrapper with atomic operations and session tracking
+ * ✅ SIMPLIFIED: Submission guard wrapper
  */
 export async function withSubmissionGuard<T>(
   answers: Record<number, number | null>,
   submissionFunction: () => Promise<T>,
   source: 'header' | 'loading-page' | 'workflow' | 'unknown' = 'unknown'
 ): Promise<T> {
-  // Atomic check for existing submissions
-  const isInProgress = await isSubmissionInProgress(answers, source);
-  if (isInProgress) {
-    throw new Error(`Assessment submission already in progress. Please wait for the current submission to complete. (Source: ${source})`);
+  // Check for existing submission
+  if (isSubmissionInProgress(answers)) {
+    const state = getSubmissionState(answers);
+    throw new Error(
+      `Submission already in progress (ID: ${state?.submissionId}). Please wait.`
+    );
   }
 
-  // Mark as started with source tracking
-  const submissionId = await markSubmissionStarted(answers, source);
+  // Mark as started
+  const submissionId = markSubmissionStarted(answers, source);
 
   try {
-    console.log(`Submission Guard: Starting protected submission: ${submissionId} from ${source}`);
+    console.log(`[SubmissionGuard] Executing: ${submissionId}`);
     const result = await submissionFunction();
-
-    // Mark as completed
-    await markSubmissionCompleted(answers);
-    console.log(`Submission Guard: Protected submission completed: ${submissionId} from ${source}`);
-
+    markSubmissionCompleted(answers);
     return result;
   } catch (error) {
-    // Mark as failed
-    await markSubmissionFailed(answers);
-    console.log(`Submission Guard: Protected submission failed: ${submissionId} from ${source}`, error);
+    markSubmissionFailed(answers);
     throw error;
   }
 }
 
 /**
- * Check for recent submissions in localStorage (additional safety)
+ * ✅ SIMPLIFIED: Check for recent submissions (cooldown check)
  */
 export function hasRecentSubmission(answers: Record<number, number | null>): boolean {
-  try {
-    const key = `recent-submission-${generateSubmissionKey(answers)}`;
-    const lastSubmission = localStorage.getItem(key);
+  const key = generateSubmissionKey(answers);
 
-    // ENHANCED: Check for first-time submission in current session
-    const sessionKey = generateSubmissionKey(answers);
-    if (sessionFirstSubmissions.has(sessionKey)) {
-      console.log('Submission Guard: First-time submission already processed in this session');
-      return true;
-    }
+  // Check if already completed in this session
+  if (completedInSession.has(key)) {
+    console.log('[SubmissionGuard] Already completed in this session');
+    return true;
+  }
+
+  // Check localStorage for recent submission (30 second cooldown)
+  try {
+    const storageKey = `recent-submission-${key}`;
+    const lastSubmission = localStorage.getItem(storageKey);
 
     if (!lastSubmission) return false;
 
     const timestamp = parseInt(lastSubmission, 10);
     const now = Date.now();
-    const cooldownPeriod = 30 * 1000; // 30 seconds cooldown
+    const cooldownPeriod = 30 * 1000; // 30 seconds
 
     if (now - timestamp < cooldownPeriod) {
-      console.log('Submission Guard: Recent submission detected, still in cooldown period');
+      console.log('[SubmissionGuard] Recent submission detected (cooldown active)');
       return true;
     }
 
     // Remove expired entry
-    localStorage.removeItem(key);
+    localStorage.removeItem(storageKey);
     return false;
   } catch (error) {
-    console.error('Submission Guard: Error checking recent submission:', error);
+    console.error('[SubmissionGuard] Error checking recent submission:', error);
     return false;
   }
 }
 
 /**
- * Mark recent submission in localStorage
+ * ✅ SIMPLIFIED: Mark recent submission in localStorage
  */
 export function markRecentSubmission(answers: Record<number, number | null>): void {
   try {
-    const key = `recent-submission-${generateSubmissionKey(answers)}`;
-    localStorage.setItem(key, Date.now().toString());
-
-    // ENHANCED: Mark first-time submission for this session
-    const sessionKey = generateSubmissionKey(answers);
-    sessionFirstSubmissions.add(sessionKey);
-    console.log('Submission Guard: Marked first-time submission for session');
+    const key = generateSubmissionKey(answers);
+    const storageKey = `recent-submission-${key}`;
+    localStorage.setItem(storageKey, Date.now().toString());
+    console.log('[SubmissionGuard] Marked recent submission');
   } catch (error) {
-    console.error('Submission Guard: Error marking recent submission:', error);
+    console.error('[SubmissionGuard] Error marking recent submission:', error);
   }
-}
-
-
-
-/**
- * Check if this is a first-time submission in current session
- */
-export function isFirstTimeSubmissionInSession(answers: Record<number, number | null>): boolean {
-  const sessionKey = generateSubmissionKey(answers);
-  return !sessionFirstSubmissions.has(sessionKey);
 }

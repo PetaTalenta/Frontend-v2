@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form';
 import authV2Service from '../../services/authV2Service';
 import tokenService from '../../services/tokenService';
 import { getFirebaseErrorMessage } from '../../utils/firebase-errors';
+import { StorageTransaction } from '../../utils/storage-transaction';
 
 /**
  * Register Component - Auth V2 (Firebase) Only
@@ -47,14 +48,25 @@ const Register = ({ onRegister }) => {
       // Extract V2 response structure
       const { uid, idToken, refreshToken, email: userEmail, displayName, photoURL } = v2Response;
 
-      // Store V2 tokens using tokenService
-      tokenService.storeTokens(idToken, refreshToken, uid);
+      // ✅ ATOMIC FIX: Store all auth data using atomic transaction
+      // This prevents partial state updates if any operation fails
+      console.log('💾 Storing authentication data atomically...');
 
-      // Store user info for session restoration
-      localStorage.setItem('uid', uid);
-      localStorage.setItem('email', userEmail);
-      if (displayName) localStorage.setItem('displayName', displayName);
-      if (photoURL) localStorage.setItem('photoURL', photoURL);
+      const transaction = new StorageTransaction();
+
+      // Add all token operations to transaction
+      transaction.add('token', idToken);
+      transaction.add('auth_token', idToken);
+      transaction.add('futureguide_token', idToken);
+      transaction.add('accessToken', idToken);
+      transaction.add('refreshToken', refreshToken);
+      transaction.add('auth_version', 'v2');
+
+      // Add user info operations
+      transaction.add('uid', uid);
+      transaction.add('email', userEmail);
+      if (displayName) transaction.add('displayName', displayName);
+      if (photoURL) transaction.add('photoURL', photoURL);
 
       // Map V2 user structure to consistent format
       const user = {
@@ -65,10 +77,21 @@ const Register = ({ onRegister }) => {
         photoURL: photoURL || null
       };
 
-      // Store user
-      localStorage.setItem('user', JSON.stringify(user));
+      // Add user object to transaction
+      transaction.add('user', JSON.stringify(user));
 
-      console.log('✅ Auth V2 registration successful');
+      // ✅ Commit all operations atomically
+      // If any operation fails, ALL changes are rolled back
+      try {
+        await transaction.commit();
+        console.log('✅ Auth V2 registration successful');
+        console.log('✅ All authentication data stored atomically');
+      } catch (storageError) {
+        console.error('❌ Storage transaction failed:', storageError);
+        throw new Error('Failed to save authentication data. Please try again.');
+      } finally {
+        transaction.clear(); // Release memory
+      }
 
       // Pass to AuthContext
       onRegister(idToken, user);

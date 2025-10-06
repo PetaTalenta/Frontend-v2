@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "../ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card"
@@ -30,14 +30,44 @@ interface AssessmentTableProps {
   onRefresh?: () => Promise<void>
   swrKey?: string
   isLoading?: boolean
+  isValidating?: boolean // ✅ SWR's isValidating state
 }
 
-export function AssessmentTable({ data, onRefresh, swrKey, isLoading }: AssessmentTableProps) {
+export function AssessmentTable({ data, onRefresh, swrKey, isLoading, isValidating }: AssessmentTableProps) {
   const router = useRouter();
   const { mutate } = useSWRConfig();
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
   const [isDeleting, setIsDeleting] = useState<string | null>(null)
+
+  // ✅ Track previous data untuk detect new items (SWR handles this automatically with keepPreviousData)
+  const [previousData, setPreviousData] = useState<AssessmentData[]>([]);
+  const [newItems, setNewItems] = useState<Set<string>>(new Set());
+
+  // ✅ Detect new items when data changes (simple comparison)
+  useEffect(() => {
+    if (!data || data.length === 0) return;
+
+    // Find new items by comparing IDs
+    const previousIds = new Set(previousData.map(item => item.id));
+    const newIds = new Set(
+      data
+        .filter(item => !previousIds.has(item.id))
+        .map(item => item.id)
+    );
+
+    if (newIds.size > 0) {
+      console.log(`[AssessmentTable] ✨ Detected ${newIds.size} new items:`, Array.from(newIds));
+      setNewItems(newIds);
+
+      // ✅ Remove highlight after 3 seconds
+      setTimeout(() => {
+        setNewItems(new Set());
+      }, 3000);
+    }
+
+    setPreviousData(data);
+  }, [data, previousData]);
 
   // Gunakan langsung data dari props
   const totalPages = Math.ceil(data.length / itemsPerPage)
@@ -185,12 +215,33 @@ export function AssessmentTable({ data, onRefresh, swrKey, isLoading }: Assessme
                 ))
               ) : (
                 <>
-                  {currentData.map((item, index) => (
-                    <TableRow key={item.id} className="assessment-table__table-row">
-                      <TableCell className="assessment-table__table-cell">{startIndex + index + 1}</TableCell>
-                      <TableCell className="assessment-table__table-cell">{item.archetype}</TableCell>
+                  {currentData.map((item, index) => {
+                    // ✅ Check if this is a new item atau pending item
+                    const isNew = newItems.has(String(item.id));
+                    const isPending = (item as any)._isPending;
 
-                      <TableCell className="assessment-table__table-cell--secondary dashboard-hide-mobile">{new Date(item.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</TableCell>
+                    return (
+                      <TableRow
+                        key={item.id}
+                        className="assessment-table__table-row"
+                        style={{
+                          // ✅ Smooth transition untuk new items
+                          backgroundColor: isNew ? '#dbeafe' : 'transparent',
+                          opacity: isPending ? 0.6 : 1,
+                          transition: 'all 0.3s ease-in-out'
+                        }}
+                      >
+                        <TableCell className="assessment-table__table-cell">{startIndex + index + 1}</TableCell>
+                        <TableCell className="assessment-table__table-cell">
+                          {item.archetype}
+                          {isPending && (
+                            <span className="ml-2 text-xs text-gray-500 italic">
+                              (Syncing...)
+                            </span>
+                          )}
+                        </TableCell>
+
+                        <TableCell className="assessment-table__table-cell--secondary dashboard-hide-mobile">{new Date(item.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</TableCell>
                       <TableCell>
                         <Badge
                           variant="secondary"
@@ -277,7 +328,8 @@ export function AssessmentTable({ data, onRefresh, swrKey, isLoading }: Assessme
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))}
+                    );
+                  })}
 
                   {/* Filler rows to keep table height consistent up to itemsPerPage */}
                   {currentData.length < itemsPerPage && Array.from({ length: itemsPerPage - currentData.length }).map((_, idx) => (

@@ -1,5 +1,5 @@
 import useSWR, { SWRConfiguration, SWRResponse } from 'swr';
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { indexedDBCache, cacheUtils } from '../lib/cache/indexeddb-cache';
 
 interface CachedSWROptions extends SWRConfiguration {
@@ -108,7 +108,7 @@ export function useCachedSWR<T>(
   });
 
   // Cache statistics
-  const [cacheStats, setCacheStats] = React.useState({
+  const [cacheStats, setCacheStats] = useState({
     isFromCache: false,
     cacheAge: null as number | null,
     lastSync: null as number | null

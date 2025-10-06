@@ -1,109 +1,82 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import {
+  isRecentlyPrefetched,
+  updatePrefetchCache,
+  getPrefetchCacheStats,
+  clearOldPrefetchEntries,
+  getPredictedRoutes,
+  isCriticalRoute,
+  sortRoutesByPriority,
+  delay
+} from '../utils/prefetch-helpers';
 
 interface PrefetchOptions {
   priority?: 'high' | 'low';
   delay?: number;
   condition?: () => boolean;
-  onHover?: boolean;
-  onVisible?: boolean;
 }
 
-interface PrefetchEntry {
-  href: string;
-  prefetched: boolean;
-  timestamp: number;
-  priority: 'high' | 'low';
-}
-
-// Global prefetch cache to avoid duplicate prefetches
-const prefetchCache = new Map<string, PrefetchEntry>();
-
-// Common routes that should be prefetched based on user journey
-const CRITICAL_ROUTES = [
-  '/dashboard',
-  '/assessment',
-  '/results',
-  '/auth',
-  '/profile'
-];
-
-// Routes to prefetch based on current page
-const ROUTE_PREDICTIONS: Record<string, string[]> = {
-  '/': ['/auth', '/dashboard'],
-  '/auth': ['/dashboard', '/assessment'],
-  '/dashboard': ['/assessment', '/results', '/profile'],
-  '/assessment': ['/results', '/dashboard'],
-  '/results': ['/dashboard', '/assessment'],
-  '/profile': ['/dashboard']
-};
-
+/**
+ * ✅ Simplified usePrefetch hook
+ * Advanced features extracted to prefetch-helpers utility
+ */
 export function usePrefetch() {
   const router = useRouter();
   const prefetchedRoutes = useRef(new Set<string>());
 
-  // Prefetch a specific route
+  // ✅ Core prefetch function - simplified
   const prefetchRoute = useCallback(async (
-    href: string, 
+    href: string,
     options: PrefetchOptions = {}
   ) => {
-    const { priority = 'low', delay = 0, condition } = options;
+    const { priority = 'low', delay: delayMs = 0, condition } = options;
 
     // Check condition if provided
     if (condition && !condition()) {
       return;
     }
 
-    // Check if already prefetched recently (within 5 minutes)
-    const cached = prefetchCache.get(href);
-    if (cached && Date.now() - cached.timestamp < 300000) {
+    // ✅ Use helper function
+    if (isRecentlyPrefetched(href)) {
       return;
     }
 
     // Add delay if specified
-    if (delay > 0) {
-      await new Promise(resolve => setTimeout(resolve, delay));
+    if (delayMs > 0) {
+      await delay(delayMs);
     }
 
     try {
       // Use Next.js router prefetch
       router.prefetch(href);
-      
-      // Update cache
-      prefetchCache.set(href, {
-        href,
-        prefetched: true,
-        timestamp: Date.now(),
-        priority
-      });
 
+      // ✅ Use helper function
+      updatePrefetchCache(href, priority);
       prefetchedRoutes.current.add(href);
-      
+
       console.log(`[Prefetch] Successfully prefetched: ${href} (priority: ${priority})`);
     } catch (error) {
       console.warn(`[Prefetch] Failed to prefetch ${href}:`, error);
     }
   }, [router]);
 
-  // Prefetch multiple routes
+  // ✅ Simplified prefetch multiple routes
   const prefetchRoutes = useCallback(async (
-    routes: string[], 
+    routes: string[],
     options: PrefetchOptions = {}
   ) => {
     const { priority = 'low' } = options;
-    
-    // Sort by priority - high priority routes first
-    const sortedRoutes = routes.sort((a, b) => {
-      const aPriority = CRITICAL_ROUTES.includes(a) ? 'high' : priority;
-      const bPriority = CRITICAL_ROUTES.includes(b) ? 'high' : priority;
-      return aPriority === 'high' && bPriority === 'low' ? -1 : 1;
-    });
+
+    // ✅ Use helper function for sorting
+    const sortedRoutes = sortRoutesByPriority(routes);
 
     // Prefetch with staggered delays to avoid overwhelming the network
     for (let i = 0; i < sortedRoutes.length; i++) {
       const route = sortedRoutes[i];
-      const routePriority = CRITICAL_ROUTES.includes(route) ? 'high' : priority;
-      
+      // ✅ Use helper function
+      const routePriority = isCriticalRoute(route) ? 'high' : priority;
+
       await prefetchRoute(route, {
         ...options,
         priority: routePriority,
@@ -112,9 +85,10 @@ export function usePrefetch() {
     }
   }, [prefetchRoute]);
 
-  // Prefetch based on current route
+  // ✅ Simplified prefetch predicted routes
   const prefetchPredictedRoutes = useCallback((currentPath: string) => {
-    const predictedRoutes = ROUTE_PREDICTIONS[currentPath] || [];
+    // ✅ Use helper function
+    const predictedRoutes = getPredictedRoutes(currentPath);
     if (predictedRoutes.length > 0) {
       prefetchRoutes(predictedRoutes, { priority: 'high' });
     }
@@ -137,30 +111,22 @@ export function usePrefetch() {
     });
   }, [prefetchRoute]);
 
-  // Get prefetch stats
+  // ✅ Simplified get prefetch stats
   const getPrefetchStats = useCallback(() => {
+    // ✅ Use helper function
+    const cacheStats = getPrefetchCacheStats();
+
     return {
       totalPrefetched: prefetchedRoutes.current.size,
-      cacheSize: prefetchCache.size,
-      prefetchedRoutes: Array.from(prefetchedRoutes.current),
-      cacheEntries: Array.from(prefetchCache.entries()).map(([href, entry]) => ({
-        href,
-        ...entry,
-        age: Date.now() - entry.timestamp
-      }))
+      ...cacheStats,
+      prefetchedRoutes: Array.from(prefetchedRoutes.current)
     };
   }, []);
 
-  // Clear old prefetch entries (cleanup)
+  // ✅ Simplified clear old prefetches
   const clearOldPrefetches = useCallback(() => {
-    const now = Date.now();
-    const maxAge = 600000; // 10 minutes
-
-    for (const [href, entry] of prefetchCache.entries()) {
-      if (now - entry.timestamp > maxAge) {
-        prefetchCache.delete(href);
-      }
-    }
+    // ✅ Use helper function
+    return clearOldPrefetchEntries();
   }, []);
 
   // Auto cleanup on mount

@@ -42,23 +42,34 @@ export const TokenProvider: React.FC<TokenProviderProps> = ({ children }) => {
       return;
     }
 
-    console.log('TokenContext: Starting token balance refresh...');
+    console.log('TokenContext: Starting token balance refresh...', { userId: user?.id });
     setIsLoading(true);
 
     try {
-      // Clear any cached data before refreshing
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('tokenBalanceCache');
+      // ✅ CACHE FIX: Use centralized cache invalidation
+      if (typeof window !== 'undefined' && user?.id) {
+        try {
+          const { invalidateTokenBalanceCache } = await import('../utils/cache-invalidation');
+          await invalidateTokenBalanceCache(user.id);
+          console.log('TokenContext: All token balance caches cleared before refresh');
+        } catch (error) {
+          console.error('TokenContext: Error invalidating cache:', error);
+          // Fallback to manual clearing
+          localStorage.removeItem(`tokenBalanceCache_${user.id}`);
+          localStorage.removeItem('tokenBalanceCache');
+        }
       }
 
-      console.log('TokenContext: Calling checkTokenBalance...');
-      const newTokenInfo = await checkTokenBalance();
+      console.log('TokenContext: Calling checkTokenBalance with user validation...');
+      // ✅ CRITICAL FIX: Pass user ID for validation to prevent cross-user data leakage
+      const newTokenInfo = await checkTokenBalance(user?.id, true); // Skip cache on manual refresh
 
       console.log('TokenContext: Token balance refresh completed:', {
         balance: newTokenInfo.balance,
         hasEnoughTokens: newTokenInfo.hasEnoughTokens,
         error: newTokenInfo.error,
-        lastUpdated: newTokenInfo.lastUpdated
+        lastUpdated: newTokenInfo.lastUpdated,
+        userId: user?.id
       });
 
       setTokenInfo(newTokenInfo);
@@ -82,7 +93,7 @@ export const TokenProvider: React.FC<TokenProviderProps> = ({ children }) => {
       setIsLoading(false);
       console.log('TokenContext: Token balance refresh process completed');
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, user?.id]);
 
   const updateTokenBalance = useCallback((newBalance: number) => {
     setTokenInfo(prevTokenInfo => {
@@ -122,23 +133,51 @@ export const TokenProvider: React.FC<TokenProviderProps> = ({ children }) => {
     const initWebSocket = async () => {
       try {
         const { getWebSocketService } = await import('../services/websocket-service');
+        const tokenServiceModule = await import('../services/tokenService');
         const service = getWebSocketService();
 
         // CRITICAL FIX: Register event listener BEFORE connecting
-        cleanupListener = service.addEventListener((event) => {
+        cleanupListener = service.addEventListener(async (event) => {
           // Guard against stale closures - only update if component still mounted
           if (!isActive) return;
 
           if (event.type === 'token-balance-updated' && event.metadata?.balance !== undefined) {
-            console.log('TokenContext: Received token balance update via WebSocket:', event.metadata.balance);
+            // ✅ SECURITY FIX: Validate user ID to prevent cross-user updates
+            const eventUserId = (event.metadata as any)?.userId;
+            if (eventUserId && eventUserId !== user?.id) {
+              console.warn('TokenContext: Received token balance update for different user, ignoring', {
+                eventUserId,
+                currentUserId: user?.id
+              });
+              return;
+            }
+
+            console.log('TokenContext: Received token balance update via WebSocket:', {
+              balance: event.metadata.balance,
+              userId: eventUserId || user?.id
+            });
+
+            // ✅ CACHE FIX: Invalidate all caches before updating state
+            try {
+              const { invalidateTokenBalanceCache } = await import('../utils/cache-invalidation');
+              await invalidateTokenBalanceCache(user?.id || eventUserId);
+              console.log('TokenContext: Token balance caches invalidated after WebSocket update');
+            } catch (error) {
+              console.error('TokenContext: Error invalidating cache:', error);
+            }
+
+            // Update local state after cache invalidation
             updateTokenBalance(event.metadata.balance);
           }
         });
 
         console.log('TokenContext: Event listener registered');
 
-        const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
+        // ✅ CRITICAL FIX: Use tokenService.getIdToken() instead of hardcoded localStorage
+        const token = tokenServiceModule.default.getIdToken();
         if (token && isActive) {
+          console.log('TokenContext: Token retrieved from tokenService');
+
           // Check if already connected
           const status = service.getStatus();
           if (!status.isConnected) {
@@ -153,6 +192,8 @@ export const TokenProvider: React.FC<TokenProviderProps> = ({ children }) => {
             setWsService(service);
             setWsConnected(true);
           }
+        } else {
+          console.warn('TokenContext: No token available for WebSocket connection');
         }
       } catch (error) {
         console.warn('TokenContext: Failed to initialize WebSocket for token updates:', error);

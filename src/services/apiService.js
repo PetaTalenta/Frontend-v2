@@ -18,6 +18,9 @@ class ApiService {
       },
     });
 
+    // ✅ Token refresh lock mechanism - prevents concurrent refresh attempts
+    this.tokenRefreshPromise = null;
+
     // Allow host apps to register side-effect handlers (e.g., redirect on 401)
     this.handlers = {
       onAuthError: (error) => {
@@ -27,7 +30,57 @@ class ApiService {
       }
     };
 
-    // Add request interceptor to include auth token (supports both V1 and V2)
+    // Setup interceptors
+    this.setupRequestInterceptor();
+    this.setupResponseInterceptor();
+
+    // ✅ In-flight requests map and a tiny TTL cache to dedupe rapid duplicate calls
+    this._inflight = new Map();
+    this._cache = new Map();
+
+    // ✅ Auto cleanup expired cache entries every 5 minutes
+    this._cleanupInterval = setInterval(() => this._cleanupExpiredCache(), 300000);
+  }
+
+  /**
+   * ✅ Token refresh with lock mechanism
+   * Prevents concurrent token refresh attempts when multiple 401s occur simultaneously
+   * @returns {Promise<string>} New ID token
+   */
+  async refreshTokenWithLock() {
+    // ✅ Reuse existing promise if refresh already in progress
+    if (this.tokenRefreshPromise) {
+      logger.debug('🔄 Token refresh already in progress, waiting for existing refresh...');
+      return this.tokenRefreshPromise;
+    }
+
+    logger.debug('🔐 Starting new token refresh...');
+
+    // ✅ Create new refresh promise and share it for all concurrent requests
+    this.tokenRefreshPromise = (async () => {
+      try {
+        const tokenService = (await import('./tokenService')).default;
+        const newIdToken = await tokenService.refreshAuthToken();
+
+        logger.debug('✅ Token refreshed successfully');
+        return newIdToken;
+      } catch (error) {
+        logger.error('❌ Token refresh failed:', error);
+        throw error;
+      } finally {
+        // ✅ Clear promise after completion (success or failure)
+        this.tokenRefreshPromise = null;
+      }
+    })();
+
+    return this.tokenRefreshPromise;
+  }
+
+  /**
+   * ✅ CRITICAL FIX #6: Enhanced request interceptor with token validation
+   * Adds token expiry validation and request metadata for debugging
+   */
+  setupRequestInterceptor() {
     this.axiosInstance.interceptors.request.use(
       async (config) => {
         try {
@@ -38,32 +91,63 @@ class ApiService {
           if (authVersion === 'v2') {
             // Auth V2: Use Firebase ID token
             const idToken = tokenService.getIdToken();
+            
             if (idToken) {
-              config.headers.Authorization = `Bearer ${idToken}`;
-              logger.debug('API Request: add Auth V2 Firebase token');
+              // ✅ CRITICAL: Validate token is not expired
+              if (!tokenService.isTokenExpired()) {
+                config.headers.Authorization = `Bearer ${idToken}`;
+                logger.debug('API Request: Valid Auth V2 token added');
+              } else {
+                logger.warn('API Request: Token expired, will be refreshed by response interceptor');
+                config.headers.Authorization = `Bearer ${idToken}`;
+              }
             } else {
-              logger.warn('API Request: no Auth V2 token found');
+              logger.warn('API Request: No Auth V2 token found');
+              delete config.headers.Authorization;
             }
           } else {
             // Auth V1: Use legacy JWT token
             const token = getToken();
+            
             if (token) {
               config.headers.Authorization = `Bearer ${token}`;
-              logger.debug('API Request: add Auth V1 bearer token');
+              logger.debug('API Request: Auth V1 token added');
             } else {
-              logger.warn('API Request: no auth token');
+              logger.warn('API Request: No auth token');
+              delete config.headers.Authorization;
             }
           }
+
+          // ✅ NEW: Add request metadata for debugging
+          config.metadata = {
+            requestId: `req-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            timestamp: new Date().toISOString(),
+            authVersion,
+            hasAuth: !!config.headers.Authorization
+          };
+
         } catch (error) {
           // Fallback to V1 token if tokenService not available
-          logger.debug('API Request: falling back to Auth V1 token');
+          logger.error('API Request Interceptor Error:', error);
+          
           const token = getToken();
           if (token) {
             config.headers.Authorization = `Bearer ${token}`;
+          } else {
+            delete config.headers.Authorization;
           }
+
+          // Add metadata even on error
+          config.metadata = {
+            requestId: `req-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            timestamp: new Date().toISOString(),
+            authVersion: 'v1',
+            hasAuth: !!config.headers.Authorization,
+            error: true
+          };
         }
 
-        logger.debug(`API Request: ${config.method?.toUpperCase()} ${config.url}`);
+        logger.debug(`API Request [${config.metadata?.requestId}]: ${config.method?.toUpperCase()} ${config.url}`);
         return config;
       },
       (error) => {
@@ -71,8 +155,12 @@ class ApiService {
         return Promise.reject(error);
       }
     );
+  }
 
-    // Add response interceptor for error handling with auto token refresh
+  /**
+   * Setup response interceptor for error handling with auto token refresh
+   */
+  setupResponseInterceptor() {
     this.axiosInstance.interceptors.response.use(
       (response) => {
         logger.debug(`API Response: ${response.status} ${response.config.method?.toUpperCase()} ${response.config.url}`);
@@ -103,8 +191,8 @@ class ApiService {
             if (authVersion === 'v2') {
               logger.debug('API: 401 detected, attempting token refresh for Auth V2...');
 
-              // Attempt to refresh token
-              const newIdToken = await tokenService.refreshAuthToken();
+              // ✅ Use lock mechanism - all concurrent 401s will share same promise
+              const newIdToken = await this.refreshTokenWithLock();
 
               // Update the Authorization header with new token
               originalRequest.headers.Authorization = `Bearer ${newIdToken}`;
@@ -145,11 +233,6 @@ class ApiService {
         return Promise.reject(error);
       }
     );
-
-      // In-flight requests map and a tiny TTL cache to dedupe rapid duplicate calls (e.g., React StrictMode re-mounts)
-      this._inflight = new Map();
-      this._cache = new Map();
-
   }
 
   // Allow host app to set side-effect handlers (e.g., redirect on 401)
@@ -157,7 +240,9 @@ class ApiService {
     this.handlers = { ...this.handlers, ...handlers };
   }
 
-	  // Build a stable request key for deduplication
+	  /**
+	   * ✅ Build a stable request key for deduplication
+	   */
 	  _requestKey(url, options = {}) {
 	    const method = (options.method || 'GET').toUpperCase();
 	    let bodyKey = '';
@@ -169,6 +254,45 @@ class ApiService {
 	      bodyKey = '';
 	    }
 	    return `${method}|${url}|${bodyKey}`;
+	  }
+
+	  /**
+	   * ✅ Cleanup expired cache entries
+	   * Removes entries older than 10 minutes to prevent memory leaks
+	   */
+	  _cleanupExpiredCache() {
+	    const now = Date.now();
+	    const maxAge = 600000; // 10 minutes
+	    let cleanedCount = 0;
+
+	    for (const [key, entry] of this._cache.entries()) {
+	      if (now - entry.time > maxAge) {
+	        this._cache.delete(key);
+	        cleanedCount++;
+	      }
+	    }
+
+	    if (cleanedCount > 0) {
+	      logger.debug(`[apiService] Cleaned up ${cleanedCount} expired cache entries`);
+	    }
+	  }
+
+	  /**
+	   * ✅ Get cache statistics
+	   */
+	  getCacheStats() {
+	    return {
+	      cacheSize: this._cache.size,
+	      inflightRequests: this._inflight.size
+	    };
+	  }
+
+	  /**
+	   * ✅ Clear all cache (useful for testing or manual cache invalidation)
+	   */
+	  clearCache() {
+	    this._cache.clear();
+	    logger.debug('[apiService] Cache cleared');
 	  }
 
 	  /**

@@ -29,19 +29,26 @@ export default function NotificationRedirectListener() {
       return;
     }
 
-    const token = localStorage.getItem("token") || localStorage.getItem("auth_token");
-    if (!token) {
-      console.log("⏸️ [NotificationRedirect] No token, skipping setup");
-      return;
-    }
+    // ✅ CRITICAL FIX: Use dynamic import to get tokenService
+    let removeListener: (() => void) | null = null;
 
-    console.log("🔌 [NotificationRedirect] Setting up WebSocket for user:", user.id);
+    const initWebSocket = async () => {
+      try {
+        const tokenServiceModule = await import('../../services/tokenService');
+        const token = tokenServiceModule.default.getIdToken();
 
-    const wsService = getWebSocketService();
+        if (!token) {
+          console.log("⏸️ [NotificationRedirect] No token available from tokenService, skipping setup");
+          return;
+        }
 
-    // Check current connection status
-    const status = wsService.getStatus();
-    console.log("📊 [NotificationRedirect] Current WebSocket status:", status);
+        console.log("🔌 [NotificationRedirect] Setting up WebSocket for user:", user.id);
+
+        const wsService = getWebSocketService();
+
+        // Check current connection status
+        const status = wsService.getStatus();
+        console.log("📊 [NotificationRedirect] Current WebSocket status:", status);
 
     // Event handler - handles all notification events
     const handleEvent = (event: WebSocketEvent) => {
@@ -114,55 +121,64 @@ export default function NotificationRedirectListener() {
       }
     };
 
-    // CRITICAL: Register listener BEFORE connecting to avoid race condition
-    console.log("📝 [NotificationRedirect] Registering event listener...");
-    const removeListener = wsService.addEventListener(handleEvent);
-    console.log("✅ [NotificationRedirect] Event listener registered");
+        // CRITICAL: Register listener BEFORE connecting to avoid race condition
+        console.log("📝 [NotificationRedirect] Registering event listener...");
+        removeListener = wsService.addEventListener(handleEvent);
+        console.log("✅ [NotificationRedirect] Event listener registered");
 
-    // Connect to WebSocket - SIMPLIFIED
-    console.log("🔌 [NotificationRedirect] Connecting...");
-    wsService.connect(token)
-      .then(() => {
-        const newStatus = wsService.getStatus();
-        console.log("✅ [NotificationRedirect] Connected:", newStatus);
+        // Connect to WebSocket - SIMPLIFIED
+        console.log("🔌 [NotificationRedirect] Connecting...");
+        wsService.connect(token)
+          .then(() => {
+            const newStatus = wsService.getStatus();
+            console.log("✅ [NotificationRedirect] Connected:", newStatus);
 
-        // Show toast only for new connections
-        if (!status.isConnected) {
-          toast.success("Notifications ready", { duration: 2000 });
-        }
-      })
-      .catch((error) => {
-        console.error("❌ [NotificationRedirect] Failed:", error);
+            // Show toast only for new connections
+            if (!status.isConnected) {
+              toast.success("Notifications ready", { duration: 2000 });
+            }
+          })
+          .catch((error) => {
+            console.error("❌ [NotificationRedirect] Failed:", error);
 
-        // Check if server is unavailable
-        const isServerDown = error.message?.includes('Server unavailable') ||
-                             error.message?.includes('Backend') ||
-                             error.message?.includes('running');
+            // Check if server is unavailable
+            const isServerDown = error.message?.includes('Server unavailable') ||
+                                 error.message?.includes('Backend') ||
+                                 error.message?.includes('running');
 
-        if (isServerDown) {
-          console.warn("🚫 [NotificationRedirect] Backend server offline");
-          toast.warning("Backend server offline", {
-            description: "Real-time notifications disabled. Start the backend server.",
-            duration: 8000
+            if (isServerDown) {
+              console.warn("🚫 [NotificationRedirect] Backend server offline");
+              toast.warning("Backend server offline", {
+                description: "Real-time notifications disabled. Start the backend server.",
+                duration: 8000
+              });
+              return;
+            }
+
+            // Show generic error for other failures
+            if (!error.message?.includes('timeout')) {
+              toast.error("Notifications unavailable", {
+                description: "You may not receive real-time updates",
+                duration: 3000
+              });
+            }
           });
-          return;
-        }
+      } catch (error) {
+        console.error("❌ [NotificationRedirect] Failed to initialize WebSocket:", error);
+      }
+    };
 
-        // Show generic error for other failures
-        if (!error.message?.includes('timeout')) {
-          toast.error("Notifications unavailable", {
-            description: "You may not receive real-time updates",
-            duration: 3000
-          });
-        }
-      });
+    // Call the async function
+    initWebSocket();
 
     // Cleanup on unmount or user change
     return () => {
       console.log("🧹 [NotificationRedirect] Cleaning up listener (NOT disconnecting - shared connection)");
-      removeListener();
+      if (removeListener) {
+        removeListener();
+      }
     };
-  }, [user]); // Only re-run when user changes (login/logout)
+  }, [user, router, mutate]); // Only re-run when user changes (login/logout)
 
   return null;
 }

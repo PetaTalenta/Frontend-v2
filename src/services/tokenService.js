@@ -33,6 +33,9 @@ class TokenService {
 
   /**
    * Store Firebase tokens in localStorage
+   * ✅ FIXED: Now syncs to ALL token keys for backward compatibility
+   * This ensures WebSocket and other services can find the token
+   *
    * @param {string} idToken - Firebase ID token
    * @param {string} refreshToken - Firebase refresh token
    * @param {string} userId - User ID (Firebase UID)
@@ -40,12 +43,18 @@ class TokenService {
   storeTokens(idToken, refreshToken, userId = null) {
     try {
       const now = Math.floor(Date.now() / 1000);
-      
+
+      // ✅ Store in Auth V2 keys (primary)
       localStorage.setItem(STORAGE_KEYS.ID_TOKEN, idToken);
       localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refreshToken);
       localStorage.setItem(STORAGE_KEYS.TOKEN_ISSUED_AT, now.toString());
       localStorage.setItem(STORAGE_KEYS.AUTH_VERSION, 'v2');
-      
+
+      // ✅ CRITICAL FIX: Also store in legacy keys for backward compatibility
+      // This ensures WebSocket, TokenContext, and other services can find the token
+      localStorage.setItem('token', idToken);
+      localStorage.setItem('auth_token', idToken);
+
       if (userId) {
         localStorage.setItem(STORAGE_KEYS.USER_ID, userId);
       }
@@ -53,7 +62,7 @@ class TokenService {
       // Also set cookie for server-side middleware compatibility
       this.setTokenCookie(idToken);
 
-      logger.debug('Auth V2: Tokens stored successfully', {
+      logger.debug('Auth V2: Tokens stored successfully (synced to all keys)', {
         userId,
         issuedAt: now,
       });
@@ -65,11 +74,25 @@ class TokenService {
 
   /**
    * Get Firebase ID token
+   * ✅ FIXED: Now checks all possible token locations for backward compatibility
+   * Priority: authV2_idToken > token > auth_token
+   *
    * @returns {string|null} - ID token or null if not found
    */
   getIdToken() {
     try {
-      return localStorage.getItem(STORAGE_KEYS.ID_TOKEN);
+      // Try Auth V2 key first (primary)
+      let token = localStorage.getItem(STORAGE_KEYS.ID_TOKEN);
+
+      // ✅ CRITICAL FIX: Fallback to legacy keys for backward compatibility
+      if (!token) {
+        token = localStorage.getItem('token');
+      }
+      if (!token) {
+        token = localStorage.getItem('auth_token');
+      }
+
+      return token;
     } catch (error) {
       logger.error('Auth V2: Failed to get ID token', error);
       return null;
@@ -130,19 +153,33 @@ class TokenService {
 
   /**
    * Clear all tokens from storage
+   * ✅ FIXED: Now clears ALL token keys including legacy ones
    */
   clearTokens() {
     try {
+      // Clear Auth V2 keys
       localStorage.removeItem(STORAGE_KEYS.ID_TOKEN);
       localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
       localStorage.removeItem(STORAGE_KEYS.TOKEN_ISSUED_AT);
       localStorage.removeItem(STORAGE_KEYS.USER_ID);
       localStorage.removeItem(STORAGE_KEYS.AUTH_VERSION);
 
+      // ✅ CRITICAL FIX: Also clear legacy token keys
+      localStorage.removeItem('token');
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('authToken');
+
+      // Clear user data
+      localStorage.removeItem('user');
+      localStorage.removeItem('uid');
+      localStorage.removeItem('email');
+      localStorage.removeItem('displayName');
+      localStorage.removeItem('photoURL');
+
       // Clear cookie
       this.clearTokenCookie();
 
-      logger.debug('Auth V2: Tokens cleared successfully');
+      logger.debug('Auth V2: All tokens and user data cleared successfully');
     } catch (error) {
       logger.error('Auth V2: Failed to clear tokens', error);
     }

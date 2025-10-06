@@ -4,6 +4,7 @@
  */
 
 import { io, Socket } from 'socket.io-client';
+import tokenService from './tokenService';
 
 // WebSocket Event Types
 export interface WebSocketEvent {
@@ -256,34 +257,57 @@ class WebSocketService {
   /**
    * Disconnect from WebSocket server - SIMPLIFIED
    */
+  /**
+   * ✅ CRITICAL FIX #3: Enhanced disconnect with complete cleanup
+   * Properly clears ALL event listeners, callbacks, and state to prevent cross-account data leakage
+   */
   disconnect(): void {
     console.log('🔌 WebSocket Service: Disconnecting...');
 
-    // Stop heartbeat
+    // ✅ CRITICAL: Clear ALL event listeners to prevent cross-user contamination
+    this.eventListeners.clear();
+    console.log('WebSocket: Event listeners cleared');
+
+    // ✅ CRITICAL: Clear ALL callbacks
+    this.callbacks = {
+      onEvent: null,
+      onConnected: null,
+      onDisconnected: null,
+      onError: null,
+    };
+    console.log('WebSocket: Callbacks cleared');
+
+    // ✅ CRITICAL: Clear subscribed jobs (don't keep for reconnection on logout)
+    // When user logs out, we don't want to subscribe to previous user's jobs
+    this.subscribedJobs.clear();
+    console.log('WebSocket: Subscribed jobs cleared');
+
+    // Stop heartbeat if running
     this.stopHeartbeat();
 
     if (this.socket) {
-      // Keep subscriptions for reconnection
-      if (this.subscribedJobs.size > 0) {
-        console.log(`💾 Keeping ${this.subscribedJobs.size} subscriptions for reconnect`);
-      }
-
-      // Clean up socket
+      // ✅ CRITICAL: Remove ALL socket event listeners before disconnect
       this.socket.removeAllListeners();
+      console.log('WebSocket: All socket listeners removed');
+
+      // Disconnect socket
       this.socket.disconnect();
       this.socket = null;
+      console.log('WebSocket: Socket disconnected');
     }
 
-    // Reset state (keep subscribedJobs for reconnection)
+    // ✅ Reset ALL state completely
     this.isConnected = false;
     this.isAuthenticated = false;
     this.isConnecting = false;
     this.connectionPromise = null;
     this.token = null;
     this.reconnectAttempts = 0;
+    this.backoffDelay = WS_CONFIG.RECONNECTION_DELAY;
+    this.serverUnavailable = false;
+    this.corsErrorCount = 0;
 
-    console.log('✅ WebSocket Service: Disconnected');
-    this.callbacks.onDisconnected?.();
+    console.log('✅ WebSocket Service: Fully disconnected and cleaned up');
   }
 
   /**
