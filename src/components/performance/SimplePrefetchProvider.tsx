@@ -15,10 +15,16 @@ export default function SimplePrefetchProvider({
   children,
   enablePrefetch = true,
   enableCaching = true,
-  debug = process.env.NODE_ENV === 'development'
+  debug = false
 }: SimplePrefetchProviderProps) {
   const pathname = usePathname();
   const [isInitialized, setIsInitialized] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Ensure we're on client side
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Initialize basic performance optimizations
   useEffect(() => {
@@ -91,17 +97,22 @@ export default function SimplePrefetchProvider({
 
   // Track page changes
   useEffect(() => {
-    if (debug && isInitialized) {
+    if (debug && isInitialized && pathname) {
       console.log(`[SimplePrefetchProvider] Page changed: ${pathname}`);
     }
   }, [pathname, debug, isInitialized]);
+
+  // Don't render until mounted on client to avoid hydration issues
+  if (!isMounted) {
+    return <>{children}</>;
+  }
 
   return (
     <>
       {children}
       
       {/* Simple debug indicator */}
-      {debug && isInitialized && (
+      {debug && isInitialized && pathname && (
         <SimpleDebugIndicator 
           pathname={pathname}
           enablePrefetch={enablePrefetch}
@@ -183,8 +194,9 @@ export function useSimplePrefetch() {
 
     try {
       // Use Next.js built-in prefetch if available
-      if (window.next && window.next.router) {
-        window.next.router.prefetch(href);
+      const windowWithNext = window as any;
+      if (windowWithNext.next && windowWithNext.next.router) {
+        windowWithNext.next.router.prefetch(href);
       } else {
         // Fallback: create a hidden link to trigger browser prefetch
         const link = document.createElement('link');

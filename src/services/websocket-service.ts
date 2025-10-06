@@ -31,18 +31,20 @@ export type EventCallback = (event: WebSocketEvent) => void;
 export type ConnectionCallback = () => void;
 export type ErrorCallback = (error: Error) => void;
 
-// Configuration - Simplified and optimized
+// Configuration - Optimized dengan exponential backoff
 const WS_CONFIG = {
   URL: 'https://api.futureguide.id',
 
-  // Connection settings - SIMPLIFIED
+  // Connection settings
   CONNECTION_TIMEOUT: 10000, // 10 seconds - faster failure detection
   AUTHENTICATION_TIMEOUT: 8000, // 8 seconds
 
-  // Reconnection settings - REDUCED to avoid spam when server is down
-  RECONNECTION_ATTEMPTS: 3, // Only 3 attempts
-  RECONNECTION_DELAY: 3000, // 3 seconds between attempts
-  RECONNECTION_DELAY_MAX: 10000, // Max 10 seconds
+  // Reconnection settings - IMPROVED dengan exponential backoff
+  RECONNECTION_ATTEMPTS: 5, // Increased to 5 attempts
+  RECONNECTION_DELAY: 3000, // Initial delay: 3 seconds
+  RECONNECTION_DELAY_MAX: 60000, // Max delay: 60 seconds (increased from 10s)
+  BACKOFF_MULTIPLIER: 2, // Exponential backoff multiplier
+  MAX_BACKOFF_DELAY: 300000, // 5 minutes max backoff after all attempts failed
 
   // Heartbeat - DISABLED (use Socket.IO built-in ping/pong only)
   HEARTBEAT_INTERVAL: 0, // Disabled - rely on Socket.IO's built-in mechanism
@@ -60,8 +62,11 @@ class WebSocketService {
   private isConnecting = false;
   private connectionPromise: Promise<void> | null = null;
   private heartbeatInterval: NodeJS.Timeout | null = null;
+
+  // Reconnection tracking dengan exponential backoff
   private reconnectAttempts = 0;
-  
+  private backoffDelay: number = WS_CONFIG.RECONNECTION_DELAY;
+
   // Server availability tracking
   private serverUnavailable = false;
   private lastErrorLog: { [key: string]: number } = {};
@@ -463,14 +468,27 @@ class WebSocketService {
     });
 
     this.socket.on('reconnect_attempt', (attemptNumber) => {
-      console.log(`🔄 WebSocket: Reconnecting (${attemptNumber}/${WS_CONFIG.RECONNECTION_ATTEMPTS})`);
+      // EXPONENTIAL BACKOFF FIX: Calculate delay dengan jitter
+      this.backoffDelay = Math.min(
+        WS_CONFIG.RECONNECTION_DELAY * Math.pow(WS_CONFIG.BACKOFF_MULTIPLIER, attemptNumber - 1),
+        WS_CONFIG.RECONNECTION_DELAY_MAX
+      );
+
+      // Add jitter (random 0-20% variation) untuk prevent thundering herd
+      const jitter = this.backoffDelay * 0.2 * Math.random();
+      this.backoffDelay += jitter;
+
+      console.log(`🔄 WebSocket: Reconnecting in ${Math.round(this.backoffDelay)}ms (attempt ${attemptNumber}/${WS_CONFIG.RECONNECTION_ATTEMPTS})`);
       this.reconnectAttempts = attemptNumber;
     });
 
     this.socket.on('reconnect', (attemptNumber) => {
       console.log(`✅ WebSocket: Reconnected after ${attemptNumber} attempts`);
       this.isConnected = true;
+
+      // Reset backoff on successful reconnect
       this.reconnectAttempts = 0;
+      this.backoffDelay = WS_CONFIG.RECONNECTION_DELAY;
       this.serverUnavailable = false;
       this.corsErrorCount = 0;
 
@@ -495,8 +513,16 @@ class WebSocketService {
     });
 
     this.socket.on('reconnect_failed', () => {
-      console.error('❌ WebSocket: Reconnection failed');
+      console.error('❌ WebSocket: All reconnection attempts failed');
       this.callbacks.onError?.(new Error('Reconnection failed'));
+
+      // Mark server as unavailable dan wait longer before allowing retry
+      this.serverUnavailable = true;
+
+      setTimeout(() => {
+        this.serverUnavailable = false;
+        console.log('🔄 WebSocket: Server marked as potentially available, retry allowed');
+      }, WS_CONFIG.MAX_BACKOFF_DELAY);
     });
 
     // Analysis events - SIMPLIFIED

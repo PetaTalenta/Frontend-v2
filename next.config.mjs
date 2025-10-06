@@ -164,7 +164,7 @@ const nextConfig = {
     // Remove custom react/react-dom alias to avoid duplicate/react versions or HMR issues
     // (Next.js handles this by default)
 
-    // Improve module loading reliability (only in production to avoid dev HMR/runtime issues)
+    // Improve module loading reliability
     if (!dev) {
       // Use deterministic ids only in production; leave Next.js defaults in dev
       config.optimization = {
@@ -189,6 +189,15 @@ const nextConfig = {
             priority: 10,
           },
         },
+      };
+    } else {
+      // In dev mode, ensure proper error handling for webpack
+      config.optimization = {
+        ...config.optimization,
+        // Ensure module factories are properly initialized
+        runtimeChunk: false,
+        // Better error messages in development
+        emitOnErrors: false,
       };
     }
 

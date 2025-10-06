@@ -414,7 +414,7 @@ describe('authV2Service', () => {
       });
 
       expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/auth/v2/profile'),
+        expect.stringContaining('/api/auth/profile'),
         expect.objectContaining({
           method: 'PATCH',
           headers: expect.objectContaining({
@@ -451,7 +451,7 @@ describe('authV2Service', () => {
       });
 
       expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/auth/v2/profile'),
+        expect.stringContaining('/api/auth/profile'),
         expect.objectContaining({
           body: JSON.stringify({
             photoURL: 'https://example.com/photo.jpg',

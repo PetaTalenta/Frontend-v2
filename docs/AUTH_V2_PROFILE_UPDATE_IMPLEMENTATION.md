@@ -17,7 +17,7 @@ To work around Firebase limitations, we implemented a **split-update strategy**:
 Auth V2 User Updates:
 ├─ Firebase Auth Fields (displayName, photoURL)
 │  └─ Route to: authV2Service.updateProfile()
-│     Method: PATCH /api/auth/v2/profile
+│     Method: PATCH /api/auth/profile
 │
 └─ User Profile Fields (date_of_birth, gender, etc.)
    └─ Route to: apiService.updateProfile() (V1 API fallback)
@@ -355,7 +355,7 @@ AuthContext: Updating user with profile data: {username: "newusername", name: "n
 ## Backend Requirements
 
 ### Current Backend Support
-- ✅ Auth V2 service supports `PATCH /api/auth/v2/profile` (displayName, photoURL)
+- ✅ Auth V2 service supports `PATCH /api/auth/profile` (displayName, photoURL)
 - ✅ Auth V1 service supports `PUT /api/auth/profile` (all fields)
 
 ### Required Backend Changes (Future Enhancement)

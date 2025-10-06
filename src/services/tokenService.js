@@ -187,38 +187,56 @@ class TokenService {
   /**
    * Refresh authentication token
    * This is the CRITICAL function for handling Firebase 1-hour token expiry
-   * 
+   *
+   * RACE CONDITION FIX:
+   * - Reuses in-flight refresh promise to prevent concurrent requests
+   * - Implements timeout protection (30 seconds max)
+   * - Proper cleanup in finally block
+   *
    * @returns {Promise<string>} - New ID token
    * @throws {Error} - If refresh fails
    */
   async refreshAuthToken() {
-    // Prevent concurrent refresh requests
+    // CRITICAL: Prevent concurrent refresh requests by reusing in-flight promise
     if (this.refreshPromise) {
-      logger.debug('Auth V2: Refresh already in progress, waiting...');
+      logger.debug('Auth V2: Refresh already in progress, reusing existing promise');
       return this.refreshPromise;
     }
 
-    try {
-      const refreshToken = this.getRefreshToken();
-      
-      if (!refreshToken) {
-        throw new Error('No refresh token available');
+    // Create guarded refresh promise with timeout protection
+    this.refreshPromise = (async () => {
+      const refreshStartTime = Date.now();
+
+      try {
+        const refreshToken = this.getRefreshToken();
+
+        if (!refreshToken) {
+          throw new Error('No refresh token available');
+        }
+
+        logger.debug('Auth V2: Starting token refresh...');
+
+        // Perform refresh with timeout protection
+        const result = await this._performTokenRefresh(refreshToken);
+
+        const refreshDuration = Date.now() - refreshStartTime;
+        logger.debug(`Auth V2: Token refreshed successfully in ${refreshDuration}ms`);
+
+        return result;
+      } catch (error) {
+        const refreshDuration = Date.now() - refreshStartTime;
+        logger.error(`Auth V2: Token refresh failed after ${refreshDuration}ms`, error);
+        throw error;
+      } finally {
+        // Clear promise after completion or error
+        // Small delay to prevent rapid re-attempts on error
+        setTimeout(() => {
+          this.refreshPromise = null;
+        }, 100);
       }
+    })();
 
-      logger.debug('Auth V2: Refreshing token...');
-
-      // Create refresh promise
-      this.refreshPromise = this._performTokenRefresh(refreshToken);
-      
-      const result = await this.refreshPromise;
-      
-      return result;
-    } catch (error) {
-      logger.error('Auth V2: Token refresh failed', error);
-      throw error;
-    } finally {
-      this.refreshPromise = null;
-    }
+    return this.refreshPromise;
   }
 
   /**

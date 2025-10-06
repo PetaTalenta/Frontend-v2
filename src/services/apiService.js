@@ -257,18 +257,21 @@ class ApiService {
 
   /**
    * Get user profile
+   * Note: AUTH_V2 does not support GET profile endpoint
+   * Profile data should be obtained from login/register response or Firebase SDK
    */
   async getProfile() {
-    const response = await this.axiosInstance.get(API_ENDPOINTS.AUTH.PROFILE);
+    const response = await this.axiosInstance.get(API_ENDPOINTS.AUTH_V2.PROFILE);
     return response.data;
   }
 
   /**
    * Update user profile
    * @param {Object} profileData - Profile update data
+   * Note: AUTH_V2 uses PATCH method and only supports displayName & photoURL
    */
   async updateProfile(profileData) {
-    const response = await this.axiosInstance.put(API_ENDPOINTS.AUTH.UPDATE_PROFILE, profileData);
+    const response = await this.axiosInstance.patch(API_ENDPOINTS.AUTH_V2.PROFILE, profileData);
     return response.data;
   }
 

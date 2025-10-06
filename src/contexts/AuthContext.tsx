@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { clearDemoAssessmentData } from '../utils/user-stats';
 import apiService from '../services/apiService';
@@ -142,79 +142,25 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   }, [authVersion, user, token, startRefreshTimer, stopRefreshTimer]);
 
-  const login = async (newToken: string, newUser: User) => {
-    console.log('AuthContext: User logging in:', newUser.email);
+  // PERFORMANCE FIX: Wrap functions dengan useCallback untuk stable references
+  const updateUser = useCallback((userData: Partial<User>) => {
+    setUser(prevUser => {
+      if (!prevUser) {
+        console.log('AuthContext: Cannot update user - no user currently logged in');
+        return prevUser;
+      }
 
-    // Clear any existing demo data to ensure clean user statistics
-    clearDemoAssessmentData();
+      console.log('AuthContext: Updating user data with:', userData);
+      const updatedUser = { ...prevUser, ...userData };
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      console.log('AuthContext: User data successfully updated:', updatedUser);
 
-    setToken(newToken);
-    setUser(newUser);
-    localStorage.setItem('token', newToken);
-    localStorage.setItem('user', JSON.stringify(newUser));
-
-    // Set cookie for server-side middleware
-    document.cookie = `token=${newToken}; path=/; max-age=${7 * 24 * 60 * 60}`; // 7 days
-
-    console.log('AuthContext: Login successful, fetching username from profile...');
-
-    // Fetch username from profile to ensure we have the latest data
-    // Wait for it to complete to ensure username is available
-    await fetchUsernameFromProfile(newToken);
-
-    console.log('AuthContext: Profile data fetched, redirecting to dashboard...');
-
-    // Redirect to dashboard after login
-    router.push('/dashboard');
-  };
-
-  const register = async (newToken: string, newUser: User) => {
-    console.log('AuthContext: User registering:', newUser.email);
-
-    // Clear any existing demo data to ensure clean user statistics
-    clearDemoAssessmentData();
-
-    setToken(newToken);
-    setUser(newUser);
-    localStorage.setItem('token', newToken);
-    localStorage.setItem('user', JSON.stringify(newUser));
-
-    // Set cookie for server-side middleware
-    document.cookie = `token=${newToken}; path=/; max-age=${7 * 24 * 60 * 60}`; // 7 days
-
-    console.log('AuthContext: Registration successful, fetching username from profile...');
-
-    // Fetch username from profile to ensure we have the latest data
-    // Wait for it to complete to ensure username is available
-    await fetchUsernameFromProfile(newToken);
-
-    console.log('AuthContext: Profile data fetched, redirecting to dashboard...');
-
-    // Redirect to dashboard after registration
-    router.push('/dashboard');
-  };
-
-  const updateUser = (userData: Partial<User>) => {
-    if (!user) {
-      console.log('AuthContext: Cannot update user - no user currently logged in');
-      return;
-    }
-
-    console.log('AuthContext: Updating user data with:', userData);
-    console.log('AuthContext: Current user before update:', user);
-
-    const updatedUser = { ...user, ...userData };
-    setUser(updatedUser);
-    localStorage.setItem('user', JSON.stringify(updatedUser));
-
-    console.log('AuthContext: User data successfully updated:', updatedUser);
-
-    // Force a re-render by updating the state
-    // This ensures components using the user data will re-render with the new data
-  };
+      return updatedUser;
+    });
+  }, []);
 
   // Fetch username from profile if not available
-  const fetchUsernameFromProfile = async (token: string) => {
+  const fetchUsernameFromProfile = useCallback(async (authToken: string) => {
     try {
       console.log('AuthContext: Fetching username from profile...');
       const profileData = await apiService.getProfile();
@@ -231,12 +177,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         }
 
         // Also update other user data if available
-        if (profileUser.email && !user?.email) {
+        if (profileUser.email) {
           updates.email = profileUser.email;
         }
 
         // Update name from profile full_name if available
-        if (profileData.data.profile?.full_name && !user?.name) {
+        if (profileData.data.profile?.full_name) {
           updates.name = profileData.data.profile.full_name;
         }
 
@@ -249,15 +195,64 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         }
       } else {
         console.log('AuthContext: No user data found in profile response or profile fetch failed');
-        console.log('AuthContext: Profile structure:', JSON.stringify(profileData, null, 2));
       }
     } catch (error) {
       console.error('AuthContext: Failed to fetch username from profile:', error);
       // Don't throw error, just log it - this is optional enhancement
     }
-  };
+  }, [updateUser]);
 
-  const logout = async () => {
+  const login = useCallback(async (newToken: string, newUser: User) => {
+    console.log('AuthContext: User logging in:', newUser.email);
+
+    // Clear any existing demo data to ensure clean user statistics
+    clearDemoAssessmentData();
+
+    setToken(newToken);
+    setUser(newUser);
+    localStorage.setItem('token', newToken);
+    localStorage.setItem('user', JSON.stringify(newUser));
+
+    // Set cookie for server-side middleware
+    document.cookie = `token=${newToken}; path=/; max-age=${7 * 24 * 60 * 60}`; // 7 days
+
+    console.log('AuthContext: Login successful, fetching username from profile...');
+
+    // Fetch username from profile to ensure we have the latest data
+    await fetchUsernameFromProfile(newToken);
+
+    console.log('AuthContext: Profile data fetched, redirecting to dashboard...');
+
+    // Redirect to dashboard after login
+    router.push('/dashboard');
+  }, [router, fetchUsernameFromProfile]);
+
+  const register = useCallback(async (newToken: string, newUser: User) => {
+    console.log('AuthContext: User registering:', newUser.email);
+
+    // Clear any existing demo data to ensure clean user statistics
+    clearDemoAssessmentData();
+
+    setToken(newToken);
+    setUser(newUser);
+    localStorage.setItem('token', newToken);
+    localStorage.setItem('user', JSON.stringify(newUser));
+
+    // Set cookie for server-side middleware
+    document.cookie = `token=${newToken}; path=/; max-age=${7 * 24 * 60 * 60}`; // 7 days
+
+    console.log('AuthContext: Registration successful, fetching username from profile...');
+
+    // Fetch username from profile to ensure we have the latest data
+    await fetchUsernameFromProfile(newToken);
+
+    console.log('AuthContext: Profile data fetched, redirecting to dashboard...');
+
+    // Redirect to dashboard after registration
+    router.push('/dashboard');
+  }, [router, fetchUsernameFromProfile]);
+
+  const logout = useCallback(async () => {
     console.log('AuthContext: Logout initiated, auth version:', authVersion);
 
     if (authVersion === 'v2') {
@@ -268,7 +263,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       } catch (error) {
         console.error('AuthContext V2: Logout API call failed (continuing anyway):', error);
       }
-      
+
       // Clear V2 tokens
       tokenService.clearTokens();
     } else {
@@ -287,9 +282,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
     // Redirect to login page
     router.push('/auth');
-  };
+  }, [authVersion, router]);
 
-  const value: AuthContextType = {
+  // PERFORMANCE FIX: Memoize context value untuk prevent unnecessary re-renders
+  const value: AuthContextType = useMemo(() => ({
     user,
     token,
     authVersion,
@@ -299,7 +295,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     register,
     updateUser,
     isAuthenticated: !!token
-  };
+  }), [user, token, authVersion, isLoading, login, logout, register, updateUser]);
 
   return (
     <AuthContext.Provider value={value}>

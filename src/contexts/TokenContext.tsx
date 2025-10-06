@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, ReactNode } from 'react';
 import { TokenBalanceInfo, checkTokenBalance } from '../utils/token-balance';
 import { useAuth } from './AuthContext';
 // Removed useAssessmentWebSocket import - using new consolidated WebSocket service
@@ -34,7 +34,8 @@ export const TokenProvider: React.FC<TokenProviderProps> = ({ children }) => {
   const [wsConnected, setWsConnected] = useState(false);
   const { isAuthenticated, user } = useAuth();
 
-  const refreshTokenBalance = async () => {
+  // PERFORMANCE FIX: Use useCallback untuk stable function references
+  const refreshTokenBalance = useCallback(async () => {
     if (!isAuthenticated) {
       console.log('TokenContext: User not authenticated, clearing token info');
       setTokenInfo(null);
@@ -81,12 +82,14 @@ export const TokenProvider: React.FC<TokenProviderProps> = ({ children }) => {
       setIsLoading(false);
       console.log('TokenContext: Token balance refresh process completed');
     }
-  };
+  }, [isAuthenticated]);
 
-  const updateTokenBalance = (newBalance: number) => {
-    if (tokenInfo) {
-      const updatedTokenInfo: TokenBalanceInfo = {
-        ...tokenInfo,
+  const updateTokenBalance = useCallback((newBalance: number) => {
+    setTokenInfo(prevTokenInfo => {
+      if (!prevTokenInfo) return prevTokenInfo;
+
+      return {
+        ...prevTokenInfo,
         balance: newBalance,
         hasEnoughTokens: hasEnoughTokensForAssessment(newBalance),
         message: hasEnoughTokensForAssessment(newBalance)
@@ -94,89 +97,94 @@ export const TokenProvider: React.FC<TokenProviderProps> = ({ children }) => {
           : getInsufficientTokensMessage(newBalance),
         lastUpdated: new Date().toISOString(),
       };
-      setTokenInfo(updatedTokenInfo);
-      console.log('TokenContext: Token balance manually updated:', updatedTokenInfo);
-    }
-  };
+    });
+  }, []);
 
   // Initialize WebSocket service for token updates
+  // MEMORY LEAK FIX: Proper cleanup dengan isActive flag dan no conflicting useEffect
   useEffect(() => {
-    if (isAuthenticated && user) {
-      refreshTokenBalance();
+    // Early return untuk unauthenticated state
+    if (!isAuthenticated || !user) {
+      setTokenInfo(null);
+      setWsService(null);
+      setWsConnected(false);
+      return;
+    }
 
-      // Initialize WebSocket service for real-time token updates
-      const initWebSocket = async () => {
-        try {
-          const { getWebSocketService } = await import('../services/websocket-service');
-          const service = getWebSocketService();
+    // Refresh token balance on mount
+    refreshTokenBalance();
 
-          // CRITICAL FIX: Register event listener BEFORE connecting to avoid race condition
-          const removeEventListener = service.addEventListener((event) => {
-            if (event.type === 'token-balance-updated' && event.metadata?.balance !== undefined) {
-              console.log('TokenContext: Received token balance update via WebSocket:', event.metadata.balance);
-              updateTokenBalance(event.metadata.balance);
-            }
-          });
+    // Track if component is still mounted
+    let isActive = true;
+    let cleanupListener: (() => void) | null = null;
 
-          console.log('TokenContext: Event listener registered (before connect)');
+    // Initialize WebSocket service for real-time token updates
+    const initWebSocket = async () => {
+      try {
+        const { getWebSocketService } = await import('../services/websocket-service');
+        const service = getWebSocketService();
 
-          const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
-          if (token) {
-            // Check if already connected
-            const status = service.getStatus();
-            if (!status.isConnected) {
-              await service.connect(token);
-              console.log('TokenContext: WebSocket connected');
-            } else {
-              console.log('TokenContext: WebSocket already connected, reusing connection');
-            }
+        // CRITICAL FIX: Register event listener BEFORE connecting
+        cleanupListener = service.addEventListener((event) => {
+          // Guard against stale closures - only update if component still mounted
+          if (!isActive) return;
+
+          if (event.type === 'token-balance-updated' && event.metadata?.balance !== undefined) {
+            console.log('TokenContext: Received token balance update via WebSocket:', event.metadata.balance);
+            updateTokenBalance(event.metadata.balance);
+          }
+        });
+
+        console.log('TokenContext: Event listener registered');
+
+        const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
+        if (token && isActive) {
+          // Check if already connected
+          const status = service.getStatus();
+          if (!status.isConnected) {
+            await service.connect(token);
+            console.log('TokenContext: WebSocket connected');
+          } else {
+            console.log('TokenContext: WebSocket already connected, reusing connection');
+          }
+
+          // Only update state if component still mounted
+          if (isActive) {
             setWsService(service);
             setWsConnected(true);
           }
-
-          // Return cleanup function
-          return removeEventListener;
-        } catch (error) {
-          console.warn('TokenContext: Failed to initialize WebSocket for token updates:', error);
-          return undefined;
         }
-      };
-
-      let cleanup: (() => void) | undefined;
-      initWebSocket().then((cleanupFn) => {
-        cleanup = cleanupFn;
-      });
-
-      return () => {
-        // Only remove event listener, don't disconnect shared WebSocket
-        if (cleanup) {
-          cleanup();
-        }
-      };
-    } else {
-      setTokenInfo(null);
-      if (wsService) {
-        setWsService(null);
-        setWsConnected(false);
-      }
-    }
-  }, [isAuthenticated, user]);
-
-  // Cleanup WebSocket on unmount
-  useEffect(() => {
-    return () => {
-      if (wsService) {
-        wsService.disconnect();
+      } catch (error) {
+        console.warn('TokenContext: Failed to initialize WebSocket for token updates:', error);
       }
     };
-  }, [wsService]);
 
-  const value: TokenContextType = {
+    initWebSocket();
+
+    // Cleanup function
+    return () => {
+      // Mark as inactive to prevent stale closure updates
+      isActive = false;
+
+      // Remove event listener (CRITICAL: don't disconnect shared singleton)
+      if (cleanupListener) {
+        cleanupListener();
+        cleanupListener = null;
+      }
+
+      // Clear local state
+      setWsService(null);
+      setWsConnected(false);
+    };
+  }, [isAuthenticated, user, updateTokenBalance]);
+
+  // PERFORMANCE FIX: Memoize context value untuk prevent unnecessary re-renders
+  const value: TokenContextType = useMemo(() => ({
     tokenInfo,
     isLoading,
     refreshTokenBalance,
     updateTokenBalance,
-  };
+  }), [tokenInfo, isLoading, refreshTokenBalance, updateTokenBalance]);
 
   return (
     <TokenContext.Provider value={value}>

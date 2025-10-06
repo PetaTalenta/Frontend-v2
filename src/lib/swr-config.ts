@@ -15,7 +15,7 @@ export const fetcher = async (url: string) => {
   return response.json();
 };
 
-// SWR global configuration - OPTIMIZED for faster response
+// SWR global configuration - OPTIMIZED dengan smart retry strategy
 export const swrConfig: SWRConfiguration = {
   fetcher,
 
@@ -24,45 +24,69 @@ export const swrConfig: SWRConfiguration = {
   revalidateOnReconnect: true,
   revalidateIfStale: true,
 
-  // Cache settings - OPTIMIZED for faster response
-  dedupingInterval: 1000, // 1 second (reduced from 2s)
-  focusThrottleInterval: 3000, // 3 seconds (reduced from 5s)
+  // Cache settings - OPTIMIZED untuk assessment platform
+  dedupingInterval: 5000, // 5 seconds - assessment data doesn't change frequently
+  focusThrottleInterval: 3000, // 3 seconds
 
-  // Error retry settings - OPTIMIZED for faster failure detection
-  errorRetryCount: 2, // Reduced from 3 to 2
-  errorRetryInterval: 2000, // 2 seconds (reduced from 5s)
+  // Smart error retry strategy
+  onErrorRetry: (error: any, key, config, revalidate, { retryCount }) => {
+    // Don't retry on 404 - resource doesn't exist
+    if (error.status === 404) {
+      console.log(`[SWR] Not retrying 404 for key: ${key}`);
+      return;
+    }
+
+    // Don't retry on auth errors - need re-login
+    if (error.status === 401 || error.status === 403) {
+      console.log(`[SWR] Not retrying auth error (${error.status}) for key: ${key}`);
+      return;
+    }
+
+    // Max 3 retries
+    if (retryCount >= 3) {
+      console.log(`[SWR] Max retries reached for key: ${key}`);
+      return;
+    }
+
+    // Exponential backoff with max 10 seconds
+    const retryDelay = Math.min(1000 * Math.pow(2, retryCount), 10000);
+    console.log(`[SWR] Retrying in ${retryDelay}ms (attempt ${retryCount + 1}) for key: ${key}`);
+
+    setTimeout(() => revalidate({ retryCount }), retryDelay);
+  },
 
   // Loading timeout - OPTIMIZED
-  loadingTimeout: 8000, // 8 seconds (reduced from 10s)
+  loadingTimeout: 8000, // 8 seconds
 
   // Fallback data
   fallbackData: undefined,
 
   // Keep previous data while loading new data
   keepPreviousData: true,
-  
+
+  // Should retry on error (controlled by onErrorRetry)
+  shouldRetryOnError: true,
+
   // Custom error handler
   onError: (error, key) => {
-    console.error('SWR Error:', error, 'Key:', key);
-
-    // Don't log 404 errors for user-specific data
+    // Only log non-404 errors
     if (error?.status !== 404) {
-      // You can integrate with error reporting service here
-      // e.g., Sentry, LogRocket, etc.
+      console.error('[SWR] Error:', error.message || error, 'Key:', key);
+      // TODO: Integrate with error reporting service (Sentry, LogRocket, etc.)
     }
   },
-  
+
   // Success handler
   onSuccess: (data, key, config) => {
     // Optional: Log successful requests in development
     if (process.env.NODE_ENV === 'development') {
-      console.log('SWR Success:', key, data);
+      console.log('[SWR] Success:', key);
     }
   },
-  
+
   // Loading state handler
   onLoadingSlow: (key, config) => {
-    console.warn('SWR Loading Slow:', key);
+    console.warn('[SWR] Loading slow for key:', key);
   },
 };
 
@@ -178,4 +202,38 @@ export const expensiveDataConfig: SWRConfiguration = {
   dedupingInterval: 300000,          // 5 menit deduping
   errorRetryCount: 1,                // Minimal retry untuk expensive data
   loadingTimeout: 30000,             // 30 detik timeout
+};
+
+/**
+ * Config untuk assessment results (immutable data)
+ * Results don't change once created, so aggressive caching
+ */
+export const assessmentResultsConfig: SWRConfiguration = {
+  ...swrConfig,
+  dedupingInterval: 30000,           // 30 seconds - results don't change
+  revalidateIfStale: false,          // Don't revalidate stale data
+  revalidateOnMount: false,          // Don't revalidate on mount
+  revalidateOnFocus: false,
+  revalidateOnReconnect: false,
+
+  // Custom comparison untuk assessment results
+  compare: (a: any, b: any) => {
+    // If both have resultId, compare by ID
+    if (a?.resultId && b?.resultId) {
+      return a.resultId === b.resultId;
+    }
+    return a === b;
+  },
+};
+
+/**
+ * Config untuk live data (token balance, notifications)
+ * Needs frequent updates
+ */
+export const liveDataConfig: SWRConfiguration = {
+  ...swrConfig,
+  dedupingInterval: 1000,            // 1 second for live data
+  refreshInterval: 5000,             // Auto-refresh every 5 seconds
+  revalidateOnFocus: true,
+  revalidateOnReconnect: true,
 };

@@ -48,8 +48,9 @@ export function useAssessment(options: AssessmentOptions = {}): UseAssessmentRet
     message: 'Ready to submit assessment',
   });
 
+  // DOUBLE-SUBMIT FIX: Use promise-based guard (stronger than boolean)
+  const submissionPromiseRef = useRef<Promise<AssessmentResult | null> | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
-  const isSubmittingRef = useRef(false);
 
   // Update state helper
   const updateState = useCallback((updates: Partial<AssessmentState>) => {
@@ -96,14 +97,15 @@ export function useAssessment(options: AssessmentOptions = {}): UseAssessmentRet
   }, [updateState, state.jobId]);
 
   // Submit assessment from answers
+  // DOUBLE-SUBMIT FIX: Promise-based guard dengan AbortController support
   const submitFromAnswers = useCallback(async (
     answers: Record<number, number | null>,
     assessmentName: string = 'AI-Driven Talent Mapping'
   ): Promise<AssessmentResult | null> => {
-    // Prevent duplicate submissions
-    if (isSubmittingRef.current) {
-      console.warn('Assessment: Submission already in progress');
-      return null;
+    // CRITICAL: Reuse in-flight promise untuk prevent double submissions
+    if (submissionPromiseRef.current) {
+      console.warn('[useAssessment] Submission already in progress, reusing existing promise');
+      return submissionPromiseRef.current;
     }
 
     if (!token) {
@@ -117,64 +119,78 @@ export function useAssessment(options: AssessmentOptions = {}): UseAssessmentRet
       return null;
     }
 
-    isSubmittingRef.current = true;
-    abortControllerRef.current = new AbortController();
+    // Create guarded submission promise
+    submissionPromiseRef.current = (async () => {
+      abortControllerRef.current = new AbortController();
 
-    try {
-      updateState({
-        status: 'submitting',
-        progress: 0,
-        message: 'Submitting assessment...',
-        error: undefined,
-        result: undefined
-      });
-
-      // Use the public ApiService facade (keeps only 3 public services)
-      const apiService = (await import('../services/apiService')).default;
-
-      // Submit assessment with unified monitoring via facade
-      const result = await apiService.processAssessmentUnified(answers, assessmentName, {
-        onProgress: handleProgress,
-        onTokenBalanceUpdate: options.onTokenBalanceUpdate,
-        preferWebSocket: options.preferWebSocket,
-        onError: options.onError
-      });
-
-      updateState({
-        status: 'completed',
-        progress: 100,
-        message: 'Assessment completed successfully',
-        result
-      });
-
-      options.onComplete?.(result);
-      return result;
-
-    } catch (error) {
-      const safeError = createSafeError(error, 'SUBMISSION_ERROR');
-
-      updateState({
-        status: 'failed',
-        error: safeError.message || 'Assessment submission failed',
-        message: safeError.message || 'Assessment failed',
-        progress: 0
-      });
-
-      // Safe error callback execution
       try {
-        if (options.onError && typeof options.onError === 'function') {
-          options.onError(safeError);
+        updateState({
+          status: 'submitting',
+          progress: 0,
+          message: 'Submitting assessment...',
+          error: undefined,
+          result: undefined
+        });
+
+        // Use the public ApiService facade (keeps only 3 public services)
+        const apiService = (await import('../services/apiService')).default;
+
+        // Submit assessment with unified monitoring via facade
+        const result = await apiService.processAssessmentUnified(answers, assessmentName, {
+          onProgress: handleProgress,
+          onTokenBalanceUpdate: options.onTokenBalanceUpdate,
+          preferWebSocket: options.preferWebSocket,
+          onError: options.onError,
+          signal: abortControllerRef.current.signal // Add abort support
+        });
+
+        updateState({
+          status: 'completed',
+          progress: 100,
+          message: 'Assessment completed successfully',
+          result
+        });
+
+        options.onComplete?.(result);
+        return result;
+
+      } catch (error: any) {
+        // Check if aborted
+        if (error.name === 'AbortError') {
+          console.log('[useAssessment] Submission aborted by user');
+          return null;
         }
-      } catch (callbackError) {
-        console.error('Assessment: Error in onError callback:', createSafeError(callbackError));
+
+        const safeError = createSafeError(error, 'SUBMISSION_ERROR');
+
+        updateState({
+          status: 'failed',
+          error: safeError.message || 'Assessment submission failed',
+          message: safeError.message || 'Assessment failed',
+          progress: 0
+        });
+
+        // Safe error callback execution
+        try {
+          if (options.onError && typeof options.onError === 'function') {
+            options.onError(safeError);
+          }
+        } catch (callbackError) {
+          console.error('Assessment: Error in onError callback:', createSafeError(callbackError));
+        }
+
+        return null;
+
+      } finally {
+        abortControllerRef.current = null;
+        // IMPORTANT: Delay clearing promise untuk prevent rapid re-submit
+        setTimeout(() => {
+          submissionPromiseRef.current = null;
+        }, 1000); // 1 second debounce
       }
+    })();
 
-      return null;
-
-    } finally {
-      isSubmittingRef.current = false;
-      abortControllerRef.current = null;
-    }
+    return submissionPromiseRef.current;
   }, [token, handleProgress, updateState, options]);
 
   // Reset state
@@ -185,7 +201,10 @@ export function useAssessment(options: AssessmentOptions = {}): UseAssessmentRet
       abortControllerRef.current = null;
     }
 
-    isSubmittingRef.current = false;
+    // Clear submission promise
+    if (submissionPromiseRef.current) {
+      submissionPromiseRef.current = null;
+    }
 
     setState({
       status: 'idle',
@@ -201,7 +220,10 @@ export function useAssessment(options: AssessmentOptions = {}): UseAssessmentRet
       abortControllerRef.current = null;
     }
 
-    isSubmittingRef.current = false;
+    // Clear submission promise
+    if (submissionPromiseRef.current) {
+      submissionPromiseRef.current = null;
+    }
 
     updateState({
       status: 'idle',

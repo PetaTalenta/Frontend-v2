@@ -20,6 +20,7 @@ import DemoDataInitializer from '../components/debug/DemoDataInitializer'
 import SWRProvider from '../components/providers/SWRProvider'
 import PerformanceInitializer from '../components/performance/PerformanceInitializer'
 import SimplePrefetchProvider from '../components/performance/SimplePrefetchProvider'
+import { ErrorBoundary, AuthErrorFallback } from '../components/ErrorBoundary'
 // import { PageTransition } from '../components/animations/PageTransitions'
 import NotificationRedirectListener from '../components/notifications/NotificationRedirectListener'
 // OptimizationInitializer removed to prevent dynamic import issues
@@ -82,26 +83,32 @@ html {
         `}</style>
       </head>
       <body className={`${GeistSans.variable} ${GeistMono.variable} ${plusJakartaSans.variable}`}>
-        <SimplePrefetchProvider
-          enablePrefetch={true}
-          enableCaching={true}
-          debug={false}
-        >
+        {/* Root Error Boundary - catches all errors */}
+        <ErrorBoundary>
           <SWRProvider>
             <AuthProvider>
               <TokenProvider>
-                <AuthGuard>
-                  {children}
-                </AuthGuard>
-                {/* Global notification-driven redirect */}
-                <NotificationRedirectListener />
+                <SimplePrefetchProvider
+                  enablePrefetch={true}
+                  enableCaching={true}
+                  debug={false}
+                >
+                  {/* Auth-specific Error Boundary */}
+                  <ErrorBoundary fallback={<AuthErrorFallback />}>
+                    <AuthGuard>
+                      {children}
+                    </AuthGuard>
+                  </ErrorBoundary>
+                  {/* Global notification-driven redirect */}
+                  <NotificationRedirectListener />
+                  <DemoDataInitializer />
+                  <PerformanceInitializer />
+                  <Toaster />
+                </SimplePrefetchProvider>
               </TokenProvider>
             </AuthProvider>
-            <DemoDataInitializer />
-            <PerformanceInitializer />
-            <Toaster />
           </SWRProvider>
-        </SimplePrefetchProvider>
+        </ErrorBoundary>
       </body>
     </html>
   )

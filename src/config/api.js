@@ -54,7 +54,7 @@ export const API_ENDPOINTS = {
     
     // Protected endpoints (require Firebase ID token)
     LOGOUT: '/api/auth/v2/logout',
-    PROFILE: '/api/auth/v2/profile', // PATCH only - limited to displayName & photoURL
+    PROFILE: '/api/auth/profile', // PATCH only - limited to displayName & photoURL
     DELETE_USER: '/api/auth/v2/user', // DELETE - requires password confirmation
     
     // Notes:
