@@ -127,6 +127,17 @@ export default function ChatInterface({ assessmentResult, onBack }: ChatInterfac
           setConversation(created.data);
           const serverMessages = Array.isArray(created.data.messages) ? created.data.messages : [];
           const merged = mergeMessages(localMessages, serverMessages);
+          
+          // 🔍 DEBUGGING: Log messages yang akan di-set ke state
+          console.log('🔍 [ChatInterface] Messages from API:', {
+            serverMessagesCount: serverMessages.length,
+            serverMessages: serverMessages,
+            localMessagesCount: localMessages.length,
+            mergedCount: merged.length,
+            mergedMessages: merged,
+            willSetToState: merged.length > 0
+          });
+          
           setMessages(merged);
           try {
             localStorage.setItem(

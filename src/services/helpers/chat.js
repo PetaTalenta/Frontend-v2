@@ -46,16 +46,128 @@ export async function startConversation(axiosInstance, API_ENDPOINTS, data) {
       logger.debug('Generic conversation creation response:', genericResponse.data);
 
       if (genericResponse.data?.success) {
-        const conv = genericResponse.data.data?.conversation;
+        const apiData = genericResponse.data.data;
+        const conv = apiData?.conversation;
+        
+        // 🔍 DEBUGGING: Log struktur response dari generic endpoint
+        console.log('🔍 [DEBUG] Generic Endpoint Response Structure:', {
+          hasConversation: !!conv,
+          conversationId: conv?.id,
+          hasMessages: !!apiData?.messages,
+          messagesIsArray: Array.isArray(apiData?.messages),
+          messagesLength: Array.isArray(apiData?.messages) ? apiData.messages.length : 0,
+          hasPersonalizedWelcome: !!apiData?.personalizedWelcome,
+          conversationKeys: conv ? Object.keys(conv) : null,
+          apiDataKeys: apiData ? Object.keys(apiData) : null,
+          rawApiData: JSON.stringify(apiData, null, 2).substring(0, 500)
+        });
+
         if (conv?.id) {
+          // Check for messages in various possible locations
+          let welcomeMessages = [];
+          
+          // Check 1: In apiData.messages array
+          if (apiData?.messages && Array.isArray(apiData.messages) && apiData.messages.length > 0) {
+            welcomeMessages = apiData.messages
+              .filter(msg => msg.sender_type === 'assistant' || msg.sender === 'assistant' || msg.role === 'assistant')
+              .map(msg => ({
+                id: msg.id || msg.messageId,
+                role: 'assistant',
+                content: msg.content,
+                timestamp: msg.timestamp || msg.created_at || new Date().toISOString(),
+                resultId: data.resultId,
+              }));
+            console.log('✅ [DEBUG] Found messages in apiData.messages:', welcomeMessages.length);
+          }
+          
+          // Check 2: In conversation.messages array
+          if (welcomeMessages.length === 0 && conv.messages && Array.isArray(conv.messages) && conv.messages.length > 0) {
+            welcomeMessages = conv.messages
+              .filter(msg => msg.sender_type === 'assistant' || msg.sender === 'assistant' || msg.role === 'assistant')
+              .map(msg => ({
+                id: msg.id || msg.messageId,
+                role: 'assistant',
+                content: msg.content,
+                timestamp: msg.timestamp || msg.created_at || new Date().toISOString(),
+                resultId: data.resultId,
+              }));
+            console.log('✅ [DEBUG] Found messages in conversation.messages:', welcomeMessages.length);
+          }
+          
+          // Check 3: In apiData.personalizedWelcome
+          if (welcomeMessages.length === 0 && apiData?.personalizedWelcome) {
+            welcomeMessages = [{
+              id: apiData.personalizedWelcome.messageId || apiData.personalizedWelcome.id,
+              role: 'assistant',
+              content: apiData.personalizedWelcome.content,
+              timestamp: apiData.personalizedWelcome.timestamp || new Date().toISOString(),
+              resultId: data.resultId,
+            }];
+            console.log('✅ [DEBUG] Found messages in personalizedWelcome');
+          }
+
+          console.log('📊 [DEBUG] Total welcome messages to return:', welcomeMessages.length);
+          
+          // If no messages in creation response, try fetching messages via GET endpoint
+          if (welcomeMessages.length === 0) {
+            console.warn('⚠️ [DEBUG] No messages in creation response. Trying GET messages endpoint...');
+            try {
+              const messagesResp = await axiosInstance.get(
+                `${API_ENDPOINTS.CHATBOT.GET_MESSAGES(conv.id)}?page=1&limit=10`
+              );
+              console.log('🔍 [DEBUG] GET messages response:', messagesResp.data);
+              
+              if (messagesResp.data?.success && messagesResp.data.data?.messages) {
+                const fetchedMessages = messagesResp.data.data.messages
+                  .filter(msg => msg.sender_type === 'assistant' || msg.sender === 'assistant' || msg.role === 'assistant')
+                  .map(msg => ({
+                    id: msg.id || msg.messageId,
+                    role: 'assistant',
+                    content: msg.content,
+                    timestamp: msg.timestamp || msg.created_at || new Date().toISOString(),
+                    resultId: data.resultId,
+                  }));
+                welcomeMessages = fetchedMessages;
+                console.log('✅ [DEBUG] Fetched messages via GET:', welcomeMessages.length);
+              }
+            } catch (fetchErr) {
+              console.warn('⚠️ [DEBUG] Failed to fetch messages:', fetchErr.response?.data || fetchErr.message);
+            }
+          }
+
+          // FALLBACK: If still no messages, generate a welcome message in frontend
+          // This ensures user always sees a greeting when chat starts
+          if (welcomeMessages.length === 0) {
+            console.warn('⚠️ [DEBUG] Still no messages from API. Generating fallback welcome message.');
+            const personaName = data.assessmentContext?.profilePersona?.name || 'Pengguna';
+            welcomeMessages = [{
+              id: `welcome-${conv.id}`,
+              role: 'assistant',
+              content: `Halo! Saya adalah **Guider**, asisten AI yang akan membantu Anda dalam pengembangan karir berdasarkan profil persona **"${personaName}"** yang telah Anda selesaikan.
+
+Saya dapat membantu Anda dengan:
+
+- Rekomendasi jalur karir yang sesuai dengan kepribadian Anda
+- Analisis kekuatan dan area pengembangan
+- Saran untuk mengembangkan keterampilan yang dibutuhkan
+- Perencanaan langkah karir selanjutnya
+
+Silakan tanyakan apa saja yang ingin Anda ketahui tentang hasil assessment Anda! 😊`,
+              timestamp: new Date().toISOString(),
+              resultId: data.resultId,
+              _generatedByFrontend: true // marker for debugging
+            }];
+            console.log('✅ [DEBUG] Generated fallback welcome message');
+          }
+
           return {
             success: true,
             data: {
               id: conv.id,
               resultId: data.resultId,
-              messages: [],
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
+              messages: welcomeMessages,
+              createdAt: conv.createdAt || new Date().toISOString(),
+              updatedAt: conv.updatedAt || conv.lastActivity || new Date().toISOString(),
               assessmentContext: data.assessmentContext,
             },
           };
@@ -129,24 +241,55 @@ export async function startConversation(axiosInstance, API_ENDPOINTS, data) {
 
     if (response.data.success) {
       const apiData = response.data.data;
+      
+      // 🔍 DEBUGGING: Log struktur response API
+      console.log('🔍 [DEBUG] API Response Structure:', {
+        conversationId: apiData.conversationId,
+        hasPersonalizedWelcome: !!apiData.personalizedWelcome,
+        hasMessages: !!apiData.messages,
+        messagesLength: Array.isArray(apiData.messages) ? apiData.messages.length : 0,
+        personalizedWelcomeStructure: apiData.personalizedWelcome ? Object.keys(apiData.personalizedWelcome) : null,
+        firstMessageStructure: apiData.messages?.[0] ? Object.keys(apiData.messages[0]) : null,
+        rawApiData: JSON.stringify(apiData, null, 2).substring(0, 500)
+      });
+
+      // Check if welcome message is in messages array instead of personalizedWelcome
+      let welcomeMessages = [];
+      
+      if (apiData.personalizedWelcome) {
+        // Struktur lama: personalizedWelcome object
+        welcomeMessages = [{
+          id: apiData.personalizedWelcome.messageId || apiData.personalizedWelcome.id,
+          role: 'assistant',
+          content: apiData.personalizedWelcome.content,
+          timestamp: apiData.personalizedWelcome.timestamp || new Date().toISOString(),
+          resultId: data.resultId,
+        }];
+        console.log('✅ [DEBUG] Using personalizedWelcome structure');
+      } else if (apiData.messages && Array.isArray(apiData.messages) && apiData.messages.length > 0) {
+        // Struktur baru: messages array dengan assistant message
+        welcomeMessages = apiData.messages
+          .filter(msg => msg.sender_type === 'assistant' || msg.sender === 'assistant' || msg.role === 'assistant')
+          .map(msg => ({
+            id: msg.id || msg.messageId,
+            role: 'assistant',
+            content: msg.content,
+            timestamp: msg.timestamp || msg.created_at || new Date().toISOString(),
+            resultId: data.resultId,
+          }));
+        console.log('✅ [DEBUG] Using messages array structure, found:', welcomeMessages.length, 'assistant messages');
+      }
+
+      console.log('📊 [DEBUG] Welcome messages to return:', welcomeMessages);
+
       return {
         success: true,
         data: {
           id: apiData.conversationId,
           resultId: data.resultId,
-          messages: apiData.personalizedWelcome
-            ? [
-                {
-                  id: apiData.personalizedWelcome.messageId,
-                  role: 'assistant',
-                  content: apiData.personalizedWelcome.content,
-                  timestamp: apiData.personalizedWelcome.timestamp,
-                  resultId: data.resultId,
-                },
-              ]
-            : [],
-          createdAt: apiData.createdAt,
-          updatedAt: apiData.createdAt,
+          messages: welcomeMessages,
+          createdAt: apiData.createdAt || new Date().toISOString(),
+          updatedAt: apiData.createdAt || new Date().toISOString(),
           assessmentContext: data.assessmentContext,
           suggestions: apiData.suggestions,
         },
