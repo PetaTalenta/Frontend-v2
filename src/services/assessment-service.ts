@@ -528,10 +528,14 @@ class AssessmentService {
       this.wsEventListeners.set(jobId, cleanup);
       console.log(`✅ Assessment Service: Event listener registered and tracked for job ${jobId}`);
 
-      // Get authentication token
-      const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
-      if (!token) {
-        throw new Error('No authentication token');
+      // ✅ PRODUCTION FIX: Ensure we have a valid, non-expired token before WebSocket connection
+      let token: string;
+      try {
+        token = await ensureValidToken();
+        console.log(`✅ Assessment Service: Valid token ensured for WebSocket connection (job ${jobId})`);
+      } catch (error) {
+        console.error(`❌ Assessment Service: Failed to get valid token for job ${jobId}:`, error);
+        throw createSafeError('Authentication failed. Please login again.', 'AUTH_ERROR');
       }
 
       // Check if already connected (reuse existing connection)
@@ -596,6 +600,16 @@ class AssessmentService {
 
       try {
         state.attempts++;
+        
+        // ✅ PRODUCTION FIX: Refresh token before each polling request to prevent INVALID_TOKEN
+        // This is especially important for long-running assessments (2-5 minutes)
+        try {
+          await ensureValidToken();
+        } catch (tokenError) {
+          console.error(`❌ Assessment Service: Token validation failed during polling for job ${jobId}:`, tokenError);
+          // Don't immediately fail - try the status check anyway in case token is still valid
+        }
+        
         const status = await this.getAssessmentStatus(jobId);
 
         // Reset error counter on successful request
@@ -723,10 +737,14 @@ class AssessmentService {
    * Get assessment status with robust error handling
    */
   async getAssessmentStatus(jobId: string): Promise<AssessmentStatusResponse> {
-    const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
-
-    if (!token) {
-      throw createSafeError('No authentication token found', 'AUTH_ERROR');
+    // ✅ PRODUCTION FIX: Use ensureValidToken instead of direct localStorage access
+    let token: string;
+    try {
+      token = await ensureValidToken();
+      console.log(`✅ Assessment Service: Using validated token for status check (job ${jobId})`);
+    } catch (error) {
+      console.error(`❌ Assessment Service: Token validation failed for job ${jobId}:`, error);
+      throw createSafeError('Authentication failed. Please login again.', 'AUTH_ERROR');
     }
 
     if (!jobId || typeof jobId !== 'string') {
