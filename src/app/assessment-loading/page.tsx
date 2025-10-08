@@ -54,8 +54,49 @@ export default function AssessmentLoadingPageRoute() {
       // Reset guard to allow retry
       submissionAttempted.current = false;
     },
+    
+    // ✅ FIX: Implement proper token balance update to prevent race condition
     onTokenBalanceUpdate: async () => {
-      console.log('Token balance updated');
+      try {
+        const startTime = Date.now();
+        console.log('[AssessmentLoading] 🔄 Token balance update triggered');
+        
+        // Get current user from Auth context
+        const { user } = useAuth();
+        
+        if (!user?.id) {
+          console.warn('[AssessmentLoading] ⚠️ No user ID for token update');
+          return;
+        }
+        
+        // 1. Invalidate all token caches across layers
+        const { invalidateTokenBalanceCache } = await import('../../utils/cache-invalidation');
+        await invalidateTokenBalanceCache(user.id);
+        console.log('[AssessmentLoading] ✅ Token cache invalidated');
+        
+        // 2. Force refetch from API with skipCache=true to get fresh data
+        const { checkTokenBalance } = await import('../../utils/token-balance');
+        const tokenInfo = await checkTokenBalance(user.id, true); // skipCache=true
+        
+        const elapsed = Date.now() - startTime;
+        console.log(`[AssessmentLoading] ✅ Token balance refreshed in ${elapsed}ms:`, {
+          balance: tokenInfo.balance,
+          hasEnoughTokens: tokenInfo.hasEnoughTokens,
+          error: tokenInfo.error
+        });
+        
+        // 3. Optional: Dispatch custom event for other components to react
+        if (typeof window !== 'undefined' && !tokenInfo.error) {
+          window.dispatchEvent(new CustomEvent('tokenBalanceUpdated', {
+            detail: { balance: tokenInfo.balance, userId: user.id }
+          }));
+        }
+        
+      } catch (error) {
+        console.error('[AssessmentLoading] ❌ Failed to update token balance:', error);
+        // Don't throw - token update failure shouldn't break assessment flow
+        // Assessment continues regardless of token display issues
+      }
     }
   });
 
