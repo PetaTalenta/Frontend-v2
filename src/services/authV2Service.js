@@ -470,12 +470,23 @@ class AuthV2Service {
   _handleError(error) {
     if (error.response) {
       const status = error.response.status;
-      const message = error.response.data?.message || error.response.data?.error?.message;
+      
+      // ✅ PRIORITY FIX: Extract the most specific error message
+      // Priority order:
+      // 1. error.error.message (most specific, e.g., "Invalid email or password")
+      // 2. error.message (generic fallback, e.g., "Operation failed")
+      // 3. Default message
+      const specificMessage = error.response.data?.error?.message;
+      const genericMessage = error.response.data?.message;
+      const message = specificMessage || genericMessage || 'API request failed';
+
+      // Extract error code from nested error object if available
+      const errorCode = error.response.data?.error?.code || error.response.data?.code;
 
       // Create structured error
-      const apiError = new Error(message || 'API request failed');
+      const apiError = new Error(message);
       apiError.status = status;
-      apiError.code = error.response.data?.code;
+      apiError.code = errorCode;
       apiError.details = error.response.data;
 
       return apiError;

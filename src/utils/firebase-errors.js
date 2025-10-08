@@ -73,37 +73,131 @@ const HTTP_ERROR_MESSAGES = {
 };
 
 /**
+ * API Error Code Mapping
+ * Maps API error codes to user-friendly Indonesian messages
+ */
+const API_ERROR_MESSAGES = {
+  // Authentication Errors
+  'UNAUTHORIZED': 'Email atau password yang Anda masukkan salah. Silakan periksa kembali.',
+  'INVALID_EMAIL': 'Format email tidak valid. Periksa kembali email Anda.',
+  'INVALID_PASSWORD': 'Password yang Anda masukkan salah. Silakan coba lagi atau gunakan fitur lupa password.',
+  'USER_NOT_FOUND': 'Akun tidak ditemukan. Pastikan email Anda sudah terdaftar atau daftar terlebih dahulu.',
+  'USER_DISABLED': 'Akun Anda telah dinonaktifkan. Hubungi administrator untuk informasi lebih lanjut.',
+  'INVALID_CREDENTIALS': 'Email atau password yang Anda masukkan salah. Silakan periksa kembali.',
+  
+  // Registration Errors
+  'EMAIL_EXISTS': 'Email sudah terdaftar. Silakan login atau gunakan email lain.',
+  'EMAIL_ALREADY_IN_USE': 'Email sudah terdaftar. Silakan login atau gunakan email lain.',
+  'WEAK_PASSWORD': 'Password terlalu lemah. Gunakan minimal 6 karakter dengan kombinasi huruf dan angka.',
+  'PASSWORD_TOO_SHORT': 'Password terlalu pendek. Gunakan minimal 6 karakter.',
+  
+  // Token / Session Errors
+  'TOKEN_EXPIRED': 'Sesi Anda telah berakhir. Silakan login kembali.',
+  'TOKEN_INVALID': 'Token autentikasi tidak valid. Silakan login kembali.',
+  'SESSION_EXPIRED': 'Sesi Anda telah berakhir. Silakan login kembali.',
+  'INVALID_TOKEN': 'Token autentikasi tidak valid. Silakan login kembali.',
+  
+  // Rate Limiting
+  'TOO_MANY_REQUESTS': 'Terlalu banyak percobaan. Silakan tunggu beberapa saat dan coba lagi.',
+  'RATE_LIMIT_EXCEEDED': 'Terlalu banyak percobaan. Silakan tunggu beberapa saat dan coba lagi.',
+  
+  // Validation Errors
+  'VALIDATION_ERROR': 'Data yang Anda masukkan tidak valid. Periksa kembali form Anda.',
+  'MISSING_FIELD': 'Ada field yang wajib diisi. Periksa kembali form Anda.',
+  'INVALID_INPUT': 'Data yang Anda masukkan tidak valid. Periksa kembali.',
+  
+  // Server Errors
+  'INTERNAL_ERROR': 'Terjadi kesalahan internal. Silakan coba lagi nanti.',
+  'SERVICE_UNAVAILABLE': 'Layanan sedang tidak tersedia. Silakan coba lagi nanti.',
+  'NETWORK_ERROR': 'Koneksi internet bermasalah. Periksa koneksi Anda dan coba lagi.',
+};
+
+/**
  * Get user-friendly error message from Firebase error
  * 
  * @param {Error} error - Error object from Firebase or axios
  * @returns {string} - User-friendly error message in Indonesian
  */
 export function getFirebaseErrorMessage(error) {
-  // Check if error has Firebase error code
+  // Check if error has Firebase error code (e.g., auth/user-not-found)
   if (error?.code) {
-    const message = FIREBASE_ERROR_MESSAGES[error.code];
-    if (message) return message;
+    // Try Firebase error codes first
+    const firebaseMessage = FIREBASE_ERROR_MESSAGES[error.code];
+    if (firebaseMessage) return firebaseMessage;
+    
+    // Try API error codes (e.g., UNAUTHORIZED, EMAIL_EXISTS)
+    const apiMessage = API_ERROR_MESSAGES[error.code];
+    if (apiMessage) return apiMessage;
   }
 
   // Check if it's an axios error with response
   if (error?.response) {
     const status = error.response.status;
-    const serverMessage = error.response.data?.message || error.response.data?.error?.message;
-    const firebaseCode = error.response.data?.code;
-
-    // Try to get Firebase error code from response
-    if (firebaseCode && FIREBASE_ERROR_MESSAGES[firebaseCode]) {
-      return FIREBASE_ERROR_MESSAGES[firebaseCode];
+    
+    // ✅ PRIORITY 1: Try to get error code from nested error object
+    const nestedErrorCode = error.response.data?.error?.code;
+    if (nestedErrorCode) {
+      // Try Firebase error codes
+      if (FIREBASE_ERROR_MESSAGES[nestedErrorCode]) {
+        return FIREBASE_ERROR_MESSAGES[nestedErrorCode];
+      }
+      // Try API error codes
+      if (API_ERROR_MESSAGES[nestedErrorCode]) {
+        return API_ERROR_MESSAGES[nestedErrorCode];
+      }
     }
-
-    // Try to get HTTP status message
+    
+    // ✅ PRIORITY 2: Try to get error code from root level
+    const rootErrorCode = error.response.data?.code;
+    if (rootErrorCode) {
+      // Try Firebase error codes
+      if (FIREBASE_ERROR_MESSAGES[rootErrorCode]) {
+        return FIREBASE_ERROR_MESSAGES[rootErrorCode];
+      }
+      // Try API error codes
+      if (API_ERROR_MESSAGES[rootErrorCode]) {
+        return API_ERROR_MESSAGES[rootErrorCode];
+      }
+    }
+    
+    // ✅ PRIORITY 3: Try to get specific error message from nested error object
+    const nestedErrorMessage = error.response.data?.error?.message;
+    if (nestedErrorMessage && nestedErrorMessage !== 'Operation failed') {
+      // Map common English error messages to Indonesian
+      const lowerMessage = nestedErrorMessage.toLowerCase();
+      
+      if (lowerMessage.includes('invalid email or password') || 
+          lowerMessage.includes('invalid credentials')) {
+        return 'Email atau password yang Anda masukkan salah. Silakan periksa kembali.';
+      }
+      
+      if (lowerMessage.includes('email already') || 
+          lowerMessage.includes('email exists')) {
+        return 'Email sudah terdaftar. Silakan login atau gunakan email lain.';
+      }
+      
+      if (lowerMessage.includes('user not found')) {
+        return 'Akun tidak ditemukan. Pastikan email Anda sudah terdaftar atau daftar terlebih dahulu.';
+      }
+      
+      if (lowerMessage.includes('weak password') || 
+          lowerMessage.includes('password too short')) {
+        return 'Password terlalu lemah. Gunakan minimal 6 karakter dengan kombinasi huruf dan angka.';
+      }
+      
+      // If it's a meaningful message (not generic), use it
+      return nestedErrorMessage;
+    }
+    
+    // ✅ PRIORITY 4: Try HTTP status message
     if (HTTP_ERROR_MESSAGES[status]) {
       return HTTP_ERROR_MESSAGES[status];
     }
-
-    // Use server message if available
-    if (serverMessage) {
-      return serverMessage;
+    
+    // ✅ PRIORITY 5: Use root level message only as last resort
+    const rootMessage = error.response.data?.message;
+    if (rootMessage && rootMessage !== 'Operation failed') {
+      return rootMessage;
     }
 
     // Generic status-based message
@@ -129,9 +223,17 @@ export function getFirebaseErrorMessage(error) {
   if (errorMessage.includes('expired') || errorMessage.includes('session')) {
     return 'Sesi Anda telah berakhir. Silakan login kembali.';
   }
+  
+  if (errorMessage.includes('invalid email or password') || 
+      errorMessage.includes('invalid credentials')) {
+    return 'Email atau password yang Anda masukkan salah. Silakan periksa kembali.';
+  }
 
-  // Fallback to generic error message
-  return error?.message || 'Terjadi kesalahan. Silakan coba lagi.';
+  // Fallback to generic error message (avoid showing "Operation failed")
+  const finalMessage = error?.message || 'Terjadi kesalahan. Silakan coba lagi.';
+  return finalMessage === 'Operation failed' 
+    ? 'Terjadi kesalahan. Silakan coba lagi.' 
+    : finalMessage;
 }
 
 /**
