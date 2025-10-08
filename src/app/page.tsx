@@ -23,8 +23,9 @@ export const metadata: Metadata = {
   },
 };
 
-export default function Page() {
-  const token = cookies().get('token')?.value;
+export default async function Page() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get('token')?.value;
 
   if (token) {
     redirect('/dashboard');

@@ -32,14 +32,47 @@ class AuthV2Service {
       },
     });
 
+    // ✅ CRITICAL FIX #1: Track active requests with AbortControllers for cancellation on logout
+    this._activeRequests = new Map(); // requestId -> { controller: AbortController, metadata: {...} }
+
     // Add request interceptor to include Firebase ID token
     this.axiosInstance.interceptors.request.use(
       (config) => {
+        // ✅ CRITICAL FIX #1: Create AbortController for this request
+        const controller = new AbortController();
+        const requestId = `authv2-req-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+
+        // Attach AbortController signal to request
+        config.signal = controller.signal;
+
         const idToken = tokenService.getIdToken();
-        if (idToken) {
+        const userId = tokenService.getUserId(); // ✅ Get userId for validation
+
+        // ✅ CRITICAL FIX #6: Validate both token and userId exist
+        if (idToken && userId) {
           config.headers.Authorization = `Bearer ${idToken}`;
           logger.debug('Auth V2: Adding Firebase ID token to request');
+        } else {
+          logger.warn('Auth V2: No ID token or userId found');
+          delete config.headers.Authorization;
         }
+
+        // Add metadata
+        config.metadata = {
+          requestId,
+          timestamp: new Date().toISOString(),
+          userId,
+          hasAuth: !!config.headers.Authorization
+        };
+
+        // ✅ CRITICAL FIX #1: Track this request for potential cancellation
+        this._activeRequests.set(requestId, {
+          controller,
+          metadata: config.metadata,
+          url: config.url,
+          method: config.method
+        });
+
         return config;
       },
       (error) => {
@@ -49,8 +82,29 @@ class AuthV2Service {
 
     // Add response interceptor for error handling
     this.axiosInstance.interceptors.response.use(
-      (response) => response,
+      (response) => {
+        // ✅ CRITICAL FIX #1: Remove from active requests on success
+        const requestId = response.config.metadata?.requestId;
+        if (requestId && this._activeRequests.has(requestId)) {
+          this._activeRequests.delete(requestId);
+          logger.debug(`Auth V2 Response [${requestId}]: Completed successfully`);
+        }
+        return response;
+      },
       (error) => {
+        // ✅ CRITICAL FIX #1: Remove from active requests on error
+        const requestId = error.config?.metadata?.requestId;
+        if (requestId && this._activeRequests.has(requestId)) {
+          this._activeRequests.delete(requestId);
+
+          // Check if error is due to abort
+          if (error.code === 'ERR_CANCELED' || error.message?.includes('abort')) {
+            logger.debug(`Auth V2 Request [${requestId}]: Aborted by user`);
+          } else {
+            logger.debug(`Auth V2 Response [${requestId}]: Failed`);
+          }
+        }
+
         logger.error('Auth V2 API Error:', {
           status: error.response?.status,
           url: error.config?.url,
@@ -59,6 +113,33 @@ class AuthV2Service {
         return Promise.reject(error);
       }
     );
+  }
+
+  /**
+   * ✅ CRITICAL FIX #1: Abort all active requests
+   * Called on logout to prevent cross-user data leakage
+   */
+  abortAllRequests() {
+    const count = this._activeRequests.size;
+
+    if (count === 0) {
+      logger.debug('[authV2Service] No active requests to abort');
+      return;
+    }
+
+    logger.warn(`[authV2Service] Aborting ${count} active requests...`);
+
+    this._activeRequests.forEach((requestInfo, requestId) => {
+      try {
+        requestInfo.controller.abort();
+        logger.debug(`[authV2Service] Aborted request [${requestId}]: ${requestInfo.method?.toUpperCase()} ${requestInfo.url}`);
+      } catch (error) {
+        logger.error(`[authV2Service] Failed to abort request [${requestId}]:`, error);
+      }
+    });
+
+    this._activeRequests.clear();
+    logger.warn(`✅ [authV2Service] All ${count} active requests aborted`);
   }
 
   /**

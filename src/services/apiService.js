@@ -38,6 +38,9 @@ class ApiService {
     this._inflight = new Map();
     this._cache = new Map();
 
+    // ✅ CRITICAL FIX: Track active requests with AbortControllers for cancellation on logout
+    this._activeRequests = new Map(); // requestId -> { controller: AbortController, metadata: {...} }
+
     // ✅ Auto cleanup expired cache entries every 5 minutes
     this._cleanupInterval = setInterval(() => this._cleanupExpiredCache(), 300000);
   }
@@ -79,20 +82,30 @@ class ApiService {
   /**
    * ✅ CRITICAL FIX #6: Enhanced request interceptor with token validation
    * Adds token expiry validation and request metadata for debugging
+   * ✅ CRITICAL FIX #1: Track AbortControllers for request cancellation on logout
    */
   setupRequestInterceptor() {
     this.axiosInstance.interceptors.request.use(
       async (config) => {
         try {
+          // ✅ CRITICAL FIX #1: Create AbortController for this request
+          const controller = new AbortController();
+          const requestId = `req-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+
+          // Attach AbortController signal to request
+          config.signal = controller.signal;
+
           // Try to get Auth V2 token first (if user is using V2)
           const tokenService = (await import('./tokenService')).default;
           const authVersion = tokenService.getAuthVersion();
+          const userId = tokenService.getUserId(); // ✅ Get userId for validation
 
           if (authVersion === 'v2') {
             // Auth V2: Use Firebase ID token
             const idToken = tokenService.getIdToken();
-            
-            if (idToken) {
+
+            // ✅ CRITICAL FIX #6: Validate both token and userId exist
+            if (idToken && userId) {
               // ✅ CRITICAL: Validate token is not expired
               if (!tokenService.isTokenExpired()) {
                 config.headers.Authorization = `Bearer ${idToken}`;
@@ -102,13 +115,13 @@ class ApiService {
                 config.headers.Authorization = `Bearer ${idToken}`;
               }
             } else {
-              logger.warn('API Request: No Auth V2 token found');
+              logger.warn('API Request: No Auth V2 token or userId found');
               delete config.headers.Authorization;
             }
           } else {
             // Auth V1: Use legacy JWT token
             const token = getToken();
-            
+
             if (token) {
               config.headers.Authorization = `Bearer ${token}`;
               logger.debug('API Request: Auth V1 token added');
@@ -120,16 +133,27 @@ class ApiService {
 
           // ✅ NEW: Add request metadata for debugging
           config.metadata = {
-            requestId: `req-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            requestId,
             timestamp: new Date().toISOString(),
             authVersion,
+            userId, // ✅ Track which user made the request
             hasAuth: !!config.headers.Authorization
           };
+
+          // ✅ CRITICAL FIX #1: Track this request for potential cancellation
+          this._activeRequests.set(requestId, {
+            controller,
+            metadata: config.metadata,
+            url: config.url,
+            method: config.method
+          });
+
+          logger.debug(`API Request [${requestId}]: ${config.method?.toUpperCase()} ${config.url}`);
 
         } catch (error) {
           // Fallback to V1 token if tokenService not available
           logger.error('API Request Interceptor Error:', error);
-          
+
           const token = getToken();
           if (token) {
             config.headers.Authorization = `Bearer ${token}`;
@@ -138,8 +162,9 @@ class ApiService {
           }
 
           // Add metadata even on error
+          const requestId = `req-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
           config.metadata = {
-            requestId: `req-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            requestId,
             timestamp: new Date().toISOString(),
             authVersion: 'v1',
             hasAuth: !!config.headers.Authorization,
@@ -147,7 +172,6 @@ class ApiService {
           };
         }
 
-        logger.debug(`API Request [${config.metadata?.requestId}]: ${config.method?.toUpperCase()} ${config.url}`);
         return config;
       },
       (error) => {
@@ -159,14 +183,35 @@ class ApiService {
 
   /**
    * Setup response interceptor for error handling with auto token refresh
+   * ✅ CRITICAL FIX #1: Cleanup request tracking on response/error
    */
   setupResponseInterceptor() {
     this.axiosInstance.interceptors.response.use(
       (response) => {
+        // ✅ CRITICAL FIX #1: Remove from active requests on success
+        const requestId = response.config.metadata?.requestId;
+        if (requestId && this._activeRequests.has(requestId)) {
+          this._activeRequests.delete(requestId);
+          logger.debug(`API Response [${requestId}]: Completed successfully, removed from active requests`);
+        }
+
         logger.debug(`API Response: ${response.status} ${response.config.method?.toUpperCase()} ${response.config.url}`);
         return response;
       },
       async (error) => {
+        // ✅ CRITICAL FIX #1: Remove from active requests on error
+        const requestId = error.config?.metadata?.requestId;
+        if (requestId && this._activeRequests.has(requestId)) {
+          this._activeRequests.delete(requestId);
+
+          // Check if error is due to abort
+          if (error.code === 'ERR_CANCELED' || error.message?.includes('abort')) {
+            logger.debug(`API Request [${requestId}]: Aborted by user`);
+          } else {
+            logger.debug(`API Response [${requestId}]: Failed, removed from active requests`);
+          }
+        }
+
         // Log detailed error information (compact in production)
         logger.error('API Response Error', {
           status: error.response?.status,
@@ -242,9 +287,12 @@ class ApiService {
 
 	  /**
 	   * ✅ Build a stable request key for deduplication
+	   * ✅ CRITICAL FIX #3: Include userId in cache key to prevent cross-user cache pollution
 	   */
 	  _requestKey(url, options = {}) {
 	    const method = (options.method || 'GET').toUpperCase();
+	    const userId = this.getCurrentUserId() || 'anonymous';
+
 	    let bodyKey = '';
 	    try {
 	      if (options.body) {
@@ -253,7 +301,9 @@ class ApiService {
 	    } catch (_) {
 	      bodyKey = '';
 	    }
-	    return `${method}|${url}|${bodyKey}`;
+
+	    // ✅ Include userId in cache key
+	    return `${userId}:${method}|${url}|${bodyKey}`;
 	  }
 
 	  /**
@@ -294,6 +344,77 @@ class ApiService {
 	    this._cache.clear();
 	    logger.debug('[apiService] Cache cleared');
 	  }
+
+	  /**
+	   * ✅ CRITICAL FIX #1: Abort all active requests
+	   * Called on logout to prevent cross-user data leakage
+	   */
+	  abortAllRequests() {
+	    const count = this._activeRequests.size;
+
+	    if (count === 0) {
+	      logger.debug('[apiService] No active requests to abort');
+	      return;
+	    }
+
+	    logger.warn(`[apiService] Aborting ${count} active requests...`);
+
+	    this._activeRequests.forEach((requestInfo, requestId) => {
+	      try {
+	        requestInfo.controller.abort();
+	        logger.debug(`[apiService] Aborted request [${requestId}]: ${requestInfo.method?.toUpperCase()} ${requestInfo.url}`);
+	      } catch (error) {
+	        logger.error(`[apiService] Failed to abort request [${requestId}]:`, error);
+	      }
+	    });
+
+	    this._activeRequests.clear();
+	    logger.warn(`✅ [apiService] All ${count} active requests aborted`);
+	  }
+
+	  /**
+	   * ✅ CRITICAL FIX #3: Clear cache for specific user
+	   * Prevents cached data from one user being served to another
+	   * @param {string} userId - User ID to clear cache for
+	   */
+	  clearUserCache(userId) {
+	    if (!userId) {
+	      logger.warn('[apiService] clearUserCache called without userId, clearing all cache');
+	      this.clearCache();
+	      return;
+	    }
+
+	    const keysToDelete = [];
+
+	    // Find all cache entries for this user
+	    for (const [key, value] of this._cache.entries()) {
+	      if (key.startsWith(`${userId}:`)) {
+	        keysToDelete.push(key);
+	      }
+	    }
+
+	    // Delete user-specific cache entries
+	    keysToDelete.forEach(key => this._cache.delete(key));
+
+	    logger.debug(`[apiService] Cleared ${keysToDelete.length} cache entries for user: ${userId}`);
+	  }
+
+	  /**
+	   * ✅ Get current user ID from tokenService
+	   * Used for user-scoped cache keys
+	   * @returns {string|null} Current user ID or null
+	   */
+	  getCurrentUserId() {
+	    try {
+	      // Dynamic import to avoid circular dependency
+	      const tokenService = require('./tokenService').default;
+	      return tokenService.getUserId();
+	    } catch (error) {
+	      logger.error('[apiService] Failed to get current userId:', error);
+	      return null;
+	    }
+	  }
+
 
 	  /**
 	   * Fetch with in-flight deduplication and tiny TTL cache
@@ -784,7 +905,7 @@ class ApiService {
    */
   async retryAssessmentByJob(jobId) {
     console.log('🔄 ApiService: Retrying assessment by jobId:', jobId);
-    
+
     if (!jobId) {
       console.error('❌ ApiService: No jobId provided for retry');
       throw new Error('Job ID is required for retry');
@@ -794,12 +915,12 @@ class ApiService {
       const response = await this.axiosInstance.post(API_ENDPOINTS.ASSESSMENT.RETRY, {
         jobId: jobId
       });
-      
+
       console.log('✅ ApiService: Retry response:', response.data);
       return response.data;
     } catch (error) {
       console.error('❌ ApiService: Retry failed:', error.response?.data || error.message);
-      
+
       // Re-throw dengan informasi lebih detail
       if (error.response?.data) {
         throw new Error(error.response.data.error?.message || error.response.data.message || 'Retry failed');

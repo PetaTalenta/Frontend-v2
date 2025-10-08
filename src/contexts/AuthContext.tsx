@@ -423,11 +423,41 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const logout = useCallback(async () => {
     console.log('AuthContext: Logout initiated, auth version:', authVersion);
 
-    // ✅ CRITICAL FIX #1: Clear ALL SWR cache FIRST before logout
+    // ✅ CRITICAL FIX #1: Abort all in-flight requests FIRST
+    // This prevents responses from old user being consumed by new user
+    try {
+      console.log('🛑 AuthContext: Aborting all in-flight requests...');
+      const { default: apiService } = await import('../services/apiService');
+      const { default: authV2Service } = await import('../services/authV2Service');
+
+      // Abort all active requests
+      if (typeof (apiService as any).abortAllRequests === 'function') {
+        (apiService as any).abortAllRequests();
+      }
+      if (typeof (authV2Service as any).abortAllRequests === 'function') {
+        (authV2Service as any).abortAllRequests();
+      }
+
+      console.log('✅ AuthContext: All in-flight requests aborted');
+    } catch (error) {
+      console.error('⚠️ AuthContext: Failed to abort requests:', error);
+    }
+
+    // ✅ CRITICAL FIX #4: Stop token refresh timer
+    // Prevents memory leak and refresh attempts with cleared tokens
+    try {
+      console.log('⏹️ AuthContext: Stopping token refresh timer...');
+      stopRefreshTimer();
+      console.log('✅ AuthContext: Token refresh timer stopped');
+    } catch (error) {
+      console.error('⚠️ AuthContext: Failed to stop refresh timer:', error);
+    }
+
+    // ✅ CRITICAL FIX #2: Clear ALL SWR cache BEFORE logout
     // This ensures no cached data from previous user persists
     try {
       console.log('🧹 AuthContext: Clearing SWR cache for all user data...');
-      
+
       // Method 1: Clear all cache globally (most thorough)
       await mutate(
         () => true, // Match all keys
@@ -450,6 +480,18 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     } catch (error) {
       console.error('⚠️ AuthContext: Failed to clear SWR cache:', error);
       // Continue with logout even if cache clear fails
+    }
+
+    // ✅ CRITICAL FIX #5: Disconnect WebSocket BEFORE clearing tokens
+    // This ensures WebSocket doesn't try to reconnect with stale token
+    try {
+      console.log('🔌 AuthContext: Disconnecting WebSocket...');
+      const { getWebSocketService } = await import('../services/websocket-service');
+      const wsService = getWebSocketService();
+      wsService.disconnect();
+      console.log('✅ AuthContext: WebSocket disconnected');
+    } catch (error) {
+      console.warn('⚠️ AuthContext: Failed to disconnect WebSocket:', error);
     }
 
     // ✅ CRITICAL FIX: Clear ALL tokens and user data regardless of auth version
@@ -476,25 +518,23 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     setUser(null);
     setAuthVersion('v1'); // Reset to v1
 
-    // ✅ CRITICAL FIX: Disconnect WebSocket on logout
+    // ✅ CRITICAL FIX #3: Clear apiService caches (user-scoped)
     try {
-      const { getWebSocketService } = await import('../services/websocket-service');
-      const wsService = getWebSocketService();
-      wsService.disconnect();
-      console.log('AuthContext: WebSocket disconnected');
-    } catch (error) {
-      console.warn('AuthContext: Failed to disconnect WebSocket:', error);
-    }
+      const { default: apiService } = await import('../services/apiService');
 
-    // ✅ CRITICAL FIX: Clear apiService caches to prevent stale data
-    try {
-      const { apiService } = await import('../services/apiService');
+      // Clear user-specific cache
+      if (user?.id && typeof (apiService as any).clearUserCache === 'function') {
+        (apiService as any).clearUserCache(user.id);
+        console.log('AuthContext: apiService user cache cleared');
+      }
+
       // Clear in-memory cache
       if ((apiService as any)._cache) {
         (apiService as any)._cache.clear();
         console.log('AuthContext: apiService memory cache cleared');
       }
-      // Clear in-flight requests
+
+      // Clear in-flight requests map (should be empty after abort)
       if ((apiService as any)._inflight) {
         (apiService as any)._inflight.clear();
         console.log('AuthContext: apiService in-flight requests cleared');
@@ -514,7 +554,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
     // Redirect to login page
     router.push('/auth');
-  }, [authVersion, user, router]);
+  }, [authVersion, user, router, stopRefreshTimer]);
 
   // PERFORMANCE FIX: Memoize context value untuk prevent unnecessary re-renders
   const value: AuthContextType = useMemo(() => ({
