@@ -64,7 +64,9 @@ export default function AssessmentSidebar({ isOpen = false, onToggle }: Assessme
       }
 
       // Save answers and assessment name to localStorage for the loading page
-      console.log('AssessmentSidebar: Saving answers to localStorage for loading page...');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('AssessmentSidebar: Saving answers to localStorage for loading page...');
+      }
       localStorage.setItem('assessment-answers', JSON.stringify(answers));
       localStorage.setItem('assessment-name', assessmentName);
       localStorage.setItem('assessment-submission-time', new Date().toISOString());
@@ -73,11 +75,15 @@ export default function AssessmentSidebar({ isOpen = false, onToggle }: Assessme
       toast.success('Assessment berhasil dikirim! Mengarahkan ke halaman loading...');
 
       // Redirect to loading page
-      console.log('AssessmentSidebar: Redirecting to /assessment-loading...');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('AssessmentSidebar: Redirecting to /assessment-loading...');
+      }
       router.push('/assessment-loading');
 
     } catch (error) {
-      console.error('Failed to submit assessment:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Failed to submit assessment:', error);
+      }
       toast.error('Gagal mengirim assessment. Silakan coba lagi.');
       setIsSubmitting(false);
     }
@@ -803,7 +809,7 @@ export default function AssessmentSidebar({ isOpen = false, onToggle }: Assessme
       )}
 
       {/* Debug Buttons - Only show in development */}
-      {/* {process.env.NODE_ENV === 'development' &&  () */}
+      {process.env.NODE_ENV === 'development' && (
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-4">
           <div className="flex items-center gap-2 mb-3">
             <span className="text-gray-600">🐛</span>
@@ -826,7 +832,7 @@ export default function AssessmentSidebar({ isOpen = false, onToggle }: Assessme
             </button>
           </div>
         </div>
-      {/* )} */}
+      )}
 
       {/* Total Progress */}
       <div className="mt-auto pt-4">
