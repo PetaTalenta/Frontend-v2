@@ -50,33 +50,34 @@ const ForgotPassword = ({ onBack }) => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="text-center">
-        <div className="flex justify-center mb-4">
-          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
-            <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-            </svg>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-2xl shadow-xl">
+        <div className="text-center">
+          <div className="flex justify-center mb-4">
+            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
+              <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+            </div>
           </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Forgot Password?</h2>
+          <p className="text-gray-600">
+            {success 
+              ? 'Email reset password telah dikirim!' 
+              : 'Masukkan email Anda dan kami akan mengirimkan link untuk reset password'}
+          </p>
         </div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Forgot Password?</h2>
-        <p className="text-gray-600">
-          {success 
-            ? 'Email reset password telah dikirim!' 
-            : 'Masukkan email Anda dan kami akan mengirimkan link untuk reset password'}
-        </p>
-      </div>
 
       {success ? (
         <div className="space-y-6">
           {/* Success State */}
           <div className="bg-green-50 border border-green-200 rounded-lg p-4">
             <div className="flex items-start">
-              <svg className="h-5 w-5 text-green-400 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <svg className="h-6 w-6 text-green-400 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
               </svg>
               <div className="flex-1">
-                <p className="text-sm font-medium text-green-800 mb-1">
+                <p className="text-sm font-medium text-green-800 mb-2">
                   Email berhasil dikirim ke {emailSent}
                 </p>
                 <p className="text-sm text-green-700">
@@ -90,15 +91,24 @@ const ForgotPassword = ({ onBack }) => {
           {/* Additional Info */}
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <div className="flex items-start">
-              <svg className="h-5 w-5 text-blue-400 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <svg className="h-5 w-5 text-blue-400 mr-3 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
               </svg>
               <div className="flex-1">
-                <p className="text-sm font-medium text-blue-800 mb-1">Tidak menerima email?</p>
-                <ul className="text-sm text-blue-700 list-disc list-inside space-y-1">
-                  <li>Cek folder spam/junk email Anda</li>
-                  <li>Pastikan email yang dimasukkan benar</li>
-                  <li>Tunggu beberapa menit, email mungkin tertunda</li>
+                <p className="text-sm font-medium text-blue-800 mb-2">Tidak menerima email?</p>
+                <ul className="text-sm text-blue-700 space-y-1">
+                  <li className="flex items-start">
+                    <span className="mr-2">•</span>
+                    <span>Cek folder spam/junk email Anda</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="mr-2">•</span>
+                    <span>Pastikan email yang dimasukkan benar</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="mr-2">•</span>
+                    <span>Tunggu beberapa menit, email mungkin tertunda</span>
+                  </li>
                 </ul>
               </div>
             </div>
@@ -108,7 +118,7 @@ const ForgotPassword = ({ onBack }) => {
           <button
             type="button"
             onClick={onBack}
-            className="w-full py-3 px-4 bg-gradient-to-r from-slate-600 to-blue-600 text-white font-medium rounded-lg hover:from-slate-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 transform hover:scale-[1.01] active:scale-[0.99] shadow-md"
+            className="w-full py-3 px-4 bg-gradient-to-r from-slate-600 to-blue-600 text-white font-medium rounded-lg hover:from-slate-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 shadow-md"
           >
             <div className="flex items-center justify-center">
               <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -180,7 +190,7 @@ const ForgotPassword = ({ onBack }) => {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full py-3 px-4 bg-gradient-to-r from-slate-600 to-blue-600 text-white font-medium rounded-lg hover:from-slate-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-[1.01] active:scale-[0.99] shadow-md"
+            className="w-full py-3 px-4 bg-gradient-to-r from-slate-600 to-blue-600 text-white font-medium rounded-lg hover:from-slate-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-md"
           >
             {isLoading ? (
               <div className="flex items-center justify-center">
@@ -212,6 +222,7 @@ const ForgotPassword = ({ onBack }) => {
           </div>
         </form>
       )}
+      </div>
     </div>
   );
 };
