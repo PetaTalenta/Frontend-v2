@@ -37,8 +37,15 @@ const Register = ({ onRegister }) => {
       }
 
       const email = data.email.toLowerCase().trim();
-      const password = data.password;
+      const password = data.password.trim(); // ✅ Trim password untuk avoid trailing spaces
       const username = data.username?.trim();
+
+      // Validate password doesn't contain spaces
+      if (password.includes(' ')) {
+        setError('Password tidak boleh mengandung spasi');
+        setIsLoading(false);
+        return;
+      }
 
       // ===== Auth V2 (Firebase) Flow =====
       console.log('🔐 Registering with Auth V2 (Firebase)...');
@@ -105,9 +112,25 @@ const Register = ({ onRegister }) => {
     } catch (err) {
       console.error('❌ Auth V2 Registration error:', err);
       
-      // Use Firebase error mapping
-      const errorMessage = getFirebaseErrorMessage(err);
-      setError(errorMessage);
+      // ✅ Granular error handling untuk password issues
+      if (err.message.includes('minimal 8 karakter') || 
+          err.message.includes('mengandung minimal satu') ||
+          err.message.includes('hanya boleh mengandung')) {
+        setError(err.message);
+        // Focus ke password field jika error terkait password
+        const passwordField = document.getElementById('password');
+        if (passwordField) passwordField.focus();
+      } else if (err.code === 'auth/weak-password' || err.code === 'WEAK_PASSWORD') {
+        setError('Password tidak memenuhi syarat: minimal 8 karakter, harus ada huruf dan angka, hanya boleh alphanumerik dan simbol @$!%*#?&');
+        const passwordField = document.getElementById('password');
+        if (passwordField) passwordField.focus();
+      } else if (err.code === 'auth/email-already-in-use' || err.code === 'EMAIL_EXISTS') {
+        setError('Email sudah terdaftar. Silakan login atau gunakan email lain.');
+      } else {
+        // Use Firebase error mapping untuk error lainnya
+        const errorMessage = getFirebaseErrorMessage(err);
+        setError(errorMessage);
+      }
       
     } finally {
       setIsLoading(false);
@@ -200,21 +223,22 @@ const Register = ({ onRegister }) => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
               </svg>
               <input
+                id="password"
                 {...register('password', {
                   required: 'Password wajib diisi',
                   minLength: {
-                    value: 6,
-                    message: 'Password minimal 6 karakter'
+                    value: 8,
+                    message: 'Password minimal 8 karakter'
                   },
                   validate: {
+                    hasLetter: (value) => /[a-zA-Z]/.test(value) || 'Password harus mengandung minimal satu huruf',
                     hasNumber: (value) => /\d/.test(value) || 'Password harus mengandung minimal satu angka',
-                    hasUpperCase: (value) => /[A-Z]/.test(value) || 'Password harus mengandung huruf besar',
-                    hasLowerCase: (value) => /[a-z]/.test(value) || 'Password harus mengandung huruf kecil'
+                    validCharacters: (value) => /^[A-Za-z0-9@$!%*#?&]+$/.test(value) || 'Password hanya boleh mengandung huruf, angka, dan simbol @$!%*#?&'
                   }
                 })}
                 type={showPassword ? "text" : "password"}
                 className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
-                placeholder="Masukkan password Anda"
+                placeholder="Masukkan password Anda (min. 8 karakter)"
               />
               <button
                 type="button"

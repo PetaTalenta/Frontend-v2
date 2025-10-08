@@ -22,8 +22,8 @@ const FIREBASE_ERROR_MESSAGES = {
   // Registration Errors
   'auth/email-already-in-use': 'Email sudah terdaftar. Silakan login atau gunakan email lain.',
   'auth/email-already-exists': 'Email sudah terdaftar. Silakan login atau gunakan email lain.',
-  'auth/weak-password': 'Password terlalu lemah. Gunakan minimal 6 karakter dengan kombinasi huruf dan angka.',
-  'auth/invalid-password': 'Password tidak valid. Gunakan minimal 6 karakter.',
+  'auth/weak-password': 'Password tidak memenuhi syarat: minimal 8 karakter, harus ada huruf dan angka, hanya boleh alphanumerik dan simbol @$!%*#?&',
+  'auth/invalid-password': 'Password tidak valid. Minimal 8 karakter dengan huruf dan angka.',
   
   // Token / Session Errors
   'auth/id-token-expired': 'Sesi Anda telah berakhir. Silakan login kembali.',
@@ -88,8 +88,8 @@ const API_ERROR_MESSAGES = {
   // Registration Errors
   'EMAIL_EXISTS': 'Email sudah terdaftar. Silakan login atau gunakan email lain.',
   'EMAIL_ALREADY_IN_USE': 'Email sudah terdaftar. Silakan login atau gunakan email lain.',
-  'WEAK_PASSWORD': 'Password terlalu lemah. Gunakan minimal 6 karakter dengan kombinasi huruf dan angka.',
-  'PASSWORD_TOO_SHORT': 'Password terlalu pendek. Gunakan minimal 6 karakter.',
+  'WEAK_PASSWORD': 'Password tidak memenuhi syarat: minimal 8 karakter, harus ada huruf dan angka, hanya boleh alphanumerik dan simbol @$!%*#?&',
+  'PASSWORD_TOO_SHORT': 'Password terlalu pendek. Minimal 8 karakter dengan huruf dan angka.',
   
   // Token / Session Errors
   'TOKEN_EXPIRED': 'Sesi Anda telah berakhir. Silakan login kembali.',
@@ -181,8 +181,9 @@ export function getFirebaseErrorMessage(error) {
       }
       
       if (lowerMessage.includes('weak password') || 
-          lowerMessage.includes('password too short')) {
-        return 'Password terlalu lemah. Gunakan minimal 6 karakter dengan kombinasi huruf dan angka.';
+          lowerMessage.includes('password too short') ||
+          lowerMessage.includes('invalid password')) {
+        return 'Password tidak memenuhi syarat: minimal 8 karakter, harus ada huruf dan angka, hanya boleh alphanumerik dan simbol @$!%*#?&';
       }
       
       // If it's a meaningful message (not generic), use it

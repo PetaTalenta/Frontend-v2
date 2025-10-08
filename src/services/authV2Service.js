@@ -203,9 +203,29 @@ class AuthV2Service {
     try {
       logger.debug('Auth V2: Register attempt for', email);
 
+      // ✅ Trim and validate password before sending
+      const trimmedPassword = password.trim();
+      
+      // Pre-validation sesuai backend requirements
+      if (trimmedPassword.length < 8) {
+        throw new Error('Password harus minimal 8 karakter');
+      }
+      
+      if (!/[a-zA-Z]/.test(trimmedPassword)) {
+        throw new Error('Password harus mengandung minimal satu huruf');
+      }
+      
+      if (!/\d/.test(trimmedPassword)) {
+        throw new Error('Password harus mengandung minimal satu angka');
+      }
+      
+      if (!/^[A-Za-z0-9@$!%*#?&]+$/.test(trimmedPassword)) {
+        throw new Error('Password hanya boleh mengandung huruf, angka, dan simbol @$!%*#?&');
+      }
+
       const requestBody = {
         email: email.toLowerCase().trim(),
-        password,
+        password: trimmedPassword,
       };
 
       // Add optional fields if provided

@@ -70,16 +70,16 @@ describe('Register Component', () => {
       });
     });
 
-    it('should show error for password less than 6 characters', async () => {
+    it('should show error for password less than 8 characters', async () => {
       renderRegister();
       const user = userEvent.setup();
 
       const passwordInput = screen.getByPlaceholderText(/password/i);
-      await user.type(passwordInput, '12345');
+      await user.type(passwordInput, '1234567');
       await user.tab();
 
       await waitFor(() => {
-        expect(screen.getByText(/password.*minimal.*6/i)).toBeInTheDocument();
+        expect(screen.getByText(/password.*minimal.*8/i)).toBeInTheDocument();
       });
     });
 

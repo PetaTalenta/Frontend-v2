@@ -7,19 +7,25 @@ import { useMemo } from 'react';
  * Menampilkan checklist untuk setiap kriteria password yang harus dipenuhi
  */
 const PasswordStrengthIndicator = ({ password = '' }) => {
-  // Kriteria validasi password
+  // Kriteria validasi password sesuai backend requirements
   const criteria = useMemo(() => {
-    const hasMinLength = password.length >= 6;
+    const hasMinLength = password.length >= 8;
+    const hasLetter = /[a-zA-Z]/.test(password);
     const hasNumber = /\d/.test(password);
-    const hasUpperCase = /[A-Z]/.test(password);
-    const hasLowerCase = /[a-z]/.test(password);
-    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+    // Check for allowed special characters: @$!%*#?&
+    const hasAllowedSpecialChar = /[@$!%*#?&]/.test(password);
 
     return [
       {
         id: 'minLength',
-        label: 'Minimal 6 karakter',
+        label: 'Minimal 8 karakter',
         met: hasMinLength,
+        required: true
+      },
+      {
+        id: 'hasLetter',
+        label: 'Mengandung minimal satu huruf',
+        met: hasLetter,
         required: true
       },
       {
@@ -29,47 +35,50 @@ const PasswordStrengthIndicator = ({ password = '' }) => {
         required: true
       },
       {
-        id: 'hasUpperCase',
-        label: 'Mengandung huruf besar',
-        met: hasUpperCase,
-        required: true
-      },
-      {
-        id: 'hasLowerCase',
-        label: 'Mengandung huruf kecil',
-        met: hasLowerCase,
-        required: true
-      },
-      {
         id: 'hasSpecialChar',
-        label: 'Mengandung karakter spesial (!@#$%)',
-        met: hasSpecialChar,
-        required: false // Optional
+        label: 'Mengandung karakter spesial (@$!%*#?&)',
+        met: hasAllowedSpecialChar,
+        required: false // Optional untuk keamanan ekstra
       }
     ];
   }, [password]);
 
   // Hitung persentase kekuatan password
   const strength = useMemo(() => {
-    const metCount = criteria.filter(c => c.met).length;
-    const totalCount = criteria.length;
-    const percentage = (metCount / totalCount) * 100;
+    // Hitung only required criteria untuk base strength
+    const requiredCriteria = criteria.filter(c => c.required);
+    const requiredMet = requiredCriteria.filter(c => c.met).length;
+    const requiredTotal = requiredCriteria.length;
+    
+    // Hitung semua criteria termasuk optional
+    const allMet = criteria.filter(c => c.met).length;
+    const allTotal = criteria.length;
+    
+    // Base percentage dari required criteria
+    const basePercentage = (requiredMet / requiredTotal) * 100;
+    
+    // Bonus 20% jika ada special character (optional criteria met)
+    const hasOptionalMet = criteria.some(c => !c.required && c.met);
+    const bonusPercentage = hasOptionalMet ? 20 : 0;
+    
+    // Total percentage (max 100%)
+    const percentage = Math.min(basePercentage + bonusPercentage, 100);
     
     let level = 'weak';
     let color = 'bg-red-500';
     let textColor = 'text-red-600';
     
-    if (percentage >= 80) {
+    if (percentage >= 100) {
       level = 'strong';
       color = 'bg-green-500';
       textColor = 'text-green-600';
-    } else if (percentage >= 60) {
+    } else if (percentage >= 80) {
       level = 'medium';
       color = 'bg-yellow-500';
       textColor = 'text-yellow-600';
     }
     
-    return { percentage, level, color, textColor, metCount, totalCount };
+    return { percentage, level, color, textColor, metCount: allMet, totalCount: allTotal };
   }, [criteria]);
 
   // Jangan tampilkan jika password kosong
@@ -141,8 +150,8 @@ const PasswordStrengthIndicator = ({ password = '' }) => {
               )}
               <span className={criterion.met ? 'font-medium' : ''}>
                 {criterion.label}
-                {!criterion.required && !criterion.met && (
-                  <span className="text-gray-400 ml-1">(Opsional)</span>
+                {!criterion.required && (
+                  <span className={criterion.met ? 'text-green-500 ml-1' : 'text-gray-400 ml-1'}>(Opsional)</span>
                 )}
               </span>
             </li>
