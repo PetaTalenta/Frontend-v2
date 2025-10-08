@@ -67,7 +67,7 @@ export function useDashboardData({ userId, enabled = true }: UseDashboardDataOpt
       revalidateOnFocus: false,
       revalidateOnReconnect: true,
       dedupingInterval: 60000, // 1 minute
-      refreshInterval: 30000, // Auto-refresh every 30 seconds
+      refreshInterval: 0, // ✅ FIX: Disable auto-refresh, use manual refresh only
     }
   );
 

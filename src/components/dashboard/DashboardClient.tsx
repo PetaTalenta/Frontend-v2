@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import Header from './header';
 import { StatsCard } from './stats-card';
@@ -80,6 +80,38 @@ export default function DashboardClient({ staticData }: DashboardClientProps) {
   });
 
   // ✅ Load dashboard data - background sync (non-blocking)
+  // ✅ FIX: Memoize with useMemo for stable fallback data
+  const fallbackStatsData = useMemo(() => [
+    {
+      id: 'assessments',
+      label: 'Total Assessment',
+      value: staticData.defaultStats.totalAssessments,
+      color: '#888',
+      icon: 'assessment',
+    },
+    {
+      id: 'completion',
+      label: 'Tingkat Penyelesaian',
+      value: staticData.defaultStats.completionRate,
+      color: '#888',
+      icon: 'completion',
+    },
+    {
+      id: 'score',
+      label: 'Rata-rata Skor',
+      value: staticData.defaultStats.averageScore,
+      color: '#888',
+      icon: 'score',
+    },
+    {
+      id: 'growth',
+      label: 'Pertumbuhan',
+      value: 0,
+      color: '#888',
+      icon: 'growth',
+    }
+  ], [staticData]);
+
   const loadDashboardData = useCallback(async () => {
     if (!user || !userStats) return;
 
@@ -107,56 +139,30 @@ export default function DashboardClient({ staticData }: DashboardClientProps) {
       }
 
     } catch (error) {
-      console.error('Dashboard: Background sync error:', error);
+      console.error('[Dashboard] Background sync error:', error);
       // ✅ Don't show error to user - cached data still visible
       
-      // Use static data as fallback
-      setStatsData([
-        {
-          id: 'assessments',
-          label: 'Total Assessment',
-          value: staticData.defaultStats.totalAssessments,
-          color: '#888',
-          icon: 'assessment',
-        },
-        {
-          id: 'completion',
-          label: 'Tingkat Penyelesaian',
-          value: staticData.defaultStats.completionRate,
-          color: '#888',
-          icon: 'completion',
-        },
-        {
-          id: 'score',
-          label: 'Rata-rata Skor',
-          value: staticData.defaultStats.averageScore,
-          color: '#888',
-          icon: 'score',
-        },
-        {
-          id: 'growth',
-          label: 'Pertumbuhan',
-          value: 0,
-          color: '#888',
-          icon: 'growth',
-        }
-      ]);
+      // Use memoized static data as fallback
+      setStatsData(fallbackStatsData);
       setProgressData([]);
     } finally {
       setIsLoading(false);
     }
-  }, [user, userStats, latestResult, staticData]);
+  }, [user, userStats, latestResult, fallbackStatsData]);
 
-  // Load data when dependencies change
+  // ✅ FIX: Only load data once when user and stats are available
   useEffect(() => {
     if (user && userStats) {
+      console.count('[DashboardClient] loadDashboardData called');
       loadDashboardData();
     }
-  }, [loadDashboardData]);
+  }, [user, userStats, loadDashboardData]);
 
-  // Effect: Refetch data jika ada query param ?refresh=1, lalu jika assessment terbaru selesai, redirect ke hasil
+  // ✅ FIX: Effect untuk refresh - run only once on mount if refresh=1
   useEffect(() => {
     if (searchParams?.get('refresh') === '1' && user) {
+      console.count('[DashboardClient] Refresh effect triggered');
+      
       // ✅ Invalidate cache dan revalidate using SWR hook
       invalidateDashboardData(user.id)
         .then(() => {
@@ -175,13 +181,16 @@ export default function DashboardClient({ staticData }: DashboardClientProps) {
           return;
         }
       }
+      
       // Hapus param refresh dari URL agar tidak refetch terus-menerus
       const params = new URLSearchParams(window.location.search);
       params.delete('refresh');
       const newUrl = window.location.pathname + (params.toString() ? `?${params}` : '');
       window.history.replaceState({}, '', newUrl);
     }
-  }, [searchParams, refreshAll, assessmentHistory, router, user]);
+    // ✅ FIX: Only run when searchParams changes, not on every render
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   // ✅ Refresh function using SWR hook
   const refreshDashboardData = async () => {

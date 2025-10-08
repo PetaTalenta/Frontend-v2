@@ -52,13 +52,15 @@ export const metadata: Metadata = {
   },
 };
 
-// Main dashboard page with ISR
+// Main dashboard page - fully dynamic for user-specific content
 export default async function DashboardPage() {
   const staticData = await getDashboardStaticData();
 
   return <DashboardClient staticData={staticData} />;
 }
 
-// ISR configuration
-export const revalidate = 1800; // Revalidate every 30 minutes
+// ✅ FIX: Remove conflicting ISR config
+// Dashboard is user-specific, so it should be fully dynamic
+// Removed: export const revalidate = 1800
+// Keep only: export const dynamic = 'force-dynamic'
 export const dynamic = 'force-dynamic'; // Force dynamic for user-specific content

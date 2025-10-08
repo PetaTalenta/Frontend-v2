@@ -23,26 +23,27 @@ const publicRoutes = ['/auth', '/results', '/api/archive/result'];
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  console.log(`Middleware: Processing request for ${pathname}`);
+  // ✅ FIX: Reduce logging noise - only log in development or for errors
+  const isDev = process.env.NODE_ENV === 'development';
+  
+  if (isDev) {
+    console.log(`[Middleware] ${pathname}`);
+  }
 
   // Handle /results route conflict - redirect to /my-results
   if (pathname === '/results') {
-    console.log(`Middleware: Redirecting /results to /my-results`);
+    if (isDev) console.log(`[Middleware] Redirecting /results → /my-results`);
     const myResultsUrl = new URL('/my-results', request.url);
     return NextResponse.redirect(myResultsUrl);
   }
   
-
-
   // Allow unauthenticated access to /api/archive/result/{id}
   if (/^\/api\/archive\/result\/[\w-]+$/.test(pathname)) {
-    console.log(`Middleware: Allowing unauthenticated access to ${pathname}`);
     return NextResponse.next();
   }
 
   // Allow unauthenticated access to /results/{id}
   if (/^\/results\/[\w-]+$/.test(pathname)) {
-    console.log(`Middleware: Allowing unauthenticated access to ${pathname}`);
     return NextResponse.next();
   }
 
@@ -62,13 +63,14 @@ export function middleware(request: NextRequest) {
   const token = request.cookies.get('token')?.value ||
                 request.headers.get('authorization')?.replace('Bearer ', '');
 
-  console.log(`Middleware: Token found: ${!!token}`);
-  console.log(`Middleware: Is protected route: ${isProtectedRoute}`);
-  console.log(`Middleware: Is public route: ${isPublicRoute}`);
+  // ✅ FIX: Reduce logging - only in dev mode
+  if (isDev) {
+    console.log(`[Middleware] ${pathname} - token: ${!!token}, protected: ${isProtectedRoute}, public: ${isPublicRoute}`);
+  }
 
   // If accessing a protected route without a token, redirect to auth
   if (isProtectedRoute && !token) {
-    console.log(`Middleware: Redirecting ${pathname} to /auth (no token)`);
+    if (isDev) console.log(`[Middleware] ${pathname} → /auth (no token)`);
     const authUrl = new URL('/auth', request.url);
     return NextResponse.redirect(authUrl);
   }
@@ -76,7 +78,7 @@ export function middleware(request: NextRequest) {
   // If accessing auth page with a token, redirect to dashboard
   // BUT: Don't redirect results pages even if authenticated
   if (isPublicRoute && token && !pathname.startsWith('/results')) {
-    console.log(`Middleware: Redirecting ${pathname} to /dashboard (has token)`);
+    if (isDev) console.log(`[Middleware] ${pathname} → /dashboard (has token)`);
     const dashboardUrl = new URL('/dashboard', request.url);
     return NextResponse.redirect(dashboardUrl);
   }
@@ -92,7 +94,6 @@ export function middleware(request: NextRequest) {
     }
   }
 
-  console.log(`Middleware: Allowing request to ${pathname}`);
   return NextResponse.next();
 }
 

@@ -10,7 +10,9 @@
     "grep": {},
     "grepInvert": null,
     "maxFailures": 0,
-    "metadata": {},
+    "metadata": {
+      "actualWorkers": 1
+    },
     "preserveOutput": "always",
     "reporter": [
       [
@@ -38,7 +40,9 @@
         "outputDir": "D:/WORK/PetaTalenta-FrontEnd/test-results",
         "repeatEach": 1,
         "retries": 0,
-        "metadata": {},
+        "metadata": {
+          "actualWorkers": 1
+        },
         "id": "chromium",
         "name": "chromium",
         "testDir": "D:/WORK/PetaTalenta-FrontEnd/tests/e2e",
@@ -61,19 +65,930 @@
       "timeout": 120000
     }
   },
-  "suites": [],
-  "errors": [
+  "suites": [
     {
-      "message": "Error: No tests found.\nMake sure that arguments are regular expressions matching test files.\nYou may need to escape symbols like \"$\" or \"*\" and quote the arguments.",
-      "stack": "Error: No tests found.\nMake sure that arguments are regular expressions matching test files.\nYou may need to escape symbols like \"$\" or \"*\" and quote the arguments."
+      "title": "auth-switch.spec.ts",
+      "file": "auth-switch.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Cross-User Token Carryover Bug",
+          "file": "auth-switch.spec.ts",
+          "line": 158,
+          "column": 6,
+          "specs": [
+            {
+              "title": "should NOT carry over User A token to User B session",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 15389,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "🔐 Step 1: Login as User A\n"
+                        },
+                        {
+                          "text": "✅ Login successful for kasykoi@gmail.com\n"
+                        },
+                        {
+                          "text": "✅ User A logged in, token: eyJhbGciOiJSUzI1NiIs...\n"
+                        },
+                        {
+                          "text": "📊 Found 17 requests with User A token\n"
+                        },
+                        {
+                          "text": "🚪 Step 2: Logout User A\n"
+                        },
+                        {
+                          "text": "🚪 Logging out user programmatically...\n"
+                        },
+                        {
+                          "text": "✅ Logout complete, redirected to /auth\n"
+                        },
+                        {
+                          "text": "🧹 Tokens after logout: {\n  authV2_idToken: \u001b[1mnull\u001b[22m,\n  authV2_refreshToken: \u001b[1mnull\u001b[22m,\n  authV2_tokenIssuedAt: \u001b[1mnull\u001b[22m,\n  authV2_userId: \u001b[1mnull\u001b[22m,\n  auth_version: \u001b[1mnull\u001b[22m,\n  token: \u001b[1mnull\u001b[22m,\n  auth_token: \u001b[1mnull\u001b[22m,\n  authToken: \u001b[1mnull\u001b[22m,\n  user: \u001b[1mnull\u001b[22m,\n  user_data: \u001b[1mnull\u001b[22m,\n  tokenBalanceCache: \u001b[1mnull\u001b[22m\n}\n"
+                        },
+                        {
+                          "text": "✅ All tokens cleared after logout\n"
+                        },
+                        {
+                          "text": "🔐 Step 3: Login as User B (fast switch)\n"
+                        },
+                        {
+                          "text": "✅ Login successful for viccxn@gmail.com\n"
+                        },
+                        {
+                          "text": "✅ User B logged in, token: eyJhbGciOiJSUzI1NiIs...\n"
+                        },
+                        {
+                          "text": "🔍 Verifying tokens are different...\n"
+                        },
+                        {
+                          "text": "✅ Token B is different from Token A\n"
+                        },
+                        {
+                          "text": "🔍 Checking all requests after User B login...\n"
+                        },
+                        {
+                          "text": "📊 Found 9 requests after User B login\n"
+                        },
+                        {
+                          "text": "❌ Requests with User A token: 0\n"
+                        },
+                        {
+                          "text": "✅ Requests with User B token: 8\n"
+                        },
+                        {
+                          "text": "✅ All requests use User B token, no token carryover detected\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-10-08T16:26:53.337Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "3e22eccbcfbf1136be1d-af39fcee1d5600850814",
+              "file": "auth-switch.spec.ts",
+              "line": 171,
+              "column": 7
+            },
+            {
+              "title": "should clear SWR cache on logout",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 7901,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "✅ Login successful for kasykoi@gmail.com\n"
+                        },
+                        {
+                          "text": "SWR cache keys before logout: []\n"
+                        },
+                        {
+                          "text": "🚪 Logging out user programmatically...\n"
+                        },
+                        {
+                          "text": "✅ Logout complete, redirected to /auth\n"
+                        },
+                        {
+                          "text": "SWR cache keys after logout: []\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-10-08T16:27:08.838Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "3e22eccbcfbf1136be1d-555548db659553241c78",
+              "file": "auth-switch.spec.ts",
+              "line": 290,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "dashboard-reload-prevention.spec.ts",
+      "file": "dashboard-reload-prevention.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Dashboard Reload Prevention",
+          "file": "dashboard-reload-prevention.spec.ts",
+          "line": 16,
+          "column": 6,
+          "specs": [
+            {
+              "title": "Should not have multiple GET requests to /dashboard",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 5095,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: locator('text=Dashboard')\nExpected: visible\nError: strict mode violation: locator('text=Dashboard') resolved to 2 elements:\n    1) <h2 class=\"text-xl font-bold text-gray-900 mb-2\">Dashboard Error</h2> aka getByRole('heading', { name: 'Dashboard Error' })\n    2) <p class=\"text-gray-600 mb-4\">Gagal memuat data dashboard. Silakan coba lagi.</p> aka getByText('Gagal memuat data dashboard.')\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('text=Dashboard')\u001b[22m\n",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: locator('text=Dashboard')\nExpected: visible\nError: strict mode violation: locator('text=Dashboard') resolved to 2 elements:\n    1) <h2 class=\"text-xl font-bold text-gray-900 mb-2\">Dashboard Error</h2> aka getByRole('heading', { name: 'Dashboard Error' })\n    2) <p class=\"text-gray-600 mb-4\">Gagal memuat data dashboard. Silakan coba lagi.</p> aka getByText('Gagal memuat data dashboard.')\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('text=Dashboard')\u001b[22m\n\n    at D:\\WORK\\PetaTalenta-FrontEnd\\tests\\e2e\\dashboard-reload-prevention.spec.ts:113:50",
+                        "location": {
+                          "file": "D:\\WORK\\PetaTalenta-FrontEnd\\tests\\e2e\\dashboard-reload-prevention.spec.ts",
+                          "column": 50,
+                          "line": 113
+                        },
+                        "snippet": "\u001b[0m \u001b[90m 111 |\u001b[39m\n \u001b[90m 112 |\u001b[39m     \u001b[90m// ✅ TEST 3: Verify dashboard is actually loaded\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 113 |\u001b[39m     \u001b[36mawait\u001b[39m expect(page\u001b[33m.\u001b[39mlocator(\u001b[32m'text=Dashboard'\u001b[39m))\u001b[33m.\u001b[39mtoBeVisible()\u001b[33m;\u001b[39m\n \u001b[90m     |\u001b[39m                                                  \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 114 |\u001b[39m   })\u001b[33m;\u001b[39m\n \u001b[90m 115 |\u001b[39m\n \u001b[90m 116 |\u001b[39m   test(\u001b[32m'Should not have navigation loops'\u001b[39m\u001b[33m,\u001b[39m \u001b[36masync\u001b[39m ({ page }) \u001b[33m=>\u001b[39m {\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "D:\\WORK\\PetaTalenta-FrontEnd\\tests\\e2e\\dashboard-reload-prevention.spec.ts",
+                            "column": 50,
+                            "line": 113
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: locator('text=Dashboard')\nExpected: visible\nError: strict mode violation: locator('text=Dashboard') resolved to 2 elements:\n    1) <h2 class=\"text-xl font-bold text-gray-900 mb-2\">Dashboard Error</h2> aka getByRole('heading', { name: 'Dashboard Error' })\n    2) <p class=\"text-gray-600 mb-4\">Gagal memuat data dashboard. Silakan coba lagi.</p> aka getByText('Gagal memuat data dashboard.')\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('text=Dashboard')\u001b[22m\n\n\n\u001b[0m \u001b[90m 111 |\u001b[39m\n \u001b[90m 112 |\u001b[39m     \u001b[90m// ✅ TEST 3: Verify dashboard is actually loaded\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 113 |\u001b[39m     \u001b[36mawait\u001b[39m expect(page\u001b[33m.\u001b[39mlocator(\u001b[32m'text=Dashboard'\u001b[39m))\u001b[33m.\u001b[39mtoBeVisible()\u001b[33m;\u001b[39m\n \u001b[90m     |\u001b[39m                                                  \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 114 |\u001b[39m   })\u001b[33m;\u001b[39m\n \u001b[90m 115 |\u001b[39m\n \u001b[90m 116 |\u001b[39m   test(\u001b[32m'Should not have navigation loops'\u001b[39m\u001b[33m,\u001b[39m \u001b[36masync\u001b[39m ({ page }) \u001b[33m=>\u001b[39m {\u001b[0m\n\u001b[2m    at D:\\WORK\\PetaTalenta-FrontEnd\\tests\\e2e\\dashboard-reload-prevention.spec.ts:113:50\u001b[22m"
+                        }
+                      ],
+                      "stdout": [
+                        {
+                          "text": "Dashboard requests: 1\n"
+                        },
+                        {
+                          "text": "  1. GET http://localhost:3000/dashboard\n"
+                        }
+                      ],
+                      "stderr": [
+                        {
+                          "text": "Browser console error: Failed to load resource: the server responded with a status of 401 ()\n"
+                        },
+                        {
+                          "text": "Browser console error: [ERROR] API Response Error {status: 401, url: /api/archive/results, method: get, message: Request failed with status code 401}\n"
+                        },
+                        {
+                          "text": "Browser console error: [SWR] Error: Request failed with status code 401 Key: latest-result-test-user-id\n"
+                        },
+                        {
+                          "text": "Browser console error: Failed to load resource: the server responded with a status of 401 ()\n"
+                        },
+                        {
+                          "text": "Browser console error: [ERROR] API Response Error {status: 401, url: /api/archive/jobs?page=1&limit=20&sort=created_at&order=DESC, method: get, message: Request failed with status code 401}\n"
+                        },
+                        {
+                          "text": "Browser console error: Archive API: Error fetching assessment history: AxiosError\n"
+                        },
+                        {
+                          "text": "Browser console error: Token Balance Utility: No authentication token found\n"
+                        },
+                        {
+                          "text": "Browser console error: Failed to load resource: the server responded with a status of 401 ()\n"
+                        },
+                        {
+                          "text": "Browser console error: Failed to load resource: the server responded with a status of 401 ()\n"
+                        },
+                        {
+                          "text": "Browser console error: [ERROR] API Response Error {status: 401, url: /api/auth/profile, method: get, message: Request failed with status code 401}\n"
+                        },
+                        {
+                          "text": "Browser console error: ❌ AuthContext: Failed to fetch username from profile: AxiosError\n"
+                        },
+                        {
+                          "text": "Browser console error: [ERROR] API Response Error {status: 401, url: /api/auth/token-balance, method: get, message: Request failed with status code 401}\n"
+                        },
+                        {
+                          "text": "Browser console error: Token Balance Utility: Check failed: Request failed with status code 401\n"
+                        },
+                        {
+                          "text": "Browser console error: Token Balance Utility: Error details: AxiosError\n"
+                        },
+                        {
+                          "text": "Browser console error: WebSocket Service: Authentication failed {message: Invalid or expired token}\n"
+                        },
+                        {
+                          "text": "Browser console error: ❌ WebSocket Service: Auth failed: Error: Authentication failed: Invalid or expired token\n    at Socket.eval (webpack-internal:///(app-pages-browser)/./src/services/websocket-service.ts:323:24)\n    at Socket.on (webpack-internal:///(app-pages-browser)/./node_modules/@socket.io/component-emitter/lib/esm/index.js:60:8)\n    at Emitter.emit (webpack-internal:///(app-pages-browser)/./node_modules/@socket.io/component-emitter/lib/esm/index.js:140:20)\n    at Socket.emitEvent (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/socket.js:545:20)\n    at Socket.onevent (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/socket.js:532:18)\n    at Socket.onpacket (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/socket.js:502:22)\n    at Emitter.emit (webpack-internal:///(app-pages-browser)/./node_modules/@socket.io/component-emitter/lib/esm/index.js:140:20)\n    at eval (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/manager.js:219:18)\n"
+                        },
+                        {
+                          "text": "Browser console error: ❌ [NotificationRedirect] Failed: Error: Authentication failed: Invalid or expired token\n    at Socket.eval (webpack-internal:///(app-pages-browser)/./src/services/websocket-service.ts:323:24)\n    at Socket.on (webpack-internal:///(app-pages-browser)/./node_modules/@socket.io/component-emitter/lib/esm/index.js:60:8)\n    at Emitter.emit (webpack-internal:///(app-pages-browser)/./node_modules/@socket.io/component-emitter/lib/esm/index.js:140:20)\n    at Socket.emitEvent (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/socket.js:545:20)\n    at Socket.onevent (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/socket.js:532:18)\n    at Socket.onpacket (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/socket.js:502:22)\n    at Emitter.emit (webpack-internal:///(app-pages-browser)/./node_modules/@socket.io/component-emitter/lib/esm/index.js:140:20)\n    at eval (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/manager.js:219:18)\n"
+                        },
+                        {
+                          "text": "Browser console error: ❌ [NotificationRedirect] Failed: Error: Authentication failed: Invalid or expired token\n    at Socket.eval (webpack-internal:///(app-pages-browser)/./src/services/websocket-service.ts:323:24)\n    at Socket.on (webpack-internal:///(app-pages-browser)/./node_modules/@socket.io/component-emitter/lib/esm/index.js:60:8)\n    at Emitter.emit (webpack-internal:///(app-pages-browser)/./node_modules/@socket.io/component-emitter/lib/esm/index.js:140:20)\n    at Socket.emitEvent (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/socket.js:545:20)\n    at Socket.onevent (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/socket.js:532:18)\n    at Socket.onpacket (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/socket.js:502:22)\n    at Emitter.emit (webpack-internal:///(app-pages-browser)/./node_modules/@socket.io/component-emitter/lib/esm/index.js:140:20)\n    at eval (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/manager.js:219:18)\n"
+                        },
+                        {
+                          "text": "Browser console error: Failed to load resource: the server responded with a status of 401 ()\n"
+                        },
+                        {
+                          "text": "Browser console error: [ERROR] API Response Error {status: 401, url: /api/archive/jobs?page=1&limit=20&sort=created_at&order=DESC, method: get, message: Request failed with status code 401}\n"
+                        },
+                        {
+                          "text": "Browser console error: Archive API: Error fetching assessment history: AxiosError\n"
+                        },
+                        {
+                          "text": "Browser console error: Failed to load resource: the server responded with a status of 401 ()\n"
+                        },
+                        {
+                          "text": "Browser console error: [ERROR] API Response Error {status: 401, url: /api/archive/results, method: get, message: Request failed with status code 401}\n"
+                        },
+                        {
+                          "text": "Browser console error: Archive API: Error fetching latest assessment: AxiosError\n"
+                        }
+                      ],
+                      "retry": 0,
+                      "startTime": "2025-10-08T16:27:16.758Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "D:\\WORK\\PetaTalenta-FrontEnd\\test-results\\dashboard-reload-preventio-60312-e-GET-requests-to-dashboard-chromium\\test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "D:\\WORK\\PetaTalenta-FrontEnd\\test-results\\dashboard-reload-preventio-60312-e-GET-requests-to-dashboard-chromium\\video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "D:\\WORK\\PetaTalenta-FrontEnd\\test-results\\dashboard-reload-preventio-60312-e-GET-requests-to-dashboard-chromium\\error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "D:\\WORK\\PetaTalenta-FrontEnd\\tests\\e2e\\dashboard-reload-prevention.spec.ts",
+                        "column": 50,
+                        "line": 113
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "37af2919c2e8f1d08a04-95ea836fa571f7fcc90d",
+              "file": "dashboard-reload-prevention.spec.ts",
+              "line": 61,
+              "column": 7
+            },
+            {
+              "title": "Should not have navigation loops",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 3326,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Total redirects: 0\n"
+                        }
+                      ],
+                      "stderr": [
+                        {
+                          "text": "Browser console error: Failed to load resource: the server responded with a status of 401 ()\n"
+                        },
+                        {
+                          "text": "Browser console error: [ERROR] API Response Error {status: 401, url: /api/auth/profile, method: get, message: Request failed with status code 401}\n"
+                        },
+                        {
+                          "text": "Browser console error: ❌ AuthContext: Failed to fetch username from profile: AxiosError\n"
+                        },
+                        {
+                          "text": "Browser console error: Failed to load resource: the server responded with a status of 401 ()\n"
+                        },
+                        {
+                          "text": "Browser console error: [ERROR] API Response Error {status: 401, url: /api/auth/token-balance, method: get, message: Request failed with status code 401}\n"
+                        },
+                        {
+                          "text": "Browser console error: Token Balance Utility: Check failed: Request failed with status code 401\n"
+                        },
+                        {
+                          "text": "Browser console error: Token Balance Utility: Error details: AxiosError\n"
+                        },
+                        {
+                          "text": "Browser console error: Failed to load resource: the server responded with a status of 401 ()\n"
+                        },
+                        {
+                          "text": "Browser console error: [ERROR] API Response Error {status: 401, url: /api/archive/jobs?page=1&limit=20&sort=created_at&order=DESC, method: get, message: Request failed with status code 401}\n"
+                        },
+                        {
+                          "text": "Browser console error: Archive API: Error fetching assessment history: AxiosError\n"
+                        },
+                        {
+                          "text": "Browser console error: Token Balance Utility: No authentication token found\n"
+                        },
+                        {
+                          "text": "Browser console error: Failed to load resource: the server responded with a status of 401 ()\n"
+                        },
+                        {
+                          "text": "Browser console error: [ERROR] API Response Error {status: 401, url: /api/archive/results, method: get, message: Request failed with status code 401}\n"
+                        },
+                        {
+                          "text": "Browser console error: [SWR] Error: Request failed with status code 401 Key: latest-result-test-user-id\n"
+                        },
+                        {
+                          "text": "Browser console error: WebSocket Service: Authentication failed {message: Invalid or expired token}\n"
+                        },
+                        {
+                          "text": "Browser console error: ❌ WebSocket Service: Auth failed: Error: Authentication failed: Invalid or expired token\n    at Socket.eval (webpack-internal:///(app-pages-browser)/./src/services/websocket-service.ts:323:24)\n    at Socket.on (webpack-internal:///(app-pages-browser)/./node_modules/@socket.io/component-emitter/lib/esm/index.js:60:8)\n    at Emitter.emit (webpack-internal:///(app-pages-browser)/./node_modules/@socket.io/component-emitter/lib/esm/index.js:140:20)\n    at Socket.emitEvent (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/socket.js:545:20)\n    at Socket.onevent (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/socket.js:532:18)\n    at Socket.onpacket (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/socket.js:502:22)\n    at Emitter.emit (webpack-internal:///(app-pages-browser)/./node_modules/@socket.io/component-emitter/lib/esm/index.js:140:20)\n    at eval (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/manager.js:219:18)\n"
+                        },
+                        {
+                          "text": "Browser console error: ❌ [NotificationRedirect] Failed: Error: Authentication failed: Invalid or expired token\n    at Socket.eval (webpack-internal:///(app-pages-browser)/./src/services/websocket-service.ts:323:24)\n    at Socket.on (webpack-internal:///(app-pages-browser)/./node_modules/@socket.io/component-emitter/lib/esm/index.js:60:8)\n    at Emitter.emit (webpack-internal:///(app-pages-browser)/./node_modules/@socket.io/component-emitter/lib/esm/index.js:140:20)\n    at Socket.emitEvent (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/socket.js:545:20)\n    at Socket.onevent (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/socket.js:532:18)\n    at Socket.onpacket (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/socket.js:502:22)\n    at Emitter.emit (webpack-internal:///(app-pages-browser)/./node_modules/@socket.io/component-emitter/lib/esm/index.js:140:20)\n    at eval (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/manager.js:219:18)\n"
+                        },
+                        {
+                          "text": "Browser console error: ❌ [NotificationRedirect] Failed: Error: Authentication failed: Invalid or expired token\n    at Socket.eval (webpack-internal:///(app-pages-browser)/./src/services/websocket-service.ts:323:24)\n    at Socket.on (webpack-internal:///(app-pages-browser)/./node_modules/@socket.io/component-emitter/lib/esm/index.js:60:8)\n    at Emitter.emit (webpack-internal:///(app-pages-browser)/./node_modules/@socket.io/component-emitter/lib/esm/index.js:140:20)\n    at Socket.emitEvent (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/socket.js:545:20)\n    at Socket.onevent (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/socket.js:532:18)\n    at Socket.onpacket (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/socket.js:502:22)\n    at Emitter.emit (webpack-internal:///(app-pages-browser)/./node_modules/@socket.io/component-emitter/lib/esm/index.js:140:20)\n    at eval (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/manager.js:219:18)\n"
+                        },
+                        {
+                          "text": "Browser console error: Failed to load resource: the server responded with a status of 401 ()\n"
+                        },
+                        {
+                          "text": "Browser console error: Failed to load resource: the server responded with a status of 401 ()\n"
+                        },
+                        {
+                          "text": "Browser console error: [ERROR] API Response Error {status: 401, url: /api/archive/jobs?page=1&limit=20&sort=created_at&order=DESC, method: get, message: Request failed with status code 401}\n"
+                        },
+                        {
+                          "text": "Browser console error: Archive API: Error fetching assessment history: AxiosError\n"
+                        },
+                        {
+                          "text": "Browser console error: [ERROR] API Response Error {status: 401, url: /api/archive/results, method: get, message: Request failed with status code 401}\n"
+                        },
+                        {
+                          "text": "Browser console error: Archive API: Error fetching latest assessment: AxiosError\n"
+                        },
+                        {
+                          "text": "Browser console error: Failed to load resource: the server responded with a status of 400 ()\n"
+                        }
+                      ],
+                      "retry": 0,
+                      "startTime": "2025-10-08T16:27:22.715Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "37af2919c2e8f1d08a04-9eb3405f2d0fd2ea0815",
+              "file": "dashboard-reload-prevention.spec.ts",
+              "line": 116,
+              "column": 7
+            },
+            {
+              "title": "Should not have console errors",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 4210,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m0\u001b[39m\nReceived: \u001b[31m16\u001b[39m",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m0\u001b[39m\nReceived: \u001b[31m16\u001b[39m\n    at D:\\WORK\\PetaTalenta-FrontEnd\\tests\\e2e\\dashboard-reload-prevention.spec.ts:203:35",
+                        "location": {
+                          "file": "D:\\WORK\\PetaTalenta-FrontEnd\\tests\\e2e\\dashboard-reload-prevention.spec.ts",
+                          "column": 35,
+                          "line": 203
+                        },
+                        "snippet": "\u001b[0m \u001b[90m 201 |\u001b[39m     )\u001b[33m;\u001b[39m\n \u001b[90m 202 |\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 203 |\u001b[39m     expect(criticalErrors\u001b[33m.\u001b[39mlength)\u001b[33m.\u001b[39mtoBe(\u001b[35m0\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m     |\u001b[39m                                   \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 204 |\u001b[39m     expect(pageErrors\u001b[33m.\u001b[39mlength)\u001b[33m.\u001b[39mtoBe(\u001b[35m0\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 205 |\u001b[39m   })\u001b[33m;\u001b[39m\n \u001b[90m 206 |\u001b[39m\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "D:\\WORK\\PetaTalenta-FrontEnd\\tests\\e2e\\dashboard-reload-prevention.spec.ts",
+                            "column": 35,
+                            "line": 203
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m0\u001b[39m\nReceived: \u001b[31m16\u001b[39m\n\n\u001b[0m \u001b[90m 201 |\u001b[39m     )\u001b[33m;\u001b[39m\n \u001b[90m 202 |\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 203 |\u001b[39m     expect(criticalErrors\u001b[33m.\u001b[39mlength)\u001b[33m.\u001b[39mtoBe(\u001b[35m0\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m     |\u001b[39m                                   \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 204 |\u001b[39m     expect(pageErrors\u001b[33m.\u001b[39mlength)\u001b[33m.\u001b[39mtoBe(\u001b[35m0\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 205 |\u001b[39m   })\u001b[33m;\u001b[39m\n \u001b[90m 206 |\u001b[39m\u001b[0m\n\u001b[2m    at D:\\WORK\\PetaTalenta-FrontEnd\\tests\\e2e\\dashboard-reload-prevention.spec.ts:203:35\u001b[22m"
+                        }
+                      ],
+                      "stdout": [
+                        {
+                          "text": "Console errors: 24\n"
+                        },
+                        {
+                          "text": "  1. Failed to load resource: the server responded with a status of 401 ()\n"
+                        },
+                        {
+                          "text": "  2. [ERROR] API Response Error {status: 401, url: /api/auth/profile, method: get, message: Request failed with status code 401}\n"
+                        },
+                        {
+                          "text": "  3. ❌ AuthContext: Failed to fetch username from profile: AxiosError\n"
+                        },
+                        {
+                          "text": "  4. Failed to load resource: the server responded with a status of 401 ()\n"
+                        },
+                        {
+                          "text": "  5. Failed to load resource: the server responded with a status of 401 ()\n"
+                        },
+                        {
+                          "text": "  6. [ERROR] API Response Error {status: 401, url: /api/archive/jobs?page=1&limit=20&sort=created_at&order=DESC, method: get, message: Request failed with status code 401}\n"
+                        },
+                        {
+                          "text": "  7. Archive API: Error fetching assessment history: AxiosError\n"
+                        },
+                        {
+                          "text": "  8. Token Balance Utility: No authentication token found\n"
+                        },
+                        {
+                          "text": "  9. [ERROR] API Response Error {status: 401, url: /api/archive/results, method: get, message: Request failed with status code 401}\n"
+                        },
+                        {
+                          "text": "  10. [SWR] Error: Request failed with status code 401 Key: latest-result-test-user-id\n"
+                        },
+                        {
+                          "text": "  11. Failed to load resource: the server responded with a status of 401 ()\n"
+                        },
+                        {
+                          "text": "  12. [ERROR] API Response Error {status: 401, url: /api/auth/token-balance, method: get, message: Request failed with status code 401}\n"
+                        },
+                        {
+                          "text": "  13. Token Balance Utility: Check failed: Request failed with status code 401\n"
+                        },
+                        {
+                          "text": "  14. Token Balance Utility: Error details: AxiosError\n"
+                        },
+                        {
+                          "text": "  15. Failed to load resource: the server responded with a status of 401 ()\n"
+                        },
+                        {
+                          "text": "  16. Failed to load resource: the server responded with a status of 401 ()\n"
+                        },
+                        {
+                          "text": "  17. [ERROR] API Response Error {status: 401, url: /api/archive/jobs?page=1&limit=20&sort=created_at&order=DESC, method: get, message: Request failed with status code 401}\n"
+                        },
+                        {
+                          "text": "  18. Archive API: Error fetching assessment history: AxiosError\n"
+                        },
+                        {
+                          "text": "  19. [ERROR] API Response Error {status: 401, url: /api/archive/results, method: get, message: Request failed with status code 401}\n"
+                        },
+                        {
+                          "text": "  20. Archive API: Error fetching latest assessment: AxiosError\n"
+                        },
+                        {
+                          "text": "  21. WebSocket Service: Authentication failed {message: Invalid or expired token}\n"
+                        },
+                        {
+                          "text": "  22. ❌ WebSocket Service: Auth failed: Error: Authentication failed: Invalid or expired token\n    at Socket.eval (webpack-internal:///(app-pages-browser)/./src/services/websocket-service.ts:323:24)\n    at Socket.on (webpack-internal:///(app-pages-browser)/./node_modules/@socket.io/component-emitter/lib/esm/index.js:60:8)\n    at Emitter.emit (webpack-internal:///(app-pages-browser)/./node_modules/@socket.io/component-emitter/lib/esm/index.js:140:20)\n    at Socket.emitEvent (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/socket.js:545:20)\n    at Socket.onevent (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/socket.js:532:18)\n    at Socket.onpacket (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/socket.js:502:22)\n    at Emitter.emit (webpack-internal:///(app-pages-browser)/./node_modules/@socket.io/component-emitter/lib/esm/index.js:140:20)\n    at eval (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/manager.js:219:18)\n"
+                        },
+                        {
+                          "text": "  23. ❌ [NotificationRedirect] Failed: Error: Authentication failed: Invalid or expired token\n    at Socket.eval (webpack-internal:///(app-pages-browser)/./src/services/websocket-service.ts:323:24)\n    at Socket.on (webpack-internal:///(app-pages-browser)/./node_modules/@socket.io/component-emitter/lib/esm/index.js:60:8)\n    at Emitter.emit (webpack-internal:///(app-pages-browser)/./node_modules/@socket.io/component-emitter/lib/esm/index.js:140:20)\n    at Socket.emitEvent (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/socket.js:545:20)\n    at Socket.onevent (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/socket.js:532:18)\n    at Socket.onpacket (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/socket.js:502:22)\n    at Emitter.emit (webpack-internal:///(app-pages-browser)/./node_modules/@socket.io/component-emitter/lib/esm/index.js:140:20)\n    at eval (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/manager.js:219:18)\n"
+                        },
+                        {
+                          "text": "  24. ❌ [NotificationRedirect] Failed: Error: Authentication failed: Invalid or expired token\n    at Socket.eval (webpack-internal:///(app-pages-browser)/./src/services/websocket-service.ts:323:24)\n    at Socket.on (webpack-internal:///(app-pages-browser)/./node_modules/@socket.io/component-emitter/lib/esm/index.js:60:8)\n    at Emitter.emit (webpack-internal:///(app-pages-browser)/./node_modules/@socket.io/component-emitter/lib/esm/index.js:140:20)\n    at Socket.emitEvent (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/socket.js:545:20)\n    at Socket.onevent (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/socket.js:532:18)\n    at Socket.onpacket (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/socket.js:502:22)\n    at Emitter.emit (webpack-internal:///(app-pages-browser)/./node_modules/@socket.io/component-emitter/lib/esm/index.js:140:20)\n    at eval (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/manager.js:219:18)\n"
+                        },
+                        {
+                          "text": "Page errors: 0\n"
+                        }
+                      ],
+                      "stderr": [
+                        {
+                          "text": "Browser console error: Failed to load resource: the server responded with a status of 401 ()\n"
+                        },
+                        {
+                          "text": "Browser console error: [ERROR] API Response Error {status: 401, url: /api/auth/profile, method: get, message: Request failed with status code 401}\n"
+                        },
+                        {
+                          "text": "Browser console error: ❌ AuthContext: Failed to fetch username from profile: AxiosError\n"
+                        },
+                        {
+                          "text": "Browser console error: Failed to load resource: the server responded with a status of 401 ()\n"
+                        },
+                        {
+                          "text": "Browser console error: Failed to load resource: the server responded with a status of 401 ()\n"
+                        },
+                        {
+                          "text": "Browser console error: [ERROR] API Response Error {status: 401, url: /api/archive/jobs?page=1&limit=20&sort=created_at&order=DESC, method: get, message: Request failed with status code 401}\n"
+                        },
+                        {
+                          "text": "Browser console error: Archive API: Error fetching assessment history: AxiosError\n"
+                        },
+                        {
+                          "text": "Browser console error: Token Balance Utility: No authentication token found\n"
+                        },
+                        {
+                          "text": "Browser console error: [ERROR] API Response Error {status: 401, url: /api/archive/results, method: get, message: Request failed with status code 401}\n"
+                        },
+                        {
+                          "text": "Browser console error: [SWR] Error: Request failed with status code 401 Key: latest-result-test-user-id\n"
+                        },
+                        {
+                          "text": "Browser console error: Failed to load resource: the server responded with a status of 401 ()\n"
+                        },
+                        {
+                          "text": "Browser console error: [ERROR] API Response Error {status: 401, url: /api/auth/token-balance, method: get, message: Request failed with status code 401}\n"
+                        },
+                        {
+                          "text": "Browser console error: Token Balance Utility: Check failed: Request failed with status code 401\n"
+                        },
+                        {
+                          "text": "Browser console error: Token Balance Utility: Error details: AxiosError\n"
+                        },
+                        {
+                          "text": "Browser console error: Failed to load resource: the server responded with a status of 401 ()\n"
+                        },
+                        {
+                          "text": "Browser console error: Failed to load resource: the server responded with a status of 401 ()\n"
+                        },
+                        {
+                          "text": "Browser console error: [ERROR] API Response Error {status: 401, url: /api/archive/jobs?page=1&limit=20&sort=created_at&order=DESC, method: get, message: Request failed with status code 401}\n"
+                        },
+                        {
+                          "text": "Browser console error: Archive API: Error fetching assessment history: AxiosError\n"
+                        },
+                        {
+                          "text": "Browser console error: [ERROR] API Response Error {status: 401, url: /api/archive/results, method: get, message: Request failed with status code 401}\n"
+                        },
+                        {
+                          "text": "Browser console error: Archive API: Error fetching latest assessment: AxiosError\n"
+                        },
+                        {
+                          "text": "Browser console error: WebSocket Service: Authentication failed {message: Invalid or expired token}\n"
+                        },
+                        {
+                          "text": "Browser console error: ❌ WebSocket Service: Auth failed: Error: Authentication failed: Invalid or expired token\n    at Socket.eval (webpack-internal:///(app-pages-browser)/./src/services/websocket-service.ts:323:24)\n    at Socket.on (webpack-internal:///(app-pages-browser)/./node_modules/@socket.io/component-emitter/lib/esm/index.js:60:8)\n    at Emitter.emit (webpack-internal:///(app-pages-browser)/./node_modules/@socket.io/component-emitter/lib/esm/index.js:140:20)\n    at Socket.emitEvent (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/socket.js:545:20)\n    at Socket.onevent (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/socket.js:532:18)\n    at Socket.onpacket (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/socket.js:502:22)\n    at Emitter.emit (webpack-internal:///(app-pages-browser)/./node_modules/@socket.io/component-emitter/lib/esm/index.js:140:20)\n    at eval (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/manager.js:219:18)\n"
+                        },
+                        {
+                          "text": "Browser console error: ❌ [NotificationRedirect] Failed: Error: Authentication failed: Invalid or expired token\n    at Socket.eval (webpack-internal:///(app-pages-browser)/./src/services/websocket-service.ts:323:24)\n    at Socket.on (webpack-internal:///(app-pages-browser)/./node_modules/@socket.io/component-emitter/lib/esm/index.js:60:8)\n    at Emitter.emit (webpack-internal:///(app-pages-browser)/./node_modules/@socket.io/component-emitter/lib/esm/index.js:140:20)\n    at Socket.emitEvent (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/socket.js:545:20)\n    at Socket.onevent (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/socket.js:532:18)\n    at Socket.onpacket (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/socket.js:502:22)\n    at Emitter.emit (webpack-internal:///(app-pages-browser)/./node_modules/@socket.io/component-emitter/lib/esm/index.js:140:20)\n    at eval (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/manager.js:219:18)\n"
+                        },
+                        {
+                          "text": "Browser console error: ❌ [NotificationRedirect] Failed: Error: Authentication failed: Invalid or expired token\n    at Socket.eval (webpack-internal:///(app-pages-browser)/./src/services/websocket-service.ts:323:24)\n    at Socket.on (webpack-internal:///(app-pages-browser)/./node_modules/@socket.io/component-emitter/lib/esm/index.js:60:8)\n    at Emitter.emit (webpack-internal:///(app-pages-browser)/./node_modules/@socket.io/component-emitter/lib/esm/index.js:140:20)\n    at Socket.emitEvent (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/socket.js:545:20)\n    at Socket.onevent (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/socket.js:532:18)\n    at Socket.onpacket (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/socket.js:502:22)\n    at Emitter.emit (webpack-internal:///(app-pages-browser)/./node_modules/@socket.io/component-emitter/lib/esm/index.js:140:20)\n    at eval (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/manager.js:219:18)\n"
+                        }
+                      ],
+                      "retry": 0,
+                      "startTime": "2025-10-08T16:27:26.153Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "D:\\WORK\\PetaTalenta-FrontEnd\\test-results\\dashboard-reload-preventio-ea4e5-uld-not-have-console-errors-chromium\\test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "D:\\WORK\\PetaTalenta-FrontEnd\\test-results\\dashboard-reload-preventio-ea4e5-uld-not-have-console-errors-chromium\\video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "D:\\WORK\\PetaTalenta-FrontEnd\\test-results\\dashboard-reload-preventio-ea4e5-uld-not-have-console-errors-chromium\\error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "D:\\WORK\\PetaTalenta-FrontEnd\\tests\\e2e\\dashboard-reload-prevention.spec.ts",
+                        "column": 35,
+                        "line": 203
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "37af2919c2e8f1d08a04-8eedfb6caa6b60713172",
+              "file": "dashboard-reload-prevention.spec.ts",
+              "line": 159,
+              "column": 7
+            },
+            {
+              "title": "Should not trigger duplicate SWR fetches",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 5622,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "SWR fetch counts:\n"
+                        }
+                      ],
+                      "stderr": [
+                        {
+                          "text": "Browser console error: Failed to load resource: the server responded with a status of 401 ()\n"
+                        },
+                        {
+                          "text": "Browser console error: [ERROR] API Response Error {status: 401, url: /api/auth/profile, method: get, message: Request failed with status code 401}\n"
+                        },
+                        {
+                          "text": "Browser console error: ❌ AuthContext: Failed to fetch username from profile: AxiosError\n"
+                        },
+                        {
+                          "text": "Browser console error: Failed to load resource: the server responded with a status of 401 ()\n"
+                        },
+                        {
+                          "text": "Browser console error: [ERROR] API Response Error {status: 401, url: /api/auth/token-balance, method: get, message: Request failed with status code 401}\n"
+                        },
+                        {
+                          "text": "Browser console error: Token Balance Utility: Check failed: Request failed with status code 401\n"
+                        },
+                        {
+                          "text": "Browser console error: Token Balance Utility: Error details: AxiosError\n"
+                        },
+                        {
+                          "text": "Browser console error: Failed to load resource: the server responded with a status of 401 ()\n"
+                        },
+                        {
+                          "text": "Browser console error: [ERROR] API Response Error {status: 401, url: /api/archive/jobs?page=1&limit=20&sort=created_at&order=DESC, method: get, message: Request failed with status code 401}\n"
+                        },
+                        {
+                          "text": "Browser console error: Archive API: Error fetching assessment history: AxiosError\n"
+                        },
+                        {
+                          "text": "Browser console error: Token Balance Utility: No authentication token found\n"
+                        },
+                        {
+                          "text": "Browser console error: Failed to load resource: the server responded with a status of 401 ()\n"
+                        },
+                        {
+                          "text": "Browser console error: [ERROR] API Response Error {status: 401, url: /api/archive/results, method: get, message: Request failed with status code 401}\n"
+                        },
+                        {
+                          "text": "Browser console error: [SWR] Error: Request failed with status code 401 Key: latest-result-test-user-id\n"
+                        },
+                        {
+                          "text": "Browser console error: Failed to load resource: the server responded with a status of 401 ()\n"
+                        },
+                        {
+                          "text": "Browser console error: [ERROR] API Response Error {status: 401, url: /api/archive/results, method: get, message: Request failed with status code 401}\n"
+                        },
+                        {
+                          "text": "Browser console error: Archive API: Error fetching latest assessment: AxiosError\n"
+                        },
+                        {
+                          "text": "Browser console error: Failed to load resource: the server responded with a status of 401 ()\n"
+                        },
+                        {
+                          "text": "Browser console error: [ERROR] API Response Error {status: 401, url: /api/archive/jobs?page=1&limit=20&sort=created_at&order=DESC, method: get, message: Request failed with status code 401}\n"
+                        },
+                        {
+                          "text": "Browser console error: Archive API: Error fetching assessment history: AxiosError\n"
+                        },
+                        {
+                          "text": "Browser console error: WebSocket Service: Authentication failed {message: Invalid or expired token}\n"
+                        },
+                        {
+                          "text": "Browser console error: ❌ WebSocket Service: Auth failed: Error: Authentication failed: Invalid or expired token\n    at Socket.eval (webpack-internal:///(app-pages-browser)/./src/services/websocket-service.ts:323:24)\n    at Socket.on (webpack-internal:///(app-pages-browser)/./node_modules/@socket.io/component-emitter/lib/esm/index.js:60:8)\n    at Emitter.emit (webpack-internal:///(app-pages-browser)/./node_modules/@socket.io/component-emitter/lib/esm/index.js:140:20)\n    at Socket.emitEvent (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/socket.js:545:20)\n    at Socket.onevent (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/socket.js:532:18)\n    at Socket.onpacket (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/socket.js:502:22)\n    at Emitter.emit (webpack-internal:///(app-pages-browser)/./node_modules/@socket.io/component-emitter/lib/esm/index.js:140:20)\n    at eval (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/manager.js:219:18)\n"
+                        },
+                        {
+                          "text": "Browser console error: ❌ [NotificationRedirect] Failed: Error: Authentication failed: Invalid or expired token\n    at Socket.eval (webpack-internal:///(app-pages-browser)/./src/services/websocket-service.ts:323:24)\n    at Socket.on (webpack-internal:///(app-pages-browser)/./node_modules/@socket.io/component-emitter/lib/esm/index.js:60:8)\n    at Emitter.emit (webpack-internal:///(app-pages-browser)/./node_modules/@socket.io/component-emitter/lib/esm/index.js:140:20)\n    at Socket.emitEvent (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/socket.js:545:20)\n    at Socket.onevent (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/socket.js:532:18)\n    at Socket.onpacket (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/socket.js:502:22)\n    at Emitter.emit (webpack-internal:///(app-pages-browser)/./node_modules/@socket.io/component-emitter/lib/esm/index.js:140:20)\n    at eval (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/manager.js:219:18)\n"
+                        },
+                        {
+                          "text": "Browser console error: ❌ [NotificationRedirect] Failed: Error: Authentication failed: Invalid or expired token\n    at Socket.eval (webpack-internal:///(app-pages-browser)/./src/services/websocket-service.ts:323:24)\n    at Socket.on (webpack-internal:///(app-pages-browser)/./node_modules/@socket.io/component-emitter/lib/esm/index.js:60:8)\n    at Emitter.emit (webpack-internal:///(app-pages-browser)/./node_modules/@socket.io/component-emitter/lib/esm/index.js:140:20)\n    at Socket.emitEvent (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/socket.js:545:20)\n    at Socket.onevent (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/socket.js:532:18)\n    at Socket.onpacket (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/socket.js:502:22)\n    at Emitter.emit (webpack-internal:///(app-pages-browser)/./node_modules/@socket.io/component-emitter/lib/esm/index.js:140:20)\n    at eval (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/manager.js:219:18)\n"
+                        }
+                      ],
+                      "retry": 0,
+                      "startTime": "2025-10-08T16:27:31.223Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "37af2919c2e8f1d08a04-cae17afe778d20105a9a",
+              "file": "dashboard-reload-prevention.spec.ts",
+              "line": 207,
+              "column": 7
+            },
+            {
+              "title": "AuthGuard should render max 3 times in dev mode",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "interrupted",
+                      "duration": 3928,
+                      "error": {
+                        "message": "Error: page.waitForTimeout: Target page, context or browser has been closed",
+                        "stack": "Error: page.waitForTimeout: Target page, context or browser has been closed\n    at D:\\WORK\\PetaTalenta-FrontEnd\\tests\\e2e\\dashboard-reload-prevention.spec.ts:288:16",
+                        "location": {
+                          "file": "D:\\WORK\\PetaTalenta-FrontEnd\\tests\\e2e\\dashboard-reload-prevention.spec.ts",
+                          "column": 16,
+                          "line": 288
+                        },
+                        "snippet": "\u001b[0m \u001b[90m 286 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mgoto(\u001b[32m'http://localhost:3000/dashboard'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 287 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mwaitForLoadState(\u001b[32m'networkidle'\u001b[39m)\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 288 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mwaitForTimeout(\u001b[35m2000\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m     |\u001b[39m                \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 289 |\u001b[39m\n \u001b[90m 290 |\u001b[39m     console\u001b[33m.\u001b[39mlog(\u001b[32m'AuthGuard render counts:'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 291 |\u001b[39m     renderCounts\u001b[33m.\u001b[39mforEach((count\u001b[33m,\u001b[39m route) \u001b[33m=>\u001b[39m {\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "D:\\WORK\\PetaTalenta-FrontEnd\\tests\\e2e\\dashboard-reload-prevention.spec.ts",
+                            "column": 16,
+                            "line": 288
+                          },
+                          "message": "Error: page.waitForTimeout: Target page, context or browser has been closed\n\n\u001b[0m \u001b[90m 286 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mgoto(\u001b[32m'http://localhost:3000/dashboard'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 287 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mwaitForLoadState(\u001b[32m'networkidle'\u001b[39m)\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 288 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mwaitForTimeout(\u001b[35m2000\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m     |\u001b[39m                \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 289 |\u001b[39m\n \u001b[90m 290 |\u001b[39m     console\u001b[33m.\u001b[39mlog(\u001b[32m'AuthGuard render counts:'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 291 |\u001b[39m     renderCounts\u001b[33m.\u001b[39mforEach((count\u001b[33m,\u001b[39m route) \u001b[33m=>\u001b[39m {\u001b[0m\n\u001b[2m    at D:\\WORK\\PetaTalenta-FrontEnd\\tests\\e2e\\dashboard-reload-prevention.spec.ts:288:16\u001b[22m"
+                        },
+                        {
+                          "message": "Error: browserContext.close: Target page, context or browser has been closed"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [
+                        {
+                          "text": "Browser console error: Failed to load resource: the server responded with a status of 401 ()\n"
+                        },
+                        {
+                          "text": "Browser console error: [ERROR] API Response Error {status: 401, url: /api/auth/profile, method: get, message: Request failed with status code 401}\n"
+                        },
+                        {
+                          "text": "Browser console error: ❌ AuthContext: Failed to fetch username from profile: AxiosError\n"
+                        },
+                        {
+                          "text": "Browser console error: Failed to load resource: the server responded with a status of 401 ()\n"
+                        },
+                        {
+                          "text": "Browser console error: [ERROR] API Response Error {status: 401, url: /api/archive/results, method: get, message: Request failed with status code 401}\n"
+                        },
+                        {
+                          "text": "Browser console error: [SWR] Error: Request failed with status code 401 Key: latest-result-test-user-id\n"
+                        },
+                        {
+                          "text": "Browser console error: Failed to load resource: the server responded with a status of 401 ()\n"
+                        },
+                        {
+                          "text": "Browser console error: Failed to load resource: the server responded with a status of 401 ()\n"
+                        },
+                        {
+                          "text": "Browser console error: [ERROR] API Response Error {status: 401, url: /api/archive/jobs?page=1&limit=20&sort=created_at&order=DESC, method: get, message: Request failed with status code 401}\n"
+                        },
+                        {
+                          "text": "Browser console error: Archive API: Error fetching assessment history: AxiosError\n"
+                        },
+                        {
+                          "text": "Browser console error: [ERROR] API Response Error {status: 401, url: /api/auth/token-balance, method: get, message: Request failed with status code 401}\n"
+                        },
+                        {
+                          "text": "Browser console error: Token Balance Utility: Check failed: Request failed with status code 401\n"
+                        },
+                        {
+                          "text": "Browser console error: Token Balance Utility: Error details: AxiosError\n"
+                        },
+                        {
+                          "text": "Browser console error: Failed to load resource: the server responded with a status of 401 ()\n"
+                        },
+                        {
+                          "text": "Browser console error: [ERROR] API Response Error {status: 401, url: /api/archive/jobs?page=1&limit=20&sort=created_at&order=DESC, method: get, message: Request failed with status code 401}\n"
+                        },
+                        {
+                          "text": "Browser console error: Archive API: Error fetching assessment history: AxiosError\n"
+                        },
+                        {
+                          "text": "Browser console error: Token Balance Utility: No authentication token found\n"
+                        },
+                        {
+                          "text": "Browser console error: WebSocket Service: Authentication failed {message: Invalid or expired token}\n"
+                        },
+                        {
+                          "text": "Browser console error: ❌ WebSocket Service: Auth failed: Error: Authentication failed: Invalid or expired token\n    at Socket.eval (webpack-internal:///(app-pages-browser)/./src/services/websocket-service.ts:323:24)\n    at Socket.on (webpack-internal:///(app-pages-browser)/./node_modules/@socket.io/component-emitter/lib/esm/index.js:60:8)\n    at Emitter.emit (webpack-internal:///(app-pages-browser)/./node_modules/@socket.io/component-emitter/lib/esm/index.js:140:20)\n    at Socket.emitEvent (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/socket.js:545:20)\n    at Socket.onevent (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/socket.js:532:18)\n    at Socket.onpacket (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/socket.js:502:22)\n    at Emitter.emit (webpack-internal:///(app-pages-browser)/./node_modules/@socket.io/component-emitter/lib/esm/index.js:140:20)\n    at eval (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/manager.js:219:18)\n"
+                        },
+                        {
+                          "text": "Browser console error: ❌ [NotificationRedirect] Failed: Error: Authentication failed: Invalid or expired token\n    at Socket.eval (webpack-internal:///(app-pages-browser)/./src/services/websocket-service.ts:323:24)\n    at Socket.on (webpack-internal:///(app-pages-browser)/./node_modules/@socket.io/component-emitter/lib/esm/index.js:60:8)\n    at Emitter.emit (webpack-internal:///(app-pages-browser)/./node_modules/@socket.io/component-emitter/lib/esm/index.js:140:20)\n    at Socket.emitEvent (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/socket.js:545:20)\n    at Socket.onevent (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/socket.js:532:18)\n    at Socket.onpacket (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/socket.js:502:22)\n    at Emitter.emit (webpack-internal:///(app-pages-browser)/./node_modules/@socket.io/component-emitter/lib/esm/index.js:140:20)\n    at eval (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/manager.js:219:18)\n"
+                        },
+                        {
+                          "text": "Browser console error: ❌ [NotificationRedirect] Failed: Error: Authentication failed: Invalid or expired token\n    at Socket.eval (webpack-internal:///(app-pages-browser)/./src/services/websocket-service.ts:323:24)\n    at Socket.on (webpack-internal:///(app-pages-browser)/./node_modules/@socket.io/component-emitter/lib/esm/index.js:60:8)\n    at Emitter.emit (webpack-internal:///(app-pages-browser)/./node_modules/@socket.io/component-emitter/lib/esm/index.js:140:20)\n    at Socket.emitEvent (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/socket.js:545:20)\n    at Socket.onevent (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/socket.js:532:18)\n    at Socket.onpacket (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/socket.js:502:22)\n    at Emitter.emit (webpack-internal:///(app-pages-browser)/./node_modules/@socket.io/component-emitter/lib/esm/index.js:140:20)\n    at eval (webpack-internal:///(app-pages-browser)/./node_modules/socket.io-client/build/esm/manager.js:219:18)\n"
+                        },
+                        {
+                          "text": "Browser console error: Failed to load resource: the server responded with a status of 401 ()\n"
+                        },
+                        {
+                          "text": "Browser console error: [ERROR] API Response Error {status: 401, url: /api/archive/results, method: get, message: Request failed with status code 401}\n"
+                        },
+                        {
+                          "text": "Browser console error: Archive API: Error fetching latest assessment: AxiosError\n"
+                        }
+                      ],
+                      "retry": 0,
+                      "startTime": "2025-10-08T16:27:36.965Z",
+                      "annotations": [],
+                      "attachments": [],
+                      "errorLocation": {
+                        "file": "D:\\WORK\\PetaTalenta-FrontEnd\\tests\\e2e\\dashboard-reload-prevention.spec.ts",
+                        "column": 16,
+                        "line": 288
+                      }
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "37af2919c2e8f1d08a04-acaa1949433ba930e902",
+              "file": "dashboard-reload-prevention.spec.ts",
+              "line": 251,
+              "column": 7
+            }
+          ]
+        }
+      ]
     }
   ],
+  "errors": [],
   "stats": {
-    "startTime": "2025-10-08T14:40:08.117Z",
-    "duration": 94.37900000000013,
-    "expected": 0,
-    "skipped": 0,
-    "unexpected": 0,
+    "startTime": "2025-10-08T16:26:51.757Z",
+    "duration": 49491.056000000004,
+    "expected": 4,
+    "skipped": 1,
+    "unexpected": 2,
     "flaky": 0
   }
 }

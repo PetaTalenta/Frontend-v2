@@ -4,6 +4,20 @@
 
 FutureGuide is a Next.js 15 assessment platform built with App Router, TypeScript, and comprehensive performance optimizations. The system handles AI-driven talent mapping assessments with real-time WebSocket communication and sophisticated caching strategies.
 
+
+## Credenstial Account Playwright
+const USER_A = {
+  email: 'kasykoi@gmail.com',
+  password: 'Anjas123',
+  <!-- expectedName: 'User A' // Expected display name -->
+};
+
+const USER_B = {
+  email: 'viccxn@gmail.com',
+  password: 'Kiana423',
+  <!-- expectedName: 'User B' // Expected display name -->
+};
+
 ## Core Architecture
 
 ### Next.js App Router Structure
