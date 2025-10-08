@@ -35,13 +35,21 @@ export default function AssessmentLoadingPageRoute() {
     onComplete: (result) => {
       console.log(`[AssessmentLoading] ✅ Completed: ${result.id}`);
 
-      // Clear saved answers to prevent re-submission
+      // Clear ALL saved assessment data (SAME PATTERN for all: answers, flags, etc.)
       try {
         localStorage.removeItem('assessment-answers');
         localStorage.removeItem('assessment-name');
         localStorage.removeItem('assessment-submission-time');
+        localStorage.removeItem('assessment-current-section-index');
+        localStorage.removeItem('flagged-questions-encrypted');
+        localStorage.removeItem('flagged-questions'); // Legacy key
+        console.log('[AssessmentLoading] 🧹 Cleared all assessment data');
+        
+        // ✨ No need for custom event anymore!
+        // Context will auto-detect localStorage changes via useEffect
+        // (same pattern as answers - when localStorage is removed, context resets on next load)
       } catch (e) {
-        console.warn('[AssessmentLoading] Failed to clear saved answers:', e);
+        console.warn('[AssessmentLoading] Failed to clear saved data:', e);
       }
 
       // Navigate to results
@@ -127,8 +135,8 @@ export default function AssessmentLoadingPageRoute() {
     }
 
     // Check URL params for answers (fallback)
-    const answersParam = searchParams.get('answers');
-    const nameParam = searchParams.get('name');
+    const answersParam = searchParams?.get('answers');
+    const nameParam = searchParams?.get('name');
     
     if (answersParam && !savedAnswers) {
       try {

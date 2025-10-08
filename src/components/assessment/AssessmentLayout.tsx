@@ -1,17 +1,24 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-// Reset state answers jika localStorage assessment-answers sudah kosong
+// Reset state answers and flags jika localStorage assessment-answers sudah kosong
 import { useAssessment } from '../../contexts/AssessmentContext';
-// Reset state answers jika localStorage assessment-answers sudah kosong
+// Reset state answers and flags jika localStorage assessment-answers sudah kosong
 function useSyncAnswersWithLocalStorage() {
-  const { answers, resetAnswers } = useAssessment();
+  const { answers, resetAnswers, clearAssessmentData, getFlaggedQuestions } = useAssessment();
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const saved = window.localStorage.getItem('assessment-answers');
+      
+      // If no saved answers or empty, clear everything including flags
       if (!saved || saved === '{}' || saved === 'null') {
-        if (Object.keys(answers).length > 0) {
-          resetAnswers();
+        const hasAnswers = Object.keys(answers).length > 0;
+        const hasFlags = getFlaggedQuestions().length > 0;
+        
+        // Clear all assessment data (answers + flags) if user is starting fresh
+        if (hasAnswers || hasFlags) {
+          console.log('🧹 Clearing previous assessment data (answers + flags)...');
+          clearAssessmentData();
         }
       }
     }
@@ -39,7 +46,7 @@ function AssessmentContent() {
     console.log('AssessmentContent: Current section index:', currentSectionIndex);
 
     // Add error handler for unhandled errors
-    const handleError = (event) => {
+    const handleError = (event: ErrorEvent) => {
       console.error('AssessmentContent: Unhandled error:', event.error);
       console.error('AssessmentContent: Error stack:', event.error?.stack);
     };

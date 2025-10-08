@@ -57,14 +57,8 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
 
   // Load flagged questions and answers from storage on mount
   useEffect(() => {
-    const loadedFlags = loadFlaggedQuestions();
-    setFlaggedQuestions(loadedFlags);
-
-    // Migrate unencrypted data if needed
-    migrateFlaggedQuestionsToEncrypted();
-
     if (typeof window !== 'undefined') {
-      // Load answers from localStorage
+      // Load answers from localStorage (SAME as always)
       try {
         const savedAnswers = window.localStorage.getItem('assessment-answers');
         if (savedAnswers) {
@@ -76,6 +70,17 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
       } catch (e) {
         // ignore
       }
+      
+      // Load flags from localStorage (SAME PATTERN as answers)
+      try {
+        const loadedFlags = loadFlaggedQuestions();
+        setFlaggedQuestions(loadedFlags);
+      } catch (e) {
+        console.warn('Failed to load flagged questions:', e);
+      }
+
+      // Migrate unencrypted data if needed
+      migrateFlaggedQuestionsToEncrypted();
 
       // Validate and restore currentSectionIndex from localStorage
       try {
@@ -135,6 +140,17 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
     }
   }, [answers]);
 
+  // Save flags to localStorage whenever flags change (SAME PATTERN as answers)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        saveFlaggedQuestions(flaggedQuestions);
+      } catch (e) {
+        console.warn('Failed to save flagged questions:', e);
+      }
+    }
+  }, [flaggedQuestions]);
+
   const setAnswer = (questionId: number, value: number) => {
     setAnswers(prev => ({ ...prev, [questionId]: value }));
   };
@@ -168,17 +184,14 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Toggle flag for a question
+  // Toggle flag for a question (SAME PATTERN as setAnswer - no manual save)
   const toggleFlag = (questionId: number) => {
     setFlaggedQuestions(prev => {
       const newFlags = { ...prev };
       newFlags[questionId] = !newFlags[questionId];
-
-      // Auto-save to encrypted storage
-      saveFlaggedQuestions(newFlags);
-
       console.log(`Question ${questionId} ${newFlags[questionId] ? 'flagged' : 'unflagged'}`);
       return newFlags;
+      // No manual save here - auto-saved by useEffect above (just like answers)
     });
   };
 
