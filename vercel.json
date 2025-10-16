@@ -1,0 +1,12 @@
+{
+  "env": {
+    "NEXT_PUBLIC_API_BASE_URL": "https://api.futureguide.id",
+    "NEXT_PUBLIC_NOTIFICATION_URL": "https://api.futureguide.id",
+    "NEXT_PUBLIC_USE_AUTH_V2": "true",
+    "NEXT_PUBLIC_AUTH_V2_BASE_URL": "https://api.futureguide.id/api/auth/v2",
+    "NEXT_PUBLIC_AUTH_V2_ROLLOUT_PERCENTAGE": "100",
+    "NEXT_PUBLIC_AUTH_V2_TOKEN_EXPIRY": "3600",
+    "NEXT_PUBLIC_AUTH_V2_REFRESH_BEFORE_EXPIRY": "600",
+    "NEXT_PUBLIC_SHOW_DEBUG_PANEL": "true"
+  }
+}
