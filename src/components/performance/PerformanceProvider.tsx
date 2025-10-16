@@ -20,7 +20,7 @@ export default function PerformanceProvider({
   enableCaching = true,
   enableBackgroundSync = true,
   enableBehaviorTracking = true,
-  debug = process.env.NODE_ENV === 'development'
+  debug = process.env.NEXT_PUBLIC_SHOW_DEBUG_PANEL === 'true'
 }: PerformanceProviderProps) {
   const pathname = usePathname();
   const [isInitialized, setIsInitialized] = useState(false);
@@ -104,7 +104,7 @@ export default function PerformanceProvider({
       {/* Debug panel for development */}
       {debug && isInitialized && (
         <PerformanceDebugPanel
-          pathname={pathname}
+          pathname={pathname || '/'}
           enablePrefetch={enablePrefetch}
           enableCaching={enableCaching}
           enableBackgroundSync={enableBackgroundSync}

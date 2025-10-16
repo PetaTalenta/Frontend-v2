@@ -899,8 +899,8 @@ export default function AssessmentSidebar({ isOpen = false, onToggle }: Assessme
         </div>
       )}
 
-      {/* Debug Buttons - Only show in development */}
-      {process.env.NODE_ENV === 'development' && (
+      {/* Debug Buttons - Controlled by environment variable */}
+      {process.env.NEXT_PUBLIC_SHOW_DEBUG_PANEL === 'true' && (
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-4">
           <div className="flex items-center gap-2 mb-3">
             <span className="text-gray-600">🐛</span>
