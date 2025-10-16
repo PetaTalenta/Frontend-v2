@@ -196,23 +196,25 @@ export function convertScoresToApiData(
     const oceanIdxById = buildIndexMap(bigFiveQuestions, 'category');
     const viaIdxById = buildIndexMap(viaQuestions, 'subcategory');
 
+    // ✅ FIXED: Use backend-compatible questionId format
+    // Backend expects: RIASEC_R02, OCEAN_O02, VIA_CREATIVITY_02 (uppercase, underscore, no leading zero)
     rawResponses = {
       riasec: riasecQuestions
         .filter(q => answers[q.id] !== undefined && answers[q.id] !== null)
         .map(q => ({
-          questionId: `Riasec-${q.category[0].toUpperCase()}-${to2(riasecIdxById[q.id] || 1)}`,
+          questionId: `RIASEC_${q.category[0].toUpperCase()}${riasecIdxById[q.id] || 1}`,
           value: answers[q.id]
         })),
       ocean: bigFiveQuestions
         .filter(q => answers[q.id] !== undefined && answers[q.id] !== null)
         .map(q => ({
-          questionId: `Ocean-${q.category[0].toUpperCase()}-${to2(oceanIdxById[q.id] || 1)}`,
+          questionId: `OCEAN_${q.category[0].toUpperCase()}${oceanIdxById[q.id] || 1}`,
           value: answers[q.id]
         })),
       viaIs: viaQuestions
         .filter(q => answers[q.id] !== undefined && answers[q.id] !== null)
         .map(q => ({
-          questionId: `VIA-${normalizeViaSubcategory(q.subcategory)}-${to2(viaIdxById[q.id] || 1)}`,
+          questionId: `VIA_${normalizeViaSubcategory(q.subcategory).toUpperCase()}_${viaIdxById[q.id] || 1}`,
           value: answers[q.id]
         })),
     };

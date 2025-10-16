@@ -215,23 +215,51 @@ class AssessmentService {
 
     const apiData = convertScoresToApiData(scores, assessmentName, answers);
 
-    // Use LEGACY flat format per documentation; include rawResponses only if present.
-    // Payload: { assessmentName, riasec, ocean, viaIs, industryScore, rawResponses?, rawSchemaVersion? }
+    // ✅ FIXED: Use CORRECT backend format (snake_case)
+    // Backend expects: assessment_name, assessment_data, raw_responses, raw_schema_version
+    // See: POST /api/assessment/submit documentation
     const payload: any = {
-      assessmentName: apiData.assessmentName || assessmentName,
-      riasec: apiData.riasec,
-      ocean: apiData.ocean,
-      viaIs: apiData.viaIs,
-      industryScore: apiData.industryScore,
+      assessment_name: apiData.assessmentName || assessmentName,
+      assessment_data: {
+        riasec: apiData.riasec,
+        ocean: apiData.ocean,
+        viaIs: apiData.viaIs,
+        industryScore: apiData.industryScore,
+      },
     };
 
-    console.log('Assessment Service: Submitting payload (legacy flat):', {
-      assessmentName: payload.assessmentName,
-      hasRiasec: !!payload.riasec,
-      hasOcean: !!payload.ocean,
-      hasViaIs: !!payload.viaIs,
-      hasIndustryScore: !!payload.industryScore,
+    // ✅ Include rawResponses and rawSchemaVersion if present
+    // NOTE: Only include if backend supports it (optional field)
+    // Can be controlled via environment variable: NEXT_PUBLIC_SEND_RAW_RESPONSES
+    const shouldSendRawResponses = process.env.NEXT_PUBLIC_SEND_RAW_RESPONSES !== 'false';
+    if (shouldSendRawResponses && apiData.rawResponses) {
+      payload.raw_responses = apiData.rawResponses;
+      payload.raw_schema_version = apiData.rawSchemaVersion || 'v1';
+    }
+
+    console.log('Assessment Service: Submitting payload (backend format):', {
+      assessment_name: payload.assessment_name,
+      hasAssessmentData: !!payload.assessment_data,
+      hasRawResponses: !!payload.raw_responses,
+      raw_schema_version: payload.raw_schema_version,
     });
+
+    // Debug: Log full payload structure for troubleshooting
+    console.log('Assessment Service: Full payload:', JSON.stringify(payload, null, 2));
+    console.log('Assessment Service: Payload keys:', Object.keys(payload));
+    if (payload.assessment_data) {
+      console.log('Assessment Service: assessment_data keys:', Object.keys(payload.assessment_data));
+      console.log('Assessment Service: riasec scores:', payload.assessment_data.riasec);
+      console.log('Assessment Service: ocean scores:', payload.assessment_data.ocean);
+      console.log('Assessment Service: viaIs scores:', payload.assessment_data.viaIs);
+    }
+    if (payload.raw_responses) {
+      console.log('Assessment Service: raw_responses sample:', {
+        riasecSample: payload.raw_responses.riasec?.[0],
+        oceanSample: payload.raw_responses.ocean?.[0],
+        viaIsSample: payload.raw_responses.viaIs?.[0],
+      });
+    }
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), CONFIG.TIMEOUTS.SUBMISSION);
@@ -266,9 +294,23 @@ class AssessmentService {
           errorData = { message: `HTTP ${response.status}: ${response.statusText}` };
         }
 
+        // Log full error details for debugging
+        console.error('Assessment Service: API Error Response:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorData: errorData,
+          errorDetails: errorData?.details,
+          fullError: JSON.stringify(errorData, null, 2)
+        });
+
         // Handle specific status codes
         switch (response.status) {
           case 400:
+            console.error('Assessment Service: VALIDATION_ERROR Details:', {
+              message: errorData?.message,
+              details: errorData?.details,
+              error: errorData?.error
+            });
             throw createSafeError(
               errorData?.message || 'Invalid assessment data. Please check your answers and try again.',
               'VALIDATION_ERROR'
