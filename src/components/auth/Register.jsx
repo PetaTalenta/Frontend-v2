@@ -55,7 +55,8 @@ const Register = ({ onRegister }) => {
         email,
         password,
         displayName: username || null,
-        photoURL: null
+        photoURL: null,
+        schoolName: data.schoolName?.trim() || null
       });
 
       // Extract V2 response structure
@@ -179,6 +180,43 @@ const Register = ({ onRegister }) => {
                   <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                 </svg>
                 {errors.username.message}
+              </p>
+            )}
+          </div>
+
+          <div>
+            <label htmlFor="schoolName" className="block text-sm font-medium text-gray-700 mb-2">
+              School Name <span className="text-gray-500 text-xs">(Optional)</span>
+            </label>
+            <div className="relative">
+              <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+              </svg>
+              <input
+                {...register('schoolName', {
+                  minLength: {
+                    value: 2,
+                    message: 'Nama sekolah minimal 2 karakter'
+                  },
+                  pattern: {
+                    value: /^[a-zA-Z0-9\s\-.,'&()]+$/,
+                    message: 'Nama sekolah hanya boleh mengandung huruf, angka, spasi, dan simbol -.,\'&()'
+                  }
+                })}
+                type="text"
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
+                placeholder="Masukkan nama sekolah Anda (opsional)"
+              />
+            </div>
+            <p className="mt-1 text-xs text-gray-500">
+              Nama sekolah atau institusi tempat Anda belajar/bekerja
+            </p>
+            {errors.schoolName && (
+              <p className="mt-1 text-sm text-red-600 flex items-center">
+                <svg className="h-4 w-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+                {errors.schoolName.message}
               </p>
             )}
           </div>

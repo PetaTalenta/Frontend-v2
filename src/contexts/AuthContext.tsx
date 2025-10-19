@@ -20,6 +20,7 @@ interface User {
   avatar?: string;
   displayName?: string; // For Auth V2 compatibility
   photoURL?: string; // For Auth V2 compatibility
+  schoolName?: string; // School name for registration
 }
 
 interface AuthContextType {

@@ -195,11 +195,12 @@ class AuthV2Service {
    * @param {string} userData.password - User password
    * @param {string} [userData.displayName] - Display name (optional)
    * @param {string} [userData.photoURL] - Photo URL (optional)
+   * @param {string} [userData.schoolName] - School name (optional)
    * @returns {Promise<Object>} - Registration response with tokens and user data
    * 
    * Response format: Same as login
    */
-  async register({ email, password, displayName = null, photoURL = null }) {
+  async register({ email, password, displayName = null, photoURL = null, schoolName = null }) {
     try {
       logger.debug('Auth V2: Register attempt for', email);
 
@@ -231,6 +232,7 @@ class AuthV2Service {
       // Add optional fields if provided
       if (displayName) requestBody.displayName = displayName.trim();
       if (photoURL) requestBody.photoURL = photoURL.trim();
+      if (schoolName) requestBody.schoolName = schoolName.trim();
 
       const response = await this.axiosInstance.post(API_ENDPOINTS.AUTH_V2.REGISTER, requestBody);
 
