@@ -11,7 +11,7 @@ interface ViaRadarChartProps {
   scores: AssessmentScores;
 }
 
-export default function ViaRadarChart({ scores }: ViaRadarChartProps) {
+function ViaRadarChartComponent({ scores }: ViaRadarChartProps) {
   // Group VIA-IS scores into 6 main categories
   const radarData = [
     {
@@ -248,3 +248,5 @@ export default function ViaRadarChart({ scores }: ViaRadarChartProps) {
     </Card>
   );
 }
+
+export default React.memo(ViaRadarChartComponent)

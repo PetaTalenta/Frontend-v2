@@ -81,28 +81,20 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           setToken(idToken);
           setUser(parsedUser);
 
-          console.log('AuthContext V2: Restored existing authentication for user:', parsedUser.email);
-
           // Check if token needs refresh
           if (tokenService.isTokenExpired()) {
-            console.log('AuthContext V2: Token expired, will refresh on first API call');
+            // Token expired, will refresh on first API call
           }
         } catch (error) {
           // Clear invalid data
           tokenService.clearTokens();
           localStorage.removeItem('user');
-          console.log('AuthContext V2: Cleared invalid authentication data, error:', error);
         }
-      } else {
-        console.log('AuthContext V2: No existing authentication found');
       }
     } else {
       // Auth V1: Original logic
       const savedToken = localStorage.getItem('token');
       const savedUser = localStorage.getItem('user');
-
-      console.log('AuthContext V1: savedToken exists:', !!savedToken);
-      console.log('AuthContext V1: savedUser exists:', !!savedUser);
 
       if (savedToken && savedUser) {
         try {
@@ -112,10 +104,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
           // Ensure cookie is set for server-side middleware
           document.cookie = `token=${savedToken}; path=/; max-age=${7 * 24 * 60 * 60}`;
-          console.log('AuthContext V1: Restored existing authentication for user:', parsedUser.name);
 
           // Always try to fetch the latest username from profile to ensure it's up to date
-          console.log('AuthContext V1: Triggering username fetch from profile on mount...');
           // ✅ Pass user ID for validation
           fetchUsernameFromProfile(savedToken, parsedUser.id);
         } catch (error) {
@@ -123,14 +113,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           localStorage.removeItem('token');
           localStorage.removeItem('user');
           document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT';
-          console.log('AuthContext V1: Cleared invalid authentication data, error:', error);
         }
-      } else {
-        console.log('AuthContext V1: No existing authentication found, user needs to login');
       }
     }
 
-    console.log('AuthContext: Setting isLoading to false');
     setIsLoading(false);
   }, []);
 
@@ -162,21 +148,19 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         
         if (!newToken && token) {
           // Token was removed (logout in another tab)
-          console.log('⚠️ Token removed in another tab, logging out current session...');
-          
+
           // Clear SWR cache
           mutate(() => true, undefined, { revalidate: false }).catch(console.error);
-          
+
           // Clear state
           setToken(null);
           setUser(null);
           setAuthVersion('v1');
-          
+
           // Redirect to auth page
           router.push('/auth');
         } else if (newToken && newToken !== token) {
           // Token changed (different user logged in another tab)
-          console.log('⚠️ Different user logged in another tab, syncing state...');
           
           // Get updated user data
           const savedUser = localStorage.getItem('user');
@@ -212,7 +196,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         
         if (!newUserData && user) {
           // User was removed (logout in another tab)
-          console.log('⚠️ User data removed in another tab, logging out...');
           setUser(null);
           setToken(null);
           router.push('/auth');
@@ -221,18 +204,15 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
             const parsedUser = JSON.parse(newUserData);
             if (parsedUser.id !== user?.id) {
               // Different user logged in another tab
-              console.log('⚠️ Different user detected in another tab:', parsedUser.email);
-              
+
               // Clear SWR cache
               mutate(() => true, undefined, { revalidate: false }).catch(console.error);
-              
+
               // Update user state
               setUser(parsedUser);
-              
-              console.log('✅ User state synchronized with tab change');
             }
           } catch (error) {
-            console.error('❌ Failed to parse user data:', error);
+            console.error('Failed to parse user data:', error);
           }
         }
       }
@@ -286,7 +266,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   // This prevents race condition where profile data from previous user overwrites current user
   const fetchUsernameFromProfile = useCallback(async (authToken: string, expectedUserId: string) => {
     try {
-      console.log('AuthContext: Fetching username from profile for user:', expectedUserId);
       const profileData = await apiService.getProfile();
       console.log('AuthContext: Profile data received:', profileData);
 
@@ -375,23 +354,17 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     // Set cookie for server-side middleware
     document.cookie = `token=${newToken}; path=/; max-age=${7 * 24 * 60 * 60}`; // 7 days
 
-    console.log('AuthContext: Login successful, user state updated');
-
     // ✅ FIXED: Fetch profile in background WITH user ID validation
     // This prevents race conditions and ensures faster login experience
-    fetchUsernameFromProfile(newToken, currentUserId).catch(error => {
-      console.warn('AuthContext: Failed to fetch profile (non-blocking):', error);
+    fetchUsernameFromProfile(newToken, currentUserId).catch(() => {
+      // Error handled silently
     });
-
-    console.log('AuthContext: Redirecting to dashboard...');
 
     // Redirect to dashboard after login
     router.push('/dashboard');
   }, [router, fetchUsernameFromProfile]);
 
   const register = useCallback(async (newToken: string, newUser: User) => {
-    console.log('AuthContext: User registering:', newUser.email);
-
     // Clear any existing demo data to ensure clean user statistics
     clearDemoAssessmentData();
 
@@ -410,24 +383,17 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     // Set cookie for server-side middleware
     document.cookie = `token=${newToken}; path=/; max-age=${7 * 24 * 60 * 60}`; // 7 days
 
-    console.log('AuthContext: Registration successful, fetching username from profile...');
-
     // ✅ Fetch username from profile WITH user ID validation
     await fetchUsernameFromProfile(newToken, currentUserId);
-
-    console.log('AuthContext: Profile data fetched, redirecting to dashboard...');
 
     // Redirect to dashboard after registration
     router.push('/dashboard');
   }, [router, fetchUsernameFromProfile]);
 
   const logout = useCallback(async () => {
-    console.log('AuthContext: Logout initiated, auth version:', authVersion);
-
     // ✅ CRITICAL FIX #1: Abort all in-flight requests FIRST
     // This prevents responses from old user being consumed by new user
     try {
-      console.log('🛑 AuthContext: Aborting all in-flight requests...');
       const { default: apiService } = await import('../services/apiService');
       const { default: authV2Service } = await import('../services/authV2Service');
 
@@ -438,26 +404,21 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       if (typeof (authV2Service as any).abortAllRequests === 'function') {
         (authV2Service as any).abortAllRequests();
       }
-
-      console.log('✅ AuthContext: All in-flight requests aborted');
     } catch (error) {
-      console.error('⚠️ AuthContext: Failed to abort requests:', error);
+      console.error('Failed to abort requests:', error);
     }
 
     // ✅ CRITICAL FIX #4: Stop token refresh timer
     // Prevents memory leak and refresh attempts with cleared tokens
     try {
-      console.log('⏹️ AuthContext: Stopping token refresh timer...');
       stopRefreshTimer();
-      console.log('✅ AuthContext: Token refresh timer stopped');
     } catch (error) {
-      console.error('⚠️ AuthContext: Failed to stop refresh timer:', error);
+      console.error('Failed to stop refresh timer:', error);
     }
 
     // ✅ CRITICAL FIX #2: Clear ALL SWR cache BEFORE logout
     // This ensures no cached data from previous user persists
     try {
-      console.log('🧹 AuthContext: Clearing SWR cache for all user data...');
 
       // Method 1: Clear all cache globally (most thorough)
       await mutate(
@@ -477,22 +438,19 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         ]);
       }
 
-      console.log('✅ AuthContext: SWR cache cleared successfully');
     } catch (error) {
-      console.error('⚠️ AuthContext: Failed to clear SWR cache:', error);
+      console.error('Failed to clear SWR cache:', error);
       // Continue with logout even if cache clear fails
     }
 
     // ✅ CRITICAL FIX #5: Disconnect WebSocket BEFORE clearing tokens
     // This ensures WebSocket doesn't try to reconnect with stale token
     try {
-      console.log('🔌 AuthContext: Disconnecting WebSocket...');
       const { getWebSocketService } = await import('../services/websocket-service');
       const wsService = getWebSocketService();
       wsService.disconnect();
-      console.log('✅ AuthContext: WebSocket disconnected');
     } catch (error) {
-      console.warn('⚠️ AuthContext: Failed to disconnect WebSocket:', error);
+      console.warn('Failed to disconnect WebSocket:', error);
     }
 
     // ✅ CRITICAL FIX: Clear ALL tokens and user data regardless of auth version
@@ -502,9 +460,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       // Auth V2: Revoke refresh tokens via API
       try {
         await authV2Service.logout();
-        console.log('AuthContext V2: Logout API call successful');
       } catch (error) {
-        console.error('AuthContext V2: Logout API call failed (continuing anyway):', error);
+        console.error('Logout API call failed (continuing anyway):', error);
       }
     }
 
@@ -526,7 +483,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       // Clear user-specific cache
       if (user?.id && typeof (apiService as any).clearUserCache === 'function') {
         (apiService as any).clearUserCache(user.id);
-        console.log('AuthContext: apiService user cache cleared');
       }
 
       // Clear in-memory cache
@@ -549,9 +505,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       localStorage.removeItem(`tokenBalanceCache_${user.id}`);
     }
     localStorage.removeItem('tokenBalanceCache');
-    console.log('AuthContext: Token balance caches cleared');
-
-    console.log('✅ AuthContext: Logout complete, all data cleared, redirecting to auth page');
 
     // Redirect to login page
     router.push('/auth');

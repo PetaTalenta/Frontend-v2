@@ -10,7 +10,7 @@ interface CareerStatsCardProps {
   scores: AssessmentScores;
 }
 
-export default function CareerStatsCard({ scores }: CareerStatsCardProps) {
+function CareerStatsCardComponent({ scores }: CareerStatsCardProps) {
   // Early return if scores data is not available
   if (!scores || !scores.riasec || !scores.ocean || !scores.viaIs) {
     return (
@@ -160,3 +160,5 @@ export default function CareerStatsCard({ scores }: CareerStatsCardProps) {
     </Card>
   );
 }
+
+export default React.memo(CareerStatsCardComponent)

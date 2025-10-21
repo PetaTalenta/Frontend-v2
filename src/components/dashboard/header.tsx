@@ -1,5 +1,6 @@
 "use client"
 
+import React from "react"
 import { Button } from "../ui/button"
 import {
   DropdownMenu,
@@ -42,7 +43,7 @@ interface HeaderProps {
   logout: () => void;
 }
 
-export default function Header({ title, description, logout }: HeaderProps) {
+function HeaderComponent({ title, description, logout }: HeaderProps) {
   const { user } = useAuth();
 
   // Generate title and description if not provided
@@ -129,4 +130,5 @@ export default function Header({ title, description, logout }: HeaderProps) {
     </div>
   );
 }
-// (Removed duplicate/old code and stray returns. Only the valid export default function remains above.)
+
+export default React.memo(HeaderComponent)

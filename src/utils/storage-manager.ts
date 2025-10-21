@@ -369,9 +369,7 @@ class StorageManager {
           // Ignore individual removal errors
         }
       });
-      
-      console.log(`[StorageManager] Cleared ${clearedCount} cache items`);
-      
+
       // Strategy 2: If still not enough, clear old assessment answers (keep only latest)
       if (clearedCount === 0) {
         keys.filter(k => k.includes('assessment-answers-')).forEach(k => {
@@ -382,8 +380,6 @@ class StorageManager {
             // Ignore
           }
         });
-        
-        console.log(`[StorageManager] Cleared ${clearedCount} old assessment items`);
       }
     } catch (error) {
       console.error('[StorageManager] Failed to handle quota exceeded', error);

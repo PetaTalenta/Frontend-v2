@@ -350,11 +350,13 @@ function AssessmentRadarChartComponent({ scores }: AssessmentRadarChartProps) {
   );
 }
 
-// Wrap the component with error boundary
-export default function AssessmentRadarChart(props: AssessmentRadarChartProps) {
+// Wrap the component with error boundary and memoization
+function AssessmentRadarChartWrapper(props: AssessmentRadarChartProps) {
   return (
     <ChartErrorBoundary>
       <AssessmentRadarChartComponent {...props} />
     </ChartErrorBoundary>
   );
 }
+
+export default React.memo(AssessmentRadarChartWrapper)

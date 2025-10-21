@@ -200,10 +200,9 @@ export function useStableCallback<T extends (...args: any[]) => any>(
  */
 export function useRenderCount(componentName: string) {
   const renderCount = useRef(0);
-  
+
   useEffect(() => {
     renderCount.current += 1;
-    console.log(`${componentName} rendered ${renderCount.current} times`);
   });
 
   return renderCount.current;
@@ -228,10 +227,6 @@ export function useWhyDidYouUpdate(name: string, props: Record<string, any>) {
           };
         }
       });
-
-      if (Object.keys(changedProps).length) {
-        console.log('[why-did-you-update]', name, changedProps);
-      }
     }
 
     previousProps.current = props;

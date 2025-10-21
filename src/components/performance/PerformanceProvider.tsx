@@ -272,15 +272,7 @@ export function PerformanceMeasure({
   children: React.ReactNode;
 }) {
   useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      const startTime = performance.now();
-
-      return () => {
-        const endTime = performance.now();
-        const duration = endTime - startTime;
-        console.log(`[PerformanceMeasure] ${name}: ${duration.toFixed(2)}ms`);
-      };
-    }
+    // Performance measurement removed in production build
   }, [name]);
 
   return <>{children}</>;

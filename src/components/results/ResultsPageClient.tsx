@@ -3,10 +3,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '../ui/button';
-import { Card, CardContent } from '../ui/card';
-import { Skeleton } from '../ui/skeleton';
+import { Card } from '../ui/card';
 import { toast } from '../ui/use-toast';
-import { AssessmentResult, AssessmentScores, ApiAssessmentData } from '../../types/assessment-results';
+import { AssessmentResult, AssessmentScores } from '../../types/assessment-results';
 import apiService from '../../services/apiService';
 // Toggle public API via direct backend endpoint
 async function toggleResultPublic(resultId: string, isPublic: boolean): Promise<{success: boolean, is_public: boolean}> {
@@ -17,16 +16,25 @@ async function toggleResultPublic(resultId: string, isPublic: boolean): Promise<
   return { success: true, is_public: resp.data?.is_public ?? isPublic };
 }
 import {
-  captureElementScreenshot,
   capturePageScreenshot,
   downloadBlob,
-  captureMultipleScreenshots,
   isScreenshotSupported,
   getBrowserLimitations
 } from '../../utils/screenshot-utils';
-import { exportCompletePDF, downloadPDF } from '../../utils/pdf-export-utils';
+
+// Lazy load PDF export utilities (only loaded when needed)
+let exportCompletePDF: any = null;
+let downloadPDF: any = null;
+
+const loadPDFExportUtils = async () => {
+  if (!exportCompletePDF || !downloadPDF) {
+    const module = await import('../../utils/pdf-export-utils');
+    exportCompletePDF = module.exportCompletePDF;
+    downloadPDF = module.downloadPDF;
+  }
+  return { exportCompletePDF, downloadPDF };
+};
 import PersonaProfileSummary from './PersonaProfileSummary';
-import AssessmentScoresChart from './AssessmentScoresChart';
 import AssessmentScoresSummary from './AssessmentScoresSummary';
 import ResultSummaryStats from './ResultSummaryStats';
 import VisualSummary from './VisualSummary';
@@ -37,9 +45,7 @@ import SimpleAssessmentChart from './SimpleAssessmentChart';
 
 import {
   ArrowLeft,
-  Download,
   Share2,
-  RefreshCw,
   AlertCircle,
   MessageCircle,
   Loader2,
@@ -181,7 +187,7 @@ interface ResultsPageClientProps {
   resultId: string;
 }
 
-export default function ResultsPageClient({ initialResult, resultId }: ResultsPageClientProps) {
+function ResultsPageClientComponent({ initialResult, resultId }: ResultsPageClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [result, setResult] = useState<AssessmentResult>(initialResult);
@@ -201,8 +207,6 @@ export default function ResultsPageClient({ initialResult, resultId }: ResultsPa
   // Clear assessment data when results are displayed (run once on mount)
   // Safe approach: Clear directly without depending on AssessmentProvider
   useEffect(() => {
-    console.log('🎯 Results page loaded - clearing previous assessment data...');
-    
     // Clear assessment data directly from localStorage
     if (typeof window !== 'undefined') {
       try {
@@ -212,7 +216,6 @@ export default function ResultsPageClient({ initialResult, resultId }: ResultsPa
         window.localStorage.removeItem('assessment-submission-time');
         window.localStorage.removeItem('flagged-questions-encrypted');
         window.localStorage.removeItem('flagged-questions');
-        console.log('✅ Assessment data cleared successfully');
       } catch (e) {
         console.error('Failed to clear assessment data:', e);
       }
@@ -310,8 +313,9 @@ export default function ResultsPageClient({ initialResult, resultId }: ResultsPa
       setExporting(true);
       setExportType('pdf');
 
-      console.log('Starting PDF export for result ID:', result.id);
-      const pdfBlob = await exportCompletePDF(result.id, result);
+      // Lazy load PDF export utilities only when needed
+      const { exportCompletePDF: exportPDF } = await loadPDFExportUtils();
+      const pdfBlob = await exportPDF(result.id, result);
 
       // Create download link for the PDF
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
@@ -640,3 +644,5 @@ export default function ResultsPageClient({ initialResult, resultId }: ResultsPa
     </div>
   );
 }
+
+export default React.memo(ResultsPageClientComponent)

@@ -1,3 +1,4 @@
+import React from "react"
 import { Card, CardContent } from "../ui/card"
 import { OceanScores } from "../../types/assessment-results"
 import "../../styles/components/dashboard/ocean-card.css"
@@ -6,7 +7,7 @@ interface OceanCardProps {
   oceanScores?: OceanScores
 }
 
-export function OceanCard({ oceanScores }: OceanCardProps) {
+function OceanCardComponent({ oceanScores }: OceanCardProps) {
   // Default Ocean scores if no assessment data is available
   const defaultScores: OceanScores = {
     openness: 75,
@@ -91,3 +92,5 @@ export function OceanCard({ oceanScores }: OceanCardProps) {
     </Card>
   )
 }
+
+export const OceanCard = React.memo(OceanCardComponent)

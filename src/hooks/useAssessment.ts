@@ -20,6 +20,7 @@ interface AssessmentState {
 interface AssessmentOptions {
   onComplete?: (result: AssessmentResult) => void;
   onError?: (error: any) => void;
+  onProgress?: (status: AssessmentStatusResponse) => Promise<void>; // Changed to return Promise<void>
   onTokenBalanceUpdate?: () => Promise<void>;
   preferWebSocket?: boolean;
 }
@@ -157,7 +158,6 @@ export function useAssessment(options: AssessmentOptions = {}): UseAssessmentRet
       } catch (error: any) {
         // Check if aborted
         if (error.name === 'AbortError') {
-          console.log('[useAssessment] Submission aborted by user');
           return null;
         }
 

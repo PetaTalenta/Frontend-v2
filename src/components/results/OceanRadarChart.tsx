@@ -11,7 +11,7 @@ interface OceanRadarChartProps {
   scores: AssessmentScores;
 }
 
-export default function OceanRadarChart({ scores }: OceanRadarChartProps) {
+function OceanRadarChartComponent({ scores }: OceanRadarChartProps) {
   // Transform OCEAN scores for radar chart
   const radarData = [
     {
@@ -194,3 +194,5 @@ export default function OceanRadarChart({ scores }: OceanRadarChartProps) {
     </Card>
   );
 }
+
+export default React.memo(OceanRadarChartComponent)

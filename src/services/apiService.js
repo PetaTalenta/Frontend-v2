@@ -904,8 +904,6 @@ class ApiService {
    * @param {string} jobId - Job ID from archive/jobs
    */
   async retryAssessmentByJob(jobId) {
-    console.log('🔄 ApiService: Retrying assessment by jobId:', jobId);
-
     if (!jobId) {
       console.error('❌ ApiService: No jobId provided for retry');
       throw new Error('Job ID is required for retry');
@@ -916,7 +914,6 @@ class ApiService {
         jobId: jobId
       });
 
-      console.log('✅ ApiService: Retry response:', response.data);
       return response.data;
     } catch (error) {
       console.error('❌ ApiService: Retry failed:', error.response?.data || error.message);

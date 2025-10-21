@@ -144,3 +144,5 @@ npm run optimize          # Performance optimization script
 - **Auth Context**: `src/contexts/AuthContext.tsx`
 - **Assessment Service**: `src/services/assessment-service.ts`
 - **WebSocket Service**: `src/services/websocket-service.ts`
+
+Buat dokumentasi setiap perubahan dalam folder docs

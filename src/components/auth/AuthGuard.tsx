@@ -33,14 +33,11 @@ export default function AuthGuard({ children }: AuthGuardProps) {
   const [loadingTimeout, setLoadingTimeout] = React.useState(false);
 
   // ✅ Instrumentasi: Track render count
-  console.count(`[AuthGuard] Render (${pathname})`);
-  console.log(`[AuthGuard] ${pathname} - isLoading: ${isLoading}, isAuthenticated: ${isAuthenticated}`);
 
   // Add timeout for loading state to prevent infinite loading
   React.useEffect(() => {
     if (isLoading) {
       const timer = setTimeout(() => {
-        console.log('AuthGuard: Loading timeout reached, assuming authentication is ready');
         setLoadingTimeout(true);
       }, 2000); // 2 second timeout
 
@@ -66,23 +63,18 @@ export default function AuthGuard({ children }: AuthGuardProps) {
   useEffect(() => {
     // Don't do anything while loading (unless timeout reached)
     if (isLoading && !loadingTimeout) {
-      console.log(`[AuthGuard] ${pathname} - Still loading authentication state`);
       return;
     }
-
-    console.log(`[AuthGuard] ${pathname} - Checking access (auth: ${isAuthenticated}, protected: ${isProtectedRoute}, public: ${isPublicRoute})`);
 
     // If accessing a protected route without authentication, redirect to auth
     // BUT: Don't redirect if still loading and it's a results page (to avoid race condition)
     if (isProtectedRoute && !isAuthenticated) {
       if (isLoading && pathname?.startsWith('/results/')) {
-        console.log(`[AuthGuard] ${pathname} - Skipping redirect while loading (race condition prevention)`);
         return;
       }
-      
+
       // ✅ Prevent redirect loop
       if (lastRedirectRef.current !== '/auth') {
-        console.log(`[AuthGuard] ${pathname} → /auth (not authenticated)`);
         lastRedirectRef.current = '/auth';
         router.push('/auth');
       }
@@ -94,7 +86,6 @@ export default function AuthGuard({ children }: AuthGuardProps) {
     if (isPublicRoute && isAuthenticated && !pathname?.startsWith('/results')) {
       // ✅ Prevent redirect loop
       if (lastRedirectRef.current !== '/dashboard') {
-        console.log(`[AuthGuard] ${pathname} → /dashboard (authenticated)`);
         lastRedirectRef.current = '/dashboard';
         router.push('/dashboard');
       }
@@ -106,7 +97,6 @@ export default function AuthGuard({ children }: AuthGuardProps) {
       const targetPath = isAuthenticated ? '/dashboard' : '/auth';
       // ✅ Prevent redirect loop
       if (lastRedirectRef.current !== targetPath) {
-        console.log(`[AuthGuard] / → ${targetPath}`);
         lastRedirectRef.current = targetPath;
         router.push(targetPath);
       }
@@ -115,7 +105,6 @@ export default function AuthGuard({ children }: AuthGuardProps) {
 
     // ✅ Clear redirect tracking when staying on current page
     lastRedirectRef.current = null;
-    console.log(`[AuthGuard] ${pathname} - Access granted`);
   }, [isAuthenticated, isLoading, loadingTimeout, pathname, router, isProtectedRoute, isPublicRoute]);
 
   // Show loading spinner while checking authentication (unless timeout reached)

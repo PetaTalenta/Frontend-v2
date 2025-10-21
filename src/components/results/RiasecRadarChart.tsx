@@ -11,7 +11,7 @@ interface RiasecRadarChartProps {
   scores: AssessmentScores;
 }
 
-export default function RiasecRadarChart({ scores }: RiasecRadarChartProps) {
+function RiasecRadarChartComponent({ scores }: RiasecRadarChartProps) {
   // Early return if scores data is not available
   if (!scores || !scores.riasec) {
     return (
@@ -232,3 +232,5 @@ export default function RiasecRadarChart({ scores }: RiasecRadarChartProps) {
     </Card>
   );
 }
+
+export default React.memo(RiasecRadarChartComponent)

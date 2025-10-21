@@ -11,7 +11,7 @@ interface OceanBarChartProps {
   scores: AssessmentScores;
 }
 
-export default function OceanBarChart({ scores }: OceanBarChartProps) {
+function OceanBarChartComponent({ scores }: OceanBarChartProps) {
   // Transform OCEAN scores for bar chart with requested abbreviations
   const barData = [
     {
@@ -189,3 +189,5 @@ export default function OceanBarChart({ scores }: OceanBarChartProps) {
     </Card>
   );
 }
+
+export default React.memo(OceanBarChartComponent)

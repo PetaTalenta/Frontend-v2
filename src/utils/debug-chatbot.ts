@@ -2,7 +2,7 @@
  * Debug utilities for chatbot API testing
  */
 
-import { apiService } from '../services/apiService';
+import apiService from '../services/apiService';
 
 export interface ChatbotDebugResult {
   success: boolean;
@@ -16,9 +16,8 @@ export interface ChatbotDebugResult {
  */
 export async function testChatbotHealth(): Promise<ChatbotDebugResult> {
   const timestamp = new Date().toISOString();
-  
+
   try {
-    console.log('🔍 Testing chatbot API health...');
     const result = await apiService.testChatbotHealth();
     
     if (result.success) {
@@ -54,10 +53,8 @@ export async function testChatbotHealth(): Promise<ChatbotDebugResult> {
  */
 export async function testChatbotAuth(): Promise<ChatbotDebugResult> {
   const timestamp = new Date().toISOString();
-  
+
   try {
-    console.log('🔐 Testing chatbot API authentication...');
-    
     // Check if we have a token
     const token = localStorage.getItem('token') || 
                  localStorage.getItem('auth_token') || 
@@ -148,13 +145,10 @@ export async function testCreateConversation(assessmentId: string): Promise<Chat
   const timestamp = new Date().toISOString();
 
   try {
-    console.log('💬 Testing conversation creation...');
-
     // If the provided assessmentId is not a valid UUID, generate one
     let validAssessmentId = assessmentId;
     if (!isValidUUID(assessmentId)) {
       validAssessmentId = generateUUID();
-      console.log(`Generated valid UUID for testing: ${validAssessmentId}`);
     }
 
     const mockAssessmentResult = {
@@ -222,27 +216,18 @@ export async function runChatbotDiagnostics(assessmentId?: string): Promise<{
     conversation?: ChatbotDebugResult;
   };
 }> {
-  console.log('🚀 Running comprehensive chatbot diagnostics...');
-  
   const results = {
     health: await testChatbotHealth(),
     auth: await testChatbotAuth(),
   } as any;
-  
+
   // Only test conversation creation if we have an assessment ID and auth is working
   if (assessmentId && results.auth.success) {
     results.conversation = await testCreateConversation(assessmentId);
   }
-  
-  const overall = results.health.success && results.auth.success && 
+
+  const overall = results.health.success && results.auth.success &&
                  (!results.conversation || results.conversation.success);
-  
-  console.log('📊 Diagnostics complete:', {
-    overall,
-    health: results.health.success,
-    auth: results.auth.success,
-    conversation: results.conversation?.success
-  });
   
   return { overall, results };
 }
@@ -273,9 +258,7 @@ export function clearChatbotData() {
   chatKeys.forEach(key => {
     localStorage.removeItem(key);
   });
-  
-  console.log(`🧹 Cleared ${chatKeys.length} chatbot conversations from localStorage`);
-  
+
   return {
     clearedKeys: chatKeys,
     remainingKeys: Object.keys(localStorage)

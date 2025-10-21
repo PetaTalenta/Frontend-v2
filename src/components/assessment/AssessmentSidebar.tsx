@@ -33,7 +33,7 @@ export default function AssessmentSidebar({ isOpen = false, onToggle }: Assessme
 
   // State for submission tracking
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   // State for flagged questions popup
   const [showFlaggedPopup, setShowFlaggedPopup] = useState(false);
 
@@ -59,29 +59,71 @@ export default function AssessmentSidebar({ isOpen = false, onToggle }: Assessme
 
       // Check if all three phases are complete
       const phaseValidation = areAllPhasesComplete(answers);
-      
+
       if (!phaseValidation.allComplete) {
         toast.error(phaseValidation.message || 'Harap selesaikan semua fase assessment');
         setIsSubmitting(false);
         return;
       }
 
-      // Save answers and assessment name to localStorage for the loading page
-      if (process.env.NODE_ENV === 'development') {
-        console.log('AssessmentSidebar: Saving answers to localStorage for loading page...');
-      }
-      localStorage.setItem('assessment-answers', JSON.stringify(answers));
-      localStorage.setItem('assessment-name', assessmentName);
-      localStorage.setItem('assessment-submission-time', new Date().toISOString());
-
       // Show success message
       toast.success('Assessment berhasil dikirim! Mengarahkan ke halaman loading...');
 
-      // Redirect to loading page
-      if (process.env.NODE_ENV === 'development') {
-        console.log('AssessmentSidebar: Redirecting to /assessment-loading...');
+      // ✅ SOLUTION: Start submission in sidebar and redirect when jobId is received
+      // Save assessment data to sessionStorage for loading page
+      if (typeof window !== 'undefined') {
+        const submissionData = {
+          answers,
+          assessmentName: 'AI-Driven Talent Mapping',
+          timestamp: Date.now()
+        };
+        sessionStorage.setItem('assessment-submission-data', JSON.stringify(submissionData));
+
+        // Force synchronous storage and verify it was saved
+        sessionStorage.getItem('assessment-submission-data'); // Force sync
+        console.log('Assessment data saved to sessionStorage:', submissionData);
       }
-      router.push('/assessment-loading');
+
+      // Start submission process in sidebar and wait for jobId before redirecting
+      try {
+        const { assessmentService } = await import('@/services/assessment-service');
+
+        // Create a promise that resolves when we get the jobId
+        const submissionPromise = new Promise<string>((resolve, reject) => {
+          assessmentService.submitFromAnswers(answers, 'AI-Driven Talent Mapping', {
+            onProgress: async (status: any) => {
+              console.log('Submission progress in sidebar:', status);
+
+              // Save jobId when available and resolve the promise
+              if (status?.data?.jobId) {
+                localStorage.setItem('assessment-job-id', status.data.jobId);
+                console.log('JobId received, redirecting to loading page:', status.data.jobId);
+                resolve(status.data.jobId);
+              }
+            },
+            onError: (error: any) => {
+              console.error('Submission error in sidebar:', error);
+              reject(error);
+            },
+            preferWebSocket: true,
+          }).catch(reject); // Handle submission errors
+        });
+
+        // Wait for jobId to be received, then redirect
+        await submissionPromise;
+
+        // Small delay to ensure everything is set up properly
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        // Redirect to loading page (submission is already running)
+        router.push('/assessment-loading?mode=monitor');
+
+      } catch (submissionError) {
+        console.error('Failed to start submission:', submissionError);
+        toast.error('Gagal memulai submission. Silakan coba lagi.');
+        setIsSubmitting(false);
+        return;
+      }
 
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {

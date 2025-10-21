@@ -1,4 +1,4 @@
-import { apiService } from '../services/apiService';
+import apiService from '../services/apiService';
 import { TOKEN_CONFIG, hasEnoughTokensForAssessment, getInsufficientTokensMessage } from '../config/token-config';
 import tokenService from '../services/tokenService';
 

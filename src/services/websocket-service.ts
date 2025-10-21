@@ -125,19 +125,16 @@ class WebSocketService {
 
     // Return existing connection promise if already connecting
     if (this.isConnecting && this.connectionPromise) {
-      console.log('♻️ WebSocket Service: Already connecting, reusing promise');
       return this.connectionPromise;
     }
 
     // If already connected with same token, return immediately
     if (this.isConnected && this.isAuthenticated && this.token === token) {
-      console.log('✅ WebSocket Service: Already connected, reusing connection');
       return Promise.resolve();
     }
 
     // If token changed, disconnect first
     if (this.socket && this.token !== token) {
-      console.log('🔄 WebSocket Service: Token changed, reconnecting');
       this.disconnect();
     }
 
@@ -145,8 +142,6 @@ class WebSocketService {
     this.connectionPromise = new Promise((resolve, reject) => {
       this.isConnecting = true;
       this.token = token;
-
-      console.log('🔌 WebSocket Service: Connecting to', WS_CONFIG.URL);
 
       // Create socket with SIMPLIFIED configuration
       this.socket = io(WS_CONFIG.URL, {
@@ -195,15 +190,12 @@ class WebSocketService {
         this.serverUnavailable = false; // Reset server unavailable flag
         this.corsErrorCount = 0; // Reset CORS error count
 
-        console.log('✅ WebSocket Service: Connected, socket ID:', this.socket?.id);
-
         // Authenticate after connection
         this.authenticate()
           .then(() => {
             this.isConnecting = false;
             this.connectionPromise = null;
             this.startHeartbeat();
-            console.log('✅ WebSocket Service: Ready');
             resolve();
           })
           .catch((error) => {
@@ -247,7 +239,6 @@ class WebSocketService {
       });
 
       // Start connection
-      console.log('🔌 WebSocket Service: Connecting...');
       this.socket.connect();
     });
 
@@ -262,11 +253,8 @@ class WebSocketService {
    * Properly clears ALL event listeners, callbacks, and state to prevent cross-account data leakage
    */
   disconnect(): void {
-    console.log('🔌 WebSocket Service: Disconnecting...');
-
     // ✅ CRITICAL: Clear ALL event listeners to prevent cross-user contamination
     this.eventListeners.clear();
-    console.log('WebSocket: Event listeners cleared');
 
     // ✅ CRITICAL: Clear ALL callbacks
     this.callbacks = {
@@ -275,12 +263,10 @@ class WebSocketService {
       onDisconnected: null,
       onError: null,
     };
-    console.log('WebSocket: Callbacks cleared');
 
     // ✅ CRITICAL: Clear subscribed jobs (don't keep for reconnection on logout)
     // When user logs out, we don't want to subscribe to previous user's jobs
     this.subscribedJobs.clear();
-    console.log('WebSocket: Subscribed jobs cleared');
 
     // Stop heartbeat if running
     this.stopHeartbeat();
@@ -288,12 +274,10 @@ class WebSocketService {
     if (this.socket) {
       // ✅ CRITICAL: Remove ALL socket event listeners before disconnect
       this.socket.removeAllListeners();
-      console.log('WebSocket: All socket listeners removed');
 
       // Disconnect socket
       this.socket.disconnect();
       this.socket = null;
-      console.log('WebSocket: Socket disconnected');
     }
 
     // ✅ Reset ALL state completely
@@ -306,8 +290,6 @@ class WebSocketService {
     this.backoffDelay = WS_CONFIG.RECONNECTION_DELAY;
     this.serverUnavailable = false;
     this.corsErrorCount = 0;
-
-    console.log('✅ WebSocket Service: Fully disconnected and cleaned up');
   }
 
   /**
@@ -320,11 +302,9 @@ class WebSocketService {
     }
 
     if (this.subscribedJobs.has(jobId)) {
-      console.log('WebSocket Service: Already subscribed to job', jobId);
       return;
     }
 
-    console.log('WebSocket Service: Subscribing to job', jobId);
     this.socket.emit('subscribe-assessment', { jobId });
     this.subscribedJobs.add(jobId);
   }
@@ -334,12 +314,10 @@ class WebSocketService {
    */
   unsubscribeFromJob(jobId: string): void {
     if (!this.socket) {
-      console.log('WebSocket Service: No socket, just removing from local set:', jobId);
       this.subscribedJobs.delete(jobId);
       return;
     }
 
-    console.log('WebSocket Service: Unsubscribing from job', jobId);
     this.socket.emit('unsubscribe-assessment', { jobId });
     this.subscribedJobs.delete(jobId);
   }
@@ -348,8 +326,6 @@ class WebSocketService {
    * Clear all subscriptions (useful for logout)
    */
   clearAllSubscriptions(): void {
-    console.log(`WebSocket Service: Clearing all ${this.subscribedJobs.size} subscriptions`);
-
     if (this.socket && this.isConnected) {
       this.subscribedJobs.forEach(jobId => {
         this.socket?.emit('unsubscribe-assessment', { jobId });
@@ -420,8 +396,6 @@ class WebSocketService {
         return;
       }
 
-      console.log('WebSocket Service: Authenticating...');
-
       // Set up authentication timeout
       const authTimeout = setTimeout(() => {
         reject(new Error('Authentication timeout'));
@@ -431,7 +405,6 @@ class WebSocketService {
       this.socket.once('authenticated', () => {
         clearTimeout(authTimeout);
         this.isAuthenticated = true;
-        console.log('WebSocket Service: Authenticated successfully');
         resolve();
       });
 
@@ -456,7 +429,6 @@ class WebSocketService {
     // Connection events
     this.socket.on('connect', () => {
       this.isConnected = true;
-      console.log('✅ WebSocket: Connected');
       this.callbacks.onConnected?.();
     });
 
@@ -464,7 +436,6 @@ class WebSocketService {
       this.isConnected = false;
       this.isAuthenticated = false;
       this.stopHeartbeat();
-      console.log('❌ WebSocket: Disconnected -', reason);
       this.callbacks.onDisconnected?.();
     });
 
@@ -502,12 +473,10 @@ class WebSocketService {
       const jitter = this.backoffDelay * 0.2 * Math.random();
       this.backoffDelay += jitter;
 
-      console.log(`🔄 WebSocket: Reconnecting in ${Math.round(this.backoffDelay)}ms (attempt ${attemptNumber}/${WS_CONFIG.RECONNECTION_ATTEMPTS})`);
       this.reconnectAttempts = attemptNumber;
     });
 
     this.socket.on('reconnect', (attemptNumber) => {
-      console.log(`✅ WebSocket: Reconnected after ${attemptNumber} attempts`);
       this.isConnected = true;
 
       // Reset backoff on successful reconnect
@@ -524,20 +493,19 @@ class WebSocketService {
 
             // Re-subscribe to jobs
             if (this.subscribedJobs.size > 0) {
-              console.log(`📡 WebSocket: Re-subscribing to ${this.subscribedJobs.size} jobs`);
               this.subscribedJobs.forEach(jobId => {
                 this.socket?.emit('subscribe-assessment', { jobId });
               });
             }
           })
           .catch((error) => {
-            console.error('❌ WebSocket: Re-auth failed:', error);
+            console.error('WebSocket: Re-auth failed:', error);
           });
       }
     });
 
     this.socket.on('reconnect_failed', () => {
-      console.error('❌ WebSocket: All reconnection attempts failed');
+      console.error('WebSocket: All reconnection attempts failed');
       this.callbacks.onError?.(new Error('Reconnection failed'));
 
       // Mark server as unavailable dan wait longer before allowing retry
@@ -545,7 +513,6 @@ class WebSocketService {
 
       setTimeout(() => {
         this.serverUnavailable = false;
-        console.log('🔄 WebSocket: Server marked as potentially available, retry allowed');
       }, WS_CONFIG.MAX_BACKOFF_DELAY);
     });
 
@@ -558,7 +525,6 @@ class WebSocketService {
     };
 
     this.socket.on('analysis-started', (data: any) => {
-      console.log('📊 WebSocket: Analysis started');
       emitEvent({
         type: 'analysis-started',
         jobId: data.jobId,
@@ -575,7 +541,6 @@ class WebSocketService {
     });
 
     this.socket.on('analysis-complete', (data: any) => {
-      console.log('✅ WebSocket: Analysis complete');
       emitEvent({
         type: 'analysis-complete',
         jobId: data.jobId,
@@ -594,7 +559,6 @@ class WebSocketService {
     });
 
     this.socket.on('analysis-failed', (data: any) => {
-      console.log('❌ WebSocket: Analysis failed');
       emitEvent({
         type: 'analysis-failed',
         jobId: data.jobId,
@@ -606,7 +570,6 @@ class WebSocketService {
     });
 
     this.socket.on('token-balance-update', (data: { balance: number }) => {
-      console.log('💰 WebSocket: Token balance update');
       emitEvent({
         type: 'token-balance-updated',
         metadata: { balance: data.balance }

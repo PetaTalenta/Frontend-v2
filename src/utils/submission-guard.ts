@@ -47,7 +47,6 @@ export function isSubmissionInProgress(
   const maxSubmissionTime = 3 * 60 * 1000;
 
   if (now - state.timestamp > maxSubmissionTime) {
-    console.log(`[SubmissionGuard] Cleaning up timed out submission: ${state.submissionId}`);
     activeSubmissions.delete(key);
     return false;
   }
@@ -71,7 +70,6 @@ export function markSubmissionStarted(
     source
   });
 
-  console.log(`[SubmissionGuard] ✅ Started: ${submissionId} from ${source}`);
   return submissionId;
 }
 
@@ -83,7 +81,6 @@ export function markSubmissionCompleted(answers: Record<number, number | null>):
   const state = activeSubmissions.get(key);
 
   if (state) {
-    console.log(`[SubmissionGuard] ✅ Completed: ${state.submissionId}`);
     completedInSession.add(key);
     activeSubmissions.delete(key);
   }
@@ -97,7 +94,6 @@ export function markSubmissionFailed(answers: Record<number, number | null>): vo
   const state = activeSubmissions.get(key);
 
   if (state) {
-    console.log(`[SubmissionGuard] ❌ Failed: ${state.submissionId}`);
     activeSubmissions.delete(key);
   }
 }
@@ -108,7 +104,6 @@ export function markSubmissionFailed(answers: Record<number, number | null>): vo
 export function clearAllSubmissionStates(): void {
   activeSubmissions.clear();
   completedInSession.clear();
-  console.log('[SubmissionGuard] All states cleared');
 }
 
 /**
@@ -149,7 +144,6 @@ export async function withSubmissionGuard<T>(
   const submissionId = markSubmissionStarted(answers, source);
 
   try {
-    console.log(`[SubmissionGuard] Executing: ${submissionId}`);
     const result = await submissionFunction();
     markSubmissionCompleted(answers);
     return result;
@@ -167,7 +161,6 @@ export function hasRecentSubmission(answers: Record<number, number | null>): boo
 
   // Check if already completed in this session
   if (completedInSession.has(key)) {
-    console.log('[SubmissionGuard] Already completed in this session');
     return true;
   }
 
@@ -183,7 +176,6 @@ export function hasRecentSubmission(answers: Record<number, number | null>): boo
     const cooldownPeriod = 30 * 1000; // 30 seconds
 
     if (now - timestamp < cooldownPeriod) {
-      console.log('[SubmissionGuard] Recent submission detected (cooldown active)');
       return true;
     }
 
@@ -204,7 +196,6 @@ export function markRecentSubmission(answers: Record<number, number | null>): vo
     const key = generateSubmissionKey(answers);
     const storageKey = `recent-submission-${key}`;
     localStorage.setItem(storageKey, Date.now().toString());
-    console.log('[SubmissionGuard] Marked recent submission');
   } catch (error) {
     console.error('[SubmissionGuard] Error marking recent submission:', error);
   }

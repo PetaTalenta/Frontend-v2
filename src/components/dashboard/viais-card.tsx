@@ -1,3 +1,4 @@
+import React from "react"
 import { Card, CardContent } from "../ui/card"
 import { ViaScores } from "../../types/assessment-results"
 import "../../styles/components/dashboard/viais-card.css"
@@ -6,7 +7,7 @@ interface VIAISCardProps {
   viaScores?: ViaScores
 }
 
-export function VIAISCard({ viaScores }: VIAISCardProps) {
+function VIAISCardComponent({ viaScores }: VIAISCardProps) {
   // Default VIAIS scores from latest assessment
   const defaultViaScores: ViaScores = {
     creativity: 92,
@@ -97,3 +98,5 @@ export function VIAISCard({ viaScores }: VIAISCardProps) {
     </Card>
   )
 }
+
+export const VIAISCard = React.memo(VIAISCardComponent)

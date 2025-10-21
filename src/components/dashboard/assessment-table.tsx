@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import React, { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "../ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card"
@@ -33,7 +33,7 @@ interface AssessmentTableProps {
   isValidating?: boolean // ✅ SWR's isValidating state
 }
 
-export function AssessmentTable({ data, onRefresh, swrKey, isLoading, isValidating }: AssessmentTableProps) {
+function AssessmentTableComponent({ data, onRefresh, swrKey, isLoading, isValidating }: AssessmentTableProps) {
   const router = useRouter();
   const { mutate } = useSWRConfig();
   const [currentPage, setCurrentPage] = useState(1)
@@ -385,3 +385,4 @@ export function AssessmentTable({ data, onRefresh, swrKey, isLoading, isValidati
   )
 }
 
+export const AssessmentTable = React.memo(AssessmentTableComponent)

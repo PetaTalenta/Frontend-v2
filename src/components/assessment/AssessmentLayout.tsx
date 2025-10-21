@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 // Reset state answers and flags jika localStorage assessment-answers sudah kosong
 import { useAssessment } from '../../contexts/AssessmentContext';
 // Reset state answers and flags jika localStorage assessment-answers sudah kosong
@@ -17,7 +17,6 @@ function useSyncAnswersWithLocalStorage() {
         
         // Clear all assessment data (answers + flags) if user is starting fresh
         if (hasAnswers || hasFlags) {
-          console.log('🧹 Clearing previous assessment data (answers + flags)...');
           clearAssessmentData();
         }
       }
@@ -41,10 +40,6 @@ function AssessmentContent() {
   const progress = getProgress();
 
   useEffect(() => {
-    console.log('AssessmentContent: Component mounted');
-    console.log('AssessmentContent: Current assessment:', currentAssessment?.name);
-    console.log('AssessmentContent: Current section index:', currentSectionIndex);
-
     // Add error handler for unhandled errors
     const handleError = (event: ErrorEvent) => {
       console.error('AssessmentContent: Unhandled error:', event.error);
@@ -140,16 +135,13 @@ function AssessmentContent() {
   );
 }
 
-export default function AssessmentLayout() {
+function AssessmentLayoutComponent() {
   useEffect(() => {
-    console.log('AssessmentLayout: Component mounted');
-
     // Check if we're in the right environment
     if (typeof window !== 'undefined') {
-      console.log('AssessmentLayout: Running in browser');
-      console.log('AssessmentLayout: Current URL:', window.location.href);
+      // Running in browser
     } else {
-      console.log('AssessmentLayout: Running in SSR');
+      // Running in SSR
     }
   }, []);
 
@@ -159,3 +151,5 @@ export default function AssessmentLayout() {
     </AssessmentProvider>
   );
 }
+
+export default React.memo(AssessmentLayoutComponent)

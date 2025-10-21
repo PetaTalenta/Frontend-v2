@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { apiService } from '../services/apiService';
+import apiService from '../services/apiService';
 
 export default function DebugChat() {
   const [debugInfo, setDebugInfo] = useState({});

@@ -1,275 +1,271 @@
 'use client';
 
-import React, { useEffect, useState, useRef } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useAuth } from '../../contexts/AuthContext';
-import AssessmentLoadingPage from '../../components/assessment/AssessmentLoadingPage';
-import { useAssessment } from '../../hooks/useAssessment';
-// import { addToAssessmentHistory } from '../../utils/assessment-history';
-import { hasRecentSubmission, markRecentSubmission } from '../../utils/submission-guard';
-// NOTE: Local assessment-history utilities are deprecated for dashboard usage.
+import React, { useEffect, useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import AssessmentLoadingPage from '@/components/assessment/AssessmentLoadingPage';
+import apiService from '@/services/apiService';
+import { useAuth } from '@/contexts/AuthContext';
+
+interface WorkflowState {
+  status: 'idle' | 'submitting' | 'queued' | 'processing' | 'completed' | 'failed';
+  progress: number;
+  message: string;
+  jobId?: string;
+  error?: string;
+  result?: any;
+}
 
 export default function AssessmentLoadingPageRoute() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const { isAuthenticated, isLoading: authLoading, token } = useAuth();
-  const [answers, setAnswers] = useState<Record<number, number | null> | null>(null);
-  const [assessmentName, setAssessmentName] = useState<string>('AI-Driven Talent Mapping');
-
-  // ✅ SIMPLIFIED: Single submission guard
-  const submissionAttempted = useRef(false);
-
-  // Get assessment hook with simplified interface
-  const {
-    state,
-    isIdle,
-    isSubmitting: isProcessing,
-    isCompleted,
-    isFailed,
-    result,
-    submitFromAnswers,
-    reset,
-    cancel
-  } = useAssessment({
-    preferWebSocket: true,
-    onComplete: (result) => {
-      console.log(`[AssessmentLoading] ✅ Completed: ${result.id}`);
-
-      // Clear ALL saved assessment data (SAME PATTERN for all: answers, flags, etc.)
-      try {
-        localStorage.removeItem('assessment-answers');
-        localStorage.removeItem('assessment-name');
-        localStorage.removeItem('assessment-submission-time');
-        localStorage.removeItem('assessment-current-section-index');
-        localStorage.removeItem('flagged-questions-encrypted');
-        localStorage.removeItem('flagged-questions'); // Legacy key
-        console.log('[AssessmentLoading] 🧹 Cleared all assessment data');
-        
-        // ✨ No need for custom event anymore!
-        // Context will auto-detect localStorage changes via useEffect
-        // (same pattern as answers - when localStorage is removed, context resets on next load)
-      } catch (e) {
-        console.warn('[AssessmentLoading] Failed to clear saved data:', e);
-      }
-
-      // Navigate to results
-      setTimeout(() => {
-        router.push(`/results/${result.id}`);
-      }, 500);
-    },
-    onError: (error) => {
-      console.error('[AssessmentLoading] ❌ Failed:', error);
-      // Reset guard to allow retry
-      submissionAttempted.current = false;
-    },
-    
-    // ✅ FIX: Implement proper token balance update to prevent race condition
-    onTokenBalanceUpdate: async () => {
-      try {
-        const startTime = Date.now();
-        console.log('[AssessmentLoading] 🔄 Token balance update triggered');
-        
-        // Get current user from Auth context
-        const { user } = useAuth();
-        
-        if (!user?.id) {
-          console.warn('[AssessmentLoading] ⚠️ No user ID for token update');
-          return;
-        }
-        
-        // 1. Invalidate all token caches across layers
-        const { invalidateTokenBalanceCache } = await import('../../utils/cache-invalidation');
-        await invalidateTokenBalanceCache(user.id);
-        console.log('[AssessmentLoading] ✅ Token cache invalidated');
-        
-        // 2. Force refetch from API with skipCache=true to get fresh data
-        const { checkTokenBalance } = await import('../../utils/token-balance');
-        const tokenInfo = await checkTokenBalance(user.id, true); // skipCache=true
-        
-        const elapsed = Date.now() - startTime;
-        console.log(`[AssessmentLoading] ✅ Token balance refreshed in ${elapsed}ms:`, {
-          balance: tokenInfo.balance,
-          hasEnoughTokens: tokenInfo.hasEnoughTokens,
-          error: tokenInfo.error
-        });
-        
-        // 3. Optional: Dispatch custom event for other components to react
-        if (typeof window !== 'undefined' && !tokenInfo.error) {
-          window.dispatchEvent(new CustomEvent('tokenBalanceUpdated', {
-            detail: { balance: tokenInfo.balance, userId: user.id }
-          }));
-        }
-        
-      } catch (error) {
-        console.error('[AssessmentLoading] ❌ Failed to update token balance:', error);
-        // Don't throw - token update failure shouldn't break assessment flow
-        // Assessment continues regardless of token display issues
-      }
-    }
+  const { token } = useAuth();
+  const [workflowState, setWorkflowState] = useState<WorkflowState>({
+    status: 'submitting',
+    progress: 0,
+    message: 'Memproses assessment Anda...',
   });
+  const [minimumLoadingTimePassed, setMinimumLoadingTimePassed] = useState(false);
 
-  // Note: Using useCallback approach instead of useRef for better stability
+  // Minimum loading time to ensure user sees the loading page
+  const MINIMUM_LOADING_TIME = 3000; // 3 seconds
 
-  // Load answers from localStorage or URL params on mount
+  // Monitor assessment status
+  const monitorAssessmentStatus = useCallback(async (jobId: string) => {
+    try {
+      let attempts = 0;
+      const maxAttempts = 120; // 10 minutes with 5-second intervals
+      const pollInterval = 5000; // 5 seconds
+
+      while (attempts < maxAttempts) {
+        try {
+          // Use axiosInstance directly from apiService
+          const response = await apiService.axiosInstance.get(
+            `/api/assessment/status/${jobId}`,
+            { timeout: 10000 }
+          );
+
+          if (response?.data) {
+            const { status, progress, message, result } = response.data;
+
+            setWorkflowState(prev => ({
+              ...prev,
+              status: status || prev.status,
+              progress: progress || prev.progress,
+              message: message || prev.message,
+              result: result || prev.result,
+            }));
+
+            // If completed, wait for minimum loading time before redirect
+            if (status === 'completed' && result?.id) {
+              // Wait for both minimum loading time and then redirect
+              const waitForMinimumTime = () => {
+                if (minimumLoadingTimePassed) {
+                  setTimeout(() => {
+                    router.push(`/results/${result.id}`);
+                  }, 2000);
+                } else {
+                  // Wait a bit more and check again
+                  setTimeout(waitForMinimumTime, 500);
+                }
+              };
+              waitForMinimumTime();
+              return;
+            }
+
+            // If failed, show error
+            if (status === 'failed') {
+              setWorkflowState(prev => ({
+                ...prev,
+                status: 'failed',
+                error: message || 'Assessment processing failed',
+              }));
+              return;
+            }
+          }
+
+          attempts++;
+          await new Promise(resolve => setTimeout(resolve, pollInterval));
+        } catch (error) {
+          console.error('Error checking assessment status:', error);
+          attempts++;
+          await new Promise(resolve => setTimeout(resolve, pollInterval));
+        }
+      }
+
+      // Timeout after max attempts
+      setWorkflowState(prev => ({
+        ...prev,
+        status: 'failed',
+        error: 'Assessment processing timeout. Please check your dashboard for status.',
+      }));
+    } catch (error) {
+      console.error('Error monitoring assessment:', error);
+      setWorkflowState(prev => ({
+        ...prev,
+        status: 'failed',
+        error: 'Failed to monitor assessment status',
+      }));
+    }
+  }, [router, minimumLoadingTimePassed]);
+
+  // Initialize monitoring on mount
   useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
+    if (!token) {
       router.push('/auth');
       return;
     }
 
-    // Try to get answers from localStorage first
-    const savedAnswers = localStorage.getItem('assessment-answers');
-    if (savedAnswers) {
-      try {
-        const parsedAnswers = JSON.parse(savedAnswers);
-        setAnswers(parsedAnswers);
-        
-        // Get assessment name from localStorage if available
-        const savedAssessmentName = localStorage.getItem('assessment-name');
-        if (savedAssessmentName) {
-          setAssessmentName(savedAssessmentName);
+    // Check if we're in submission mode or monitoring mode
+    const urlParams = new URLSearchParams(window.location.search);
+    const mode = urlParams.get('mode'); // 'submit' (legacy) or 'monitor' (new)
+
+    if (mode === 'submit') {
+      // Legacy mode: Handle submission from loading page
+      handleSubmissionMode();
+    } else if (mode === 'monitor') {
+      // New mode: Submission already started in sidebar, just monitor
+      handleMonitoringMode();
+    } else {
+      // Default: Try monitoring mode
+      handleMonitoringMode();
+    }
+
+    // Start minimum loading timer
+    const minimumLoadingTimer = setTimeout(() => {
+      setMinimumLoadingTimePassed(true);
+    }, MINIMUM_LOADING_TIME);
+
+    // Cleanup
+    return () => {
+      clearTimeout(minimumLoadingTimer);
+      // Optional: cancel any pending requests
+    };
+  }, [token, router]);
+
+  // Handle submission mode (new assessment submission)
+  const handleSubmissionMode = async () => {
+    try {
+      // Get submission data from sessionStorage
+      const submissionDataStr = sessionStorage.getItem('assessment-submission-data');
+      if (!submissionDataStr) {
+        console.error('No submission data found');
+        setWorkflowState(prev => ({
+          ...prev,
+          status: 'failed',
+          error: 'Data assessment tidak ditemukan. Silakan coba lagi.',
+        }));
+        return;
+      }
+
+      const submissionData = JSON.parse(submissionDataStr);
+      const { answers, assessmentName } = submissionData;
+
+      // Clear the submission data immediately
+      sessionStorage.removeItem('assessment-submission-data');
+
+      // Start submission process
+      setWorkflowState(prev => ({
+        ...prev,
+        status: 'submitting',
+        progress: 0,
+        message: 'Mengirim assessment ke server...',
+      }));
+
+      // Submit assessment with progress tracking
+      const result = await apiService.processAssessmentUnified(answers, assessmentName, {
+        onProgress: (status: any) => {
+          console.log('Submission progress:', status);
+
+          // Save jobId when available
+          if (status?.data?.jobId) {
+            localStorage.setItem('assessment-job-id', status.data.jobId);
+          }
+
+          setWorkflowState(prev => ({
+            ...prev,
+            status: 'submitting',
+            progress: status?.data?.progress || prev.progress,
+            message: status?.data?.message || 'Memproses assessment...',
+            jobId: status?.data?.jobId || prev.jobId,
+          }));
+        },
+        onError: (error: any) => {
+          console.error('Submission error:', error);
+          setWorkflowState(prev => ({
+            ...prev,
+            status: 'failed',
+            error: error.message || 'Gagal mengirim assessment',
+          }));
+        },
+        preferWebSocket: true,
+      });
+
+      if (result) {
+        // Submission successful, switch to monitoring mode
+        setWorkflowState(prev => ({
+          ...prev,
+          status: 'queued',
+          progress: 10,
+          message: 'Assessment dalam antrian...',
+        }));
+
+        // Start monitoring the submitted assessment
+        const jobId = localStorage.getItem('assessment-job-id');
+        if (jobId) {
+          monitorAssessmentStatus(jobId);
+        } else {
+          throw new Error('Job ID tidak ditemukan setelah submission');
         }
-      } catch (error) {
-        console.error('Error parsing saved answers:', error);
       }
+
+    } catch (error: any) {
+      console.error('Submission mode error:', error);
+      setWorkflowState(prev => ({
+        ...prev,
+        status: 'failed',
+        error: error.message || 'Gagal memproses assessment',
+      }));
     }
+  };
 
-    // Check URL params for answers (fallback)
-    const answersParam = searchParams?.get('answers');
-    const nameParam = searchParams?.get('name');
-    
-    if (answersParam && !savedAnswers) {
-      try {
-        const parsedAnswers = JSON.parse(decodeURIComponent(answersParam));
-        setAnswers(parsedAnswers);
-      } catch (error) {
-        console.error('Error parsing answers from URL:', error);
-      }
-    }
+  // Handle monitoring mode (existing behavior)
+  const handleMonitoringMode = () => {
+    // Get result ID from localStorage (saved after submission)
+    const resultId = typeof window !== 'undefined'
+      ? localStorage.getItem('assessment-job-id') ||
+        new URLSearchParams(window.location.search).get('resultId')
+      : null;
 
-    if (nameParam) {
-      setAssessmentName(nameParam);
-    }
-  }, [authLoading, isAuthenticated, router, searchParams]);
-
-  // ✅ SIMPLIFIED: Auto-submit when answers are loaded
-  useEffect(() => {
-    if (!answers) return;
-
-    // Check for recent submission (cooldown)
-    if (hasRecentSubmission(answers)) {
-      console.log('[AssessmentLoading] Recent submission detected, skipping auto-submit');
-      submissionAttempted.current = true;
+    if (!resultId) {
+      // No result ID found, redirect to assessment
+      router.push('/assessment');
       return;
     }
 
-    // Check if ready to submit
-    if (isIdle && !isProcessing && !isCompleted && !isFailed && !submissionAttempted.current) {
-      console.log('[AssessmentLoading] Auto-submitting assessment...');
+    // Start monitoring
+    monitorAssessmentStatus(resultId);
+  };
 
-      submissionAttempted.current = true;
-      markRecentSubmission(answers);
-
-      // Submit with small delay for hooks to stabilize
-      setTimeout(() => {
-        submitFromAnswers(answers, assessmentName);
-      }, 100);
-    }
-  }, [answers, isIdle, isProcessing, isCompleted, isFailed, assessmentName, submitFromAnswers]);
-
-  // ✅ SIMPLIFIED: Handle cancel
   const handleCancel = () => {
-    cancel();
-    submissionAttempted.current = false;
-    localStorage.removeItem('assessment-answers');
-    localStorage.removeItem('assessment-name');
-    router.push('/assessment');
-  };
-
-  // ✅ SIMPLIFIED: Handle retry
-  const handleRetry = async () => {
-    console.log('[AssessmentLoading] Retrying assessment...');
-    submissionAttempted.current = false;
-
-    if (answers) {
-      reset();
-      setTimeout(() => {
-        submissionAttempted.current = true;
-        submitFromAnswers(answers, assessmentName);
-      }, 500);
+    // Clear job ID and redirect to dashboard
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('assessment-job-id');
     }
-  };
-
-  // Handle back to assessment (for failed state)
-  const handleBackToAssessment = () => {
-    submissionAttempted.current = false;
-    // Clear saved data
-    localStorage.removeItem('assessment-answers');
-    localStorage.removeItem('assessment-name');
     router.push('/dashboard');
   };
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      submissionAttempted.current = false;
-    };
-  }, []);
-
-  // Show loading while checking auth or loading answers
-  if (authLoading || (!answers && !isFailed)) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="text-gray-600 text-sm">
-            {authLoading ? 'Memverifikasi autentikasi...' : 'Memuat data assessment...'}
-          </p>
-
-        </div>
-      </div>
-    );
-  }
-
-  // If no answers found, redirect to assessment
-  if (!answers && !isProcessing && !isCompleted) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-        <div className="text-center space-y-4 max-w-md">
-          <div className="w-16 h-16 bg-yellow-500 rounded-full flex items-center justify-center mx-auto">
-            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-            </svg>
-          </div>
-          <h2 className="text-lg font-semibold text-gray-900">
-            Data Assessment Tidak Ditemukan
-          </h2>
-          <p className="text-gray-600 text-sm">
-            Sepertinya Anda belum menyelesaikan assessment atau data telah hilang.
-            Silakan kembali ke halaman assessment untuk memulai.
-          </p>
-          <button
-            onClick={handleBackToAssessment}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm"
-          >
-            Kembali ke Assessment
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const handleRetry = () => {
+    // Retry by going back to assessment
+    router.push('/assessment');
+  };
 
   return (
-    <AssessmentLoadingPage
-      workflowState={{
-        status: state.status,
-        progress: state.progress,
-        message: state.message,
-        jobId: state.jobId,
-        error: state.error
-      }}
-      onCancel={isFailed ? handleBackToAssessment : handleCancel}
-      onRetry={isFailed ? handleRetry : undefined}
-    />
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
+      <AssessmentLoadingPage
+        workflowState={workflowState}
+        onCancel={handleCancel}
+        onRetry={handleRetry}
+      />
+    </div>
   );
 }
+

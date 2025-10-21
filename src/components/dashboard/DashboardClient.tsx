@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import Header from './header';
 import { StatsCard } from './stats-card';
@@ -9,9 +9,9 @@ import { VIAISCard } from './viais-card';
 import { OceanCard } from './ocean-card';
 import { ProgressCard } from './progress-card';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { calculateUserStats, formatStatsForDashboard, fetchAssessmentHistoryFromAPI as formatAssessmentHistory, calculateUserProgress } from '../../utils/user-stats';
+import { formatStatsForDashboard, calculateUserProgress } from '../../utils/user-stats';
 
-import type { StatCard, ProgressItem, AssessmentData } from '../../types/dashboard';
+import type { StatCard, ProgressItem } from '../../types/dashboard';
 import type { OceanScores, ViaScores } from '../../types/assessment-results';
 import { useDashboardData, invalidateDashboardData } from '../../hooks/useDashboardData';
 
@@ -36,7 +36,7 @@ interface DashboardClientProps {
 // Deprecated mock assessment preserved for reference (not used)
 
 
-export default function DashboardClient({ staticData }: DashboardClientProps) {
+function DashboardClientComponent({ staticData }: DashboardClientProps) {
   const { user, isLoading: authLoading, logout } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -139,9 +139,8 @@ export default function DashboardClient({ staticData }: DashboardClientProps) {
       }
 
     } catch (error) {
-      console.error('[Dashboard] Background sync error:', error);
       // ✅ Don't show error to user - cached data still visible
-      
+
       // Use memoized static data as fallback
       setStatsData(fallbackStatsData);
       setProgressData([]);
@@ -153,7 +152,6 @@ export default function DashboardClient({ staticData }: DashboardClientProps) {
   // ✅ FIX: Only load data once when user and stats are available
   useEffect(() => {
     if (user && userStats) {
-      console.count('[DashboardClient] loadDashboardData called');
       loadDashboardData();
     }
   }, [user, userStats, loadDashboardData]);
@@ -161,15 +159,12 @@ export default function DashboardClient({ staticData }: DashboardClientProps) {
   // ✅ FIX: Effect untuk refresh - run only once on mount if refresh=1
   useEffect(() => {
     if (searchParams?.get('refresh') === '1' && user) {
-      console.count('[DashboardClient] Refresh effect triggered');
-      
       // ✅ Invalidate cache dan revalidate using SWR hook
       invalidateDashboardData(user.id)
         .then(() => {
-          console.log('[Dashboard] Cache invalidated, revalidating...');
           return refreshAll();
         })
-        .catch(err => {
+        .catch((err: any) => {
           console.error('[Dashboard] Failed to invalidate cache:', err);
         });
 
@@ -210,7 +205,7 @@ export default function DashboardClient({ staticData }: DashboardClientProps) {
     try {
       await refreshHistory();
     } catch (error) {
-      console.error('Dashboard: Error refreshing assessment history:', error);
+      // Error handled silently - cached data still visible
     }
   }, [refreshHistory]);
 
@@ -349,3 +344,5 @@ export default function DashboardClient({ staticData }: DashboardClientProps) {
     </div>
   );
 }
+
+export default React.memo(DashboardClientComponent);

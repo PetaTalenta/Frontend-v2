@@ -55,7 +55,7 @@ function sanitizeBackendErrorMessage(raw: any): string {
 }
 
 interface AssessmentOptions {
-  onProgress?: (status: AssessmentStatusResponse) => void;
+  onProgress?: (status: AssessmentStatusResponse) => Promise<void>; // Changed to return Promise<void>
   onTokenBalanceUpdate?: () => Promise<void>;
   preferWebSocket?: boolean;
   // Optional error callback to report monitoring errors without misusing onProgress
@@ -168,6 +168,37 @@ class AssessmentService {
         const jobId = submitResponse.data.jobId;
 
         console.log(`Assessment Service: Submitted with jobId: ${jobId}, key: ${submissionKey}`);
+
+        // ✅ CRITICAL FIX: Call onProgress immediately with jobId so it can be saved to localStorage
+        // This ensures the loading page has the jobId before we start monitoring
+        if (options.onProgress && typeof options.onProgress === 'function') {
+          try {
+            console.log('Assessment Service: Calling onProgress with jobId for redirect...');
+            await options.onProgress({
+              success: true,
+              message: 'Assessment submitted. Waiting in queue...',
+              data: {
+                jobId: jobId,
+                status: 'queued',
+                progress: 10,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+                userId: 'unknown',
+                userEmail: 'unknown',
+                assessmentName: assessmentName
+              }
+            });
+            console.log('Assessment Service: onProgress completed, redirect should be done');
+          } catch (callbackError) {
+            console.warn('Assessment Service: Error in onProgress callback after submission:', callbackError);
+          }
+        }
+
+        // ✅ Wait longer to ensure redirect/navigation has started and completed
+        // This prevents race condition where monitoring starts before navigation completes
+        console.log('Assessment Service: Waiting for navigation to complete...');
+        await new Promise(resolve => setTimeout(resolve, 500)); // Increased from 100ms to 500ms
+        console.log('Assessment Service: Navigation delay completed, starting monitoring');
 
         // Monitor the assessment
         const result = await this.monitorAssessment(jobId, options);
@@ -660,7 +691,7 @@ class AssessmentService {
         // Update progress with safe callback execution
         if (options.onProgress) {
           try {
-            options.onProgress(status);
+            await options.onProgress(status);
           } catch (progressError) {
             console.warn(`Assessment Service: Progress callback error for job ${jobId}:`, progressError);
             // Don't fail the entire polling process due to progress callback errors

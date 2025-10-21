@@ -96,7 +96,7 @@ export function useDashboardData({ userId, enabled = true }: UseDashboardDataOpt
       
       // ✅ Success/error callbacks for tracking
       onSuccess: (data) => {
-        console.log(`[Dashboard] ✅ Assessment history loaded: ${data?.length || 0} items`);
+        // Assessment history loaded
       },
       onError: (error) => {
         console.error('[Dashboard] ❌ Failed to load assessment history:', error);

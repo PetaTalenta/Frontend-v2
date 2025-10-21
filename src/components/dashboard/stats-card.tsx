@@ -1,3 +1,4 @@
+import React from "react"
 import { Card, CardContent } from "../ui/card"
 import type { StatCard } from "../../types/dashboard"
 import "../../styles/components/dashboard/stats-card.css"
@@ -6,7 +7,7 @@ interface StatsCardProps {
   stat: StatCard
 }
 
-export function StatsCard({ stat }: StatsCardProps) {
+function StatsCardComponent({ stat }: StatsCardProps) {
   return (
     <Card className="stats-card">
       <CardContent className="stats-card__content">
@@ -30,3 +31,5 @@ export function StatsCard({ stat }: StatsCardProps) {
     </Card>
   )
 }
+
+export const StatsCard = React.memo(StatsCardComponent)

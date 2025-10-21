@@ -1,3 +1,4 @@
+import React from "react"
 import { Card, CardContent } from "../ui/card"
 import { Progress } from "../ui/progress"
 import type { ProgressItem } from "../../types/dashboard"
@@ -9,7 +10,7 @@ interface ProgressCardProps {
   data: ProgressItem[]
 }
 
-export function ProgressCard({ title, description, data }: ProgressCardProps) {
+function ProgressCardComponent({ title, description, data }: ProgressCardProps) {
   return (
     <Card className="progress-card">
       <CardContent className="progress-card__content">
@@ -37,3 +38,5 @@ export function ProgressCard({ title, description, data }: ProgressCardProps) {
     </Card>
   )
 }
+
+export const ProgressCard = React.memo(ProgressCardComponent)

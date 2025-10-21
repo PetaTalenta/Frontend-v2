@@ -30,9 +30,6 @@ class NavigationDebugger {
       this.events = this.events.slice(0, this.maxEvents);
     }
 
-    // Log to console for debugging
-    console.log('Navigation Debug:', navigationEvent);
-
     // Save to localStorage for persistence
     try {
       localStorage.setItem('navigation-debug', JSON.stringify(this.events));
@@ -108,14 +105,13 @@ export async function debugNavigate(
     });
 
     await router.push(destination);
-    
+
     // Update the last event as successful
     const events = navigationDebugger.getEvents();
     if (events[0]) {
       events[0].success = true;
     }
-    
-    console.log('Navigation successful via router.push:', destination);
+
     return true;
   } catch (error) {
     console.error('Router.push failed, trying window.location.href:', error);
