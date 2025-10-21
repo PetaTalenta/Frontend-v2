@@ -371,16 +371,16 @@ export default function AssessmentLoadingPage({
         {/* Header */}
         <div className="text-center space-y-4">
           <h1 className="text-3xl font-semibold text-gray-900">
-            Assessment Processing
+            Memproses Asesmen
           </h1>
           <p className="text-gray-600">
-            Your assessment is being processed using AI technology
+            Asesmen Anda sedang diproses menggunakan teknologi kecerdasan buatan (AI).
           </p>
 
           {/* Real-time updates indicator */}
           <div className="flex items-center justify-center gap-2 text-sm">
             <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-            <span className="text-green-600">Real-time updates active</span>
+            <span className="text-green-600">Real-time updates aktif</span>
           </div>
         </div>
 
@@ -429,7 +429,7 @@ export default function AssessmentLoadingPage({
 
           <div className="space-y-2">
             <h2 className="text-xl font-semibold text-gray-900">
-              Analyzing with AI
+              Menganalisis dengan AI
             </h2>
             <p className="text-gray-600">
               Menganalisis pola dan menghasilkan wawasan

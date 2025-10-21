@@ -141,15 +141,15 @@ const Register = ({ onRegister }) => {
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Create your account</h2>
-        <p className="text-gray-600">Join Future Guide Platform today</p>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">Buat Akun Baru</h2>
+        <p className="text-gray-600">Bergabung dengan Future Guide</p>
       </div>
 
       <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
         <div className="space-y-4">
           <div>
             <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
-              Username / Display Name <span className="text-gray-500 text-xs">(Optional)</span>
+              Username <span className="text-gray-500 text-xs">(Optional)</span>
             </label>
             <div className="relative">
               <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -186,7 +186,7 @@ const Register = ({ onRegister }) => {
 
           <div>
             <label htmlFor="schoolName" className="block text-sm font-medium text-gray-700 mb-2">
-              School Name <span className="text-gray-500 text-xs">(Optional)</span>
+              Nama Sekolah <span className="text-gray-500 text-xs">(Optional)</span>
             </label>
             <div className="relative">
               <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -376,13 +376,13 @@ const Register = ({ onRegister }) => {
           </div>
           <div className="ml-3 text-sm">
             <label htmlFor="terms" className="text-gray-700">
-              I agree to the{' '}
+              Saya setuju dengan {' '}
               <a href="#" className="font-medium text-blue-600 hover:text-blue-500">
-                Terms and Conditions
+                Syarat dan Ketentuan
               </a>{' '}
-              and{' '}
+              dan{' '}
               <a href="#" className="font-medium text-blue-600 hover:text-blue-500">
-                Privacy Policy
+                Kebijakan Privasi
               </a>
             </label>
           </div>
