@@ -19,8 +19,6 @@ interface RegisterFormData {
 }
 
 const Register = ({ onRegister }: RegisterProps) => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
@@ -28,43 +26,9 @@ const Register = ({ onRegister }: RegisterProps) => {
   const password = watch('password');
   const confirmPassword = watch('confirmPassword');
 
-  const onSubmit = async (data: RegisterFormData) => {
-    setIsLoading(true);
-    setError('');
-
-    try {
-      // Validate required fields
-      if (!data.email || !data.password) {
-        setError('Email dan password wajib diisi');
-        setIsLoading(false);
-        return;
-      }
-
-      // Validate password confirmation
-      if (data.password !== data.confirmPassword) {
-        setError('Password tidak sama');
-        setIsLoading(false);
-        return;
-      }
-
-      // Simulate loading
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Dummy register - just pass the data to parent
-      onRegister({
-        type: 'register',
-        email: data.email.toLowerCase().trim(),
-        password: data.password.trim(),
-        username: data.username?.trim(),
-        schoolName: data.schoolName?.trim(),
-        timestamp: new Date().toISOString()
-      });
-
-    } catch (err: any) {
-      setError('Terjadi kesalahan saat registrasi');
-    } finally {
-      setIsLoading(false);
-    }
+  const onSubmit = (data: RegisterFormData) => {
+    // UI-only: just call the handler without any business logic
+    onRegister(data);
   };
 
   return (
@@ -333,35 +297,16 @@ const Register = ({ onRegister }: RegisterProps) => {
           </div>
         </div>
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-            <div className="flex items-center">
-              <svg className="h-5 w-5 text-red-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-              </svg>
-              <p className="text-red-600 text-sm">{error}</p>
-            </div>
-          </div>
-        )}
-
         <button
           type="submit"
-          disabled={isLoading}
-          className="w-full py-3 px-4 bg-gradient-to-r from-slate-600 to-blue-600 text-white font-medium rounded-lg hover:from-slate-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-[1.01] active:scale-[0.99] shadow-md"
+          className="w-full py-3 px-4 bg-gradient-to-r from-slate-600 to-blue-600 text-white font-medium rounded-lg hover:from-slate-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 transform hover:scale-[1.01] active:scale-[0.99] shadow-md"
         >
-          {isLoading ? (
-            <div className="flex items-center justify-center">
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-              Creating account...
-            </div>
-          ) : (
-            <div className="flex items-center justify-center">
-              <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-              </svg>
-              Create account
-            </div>
-          )}
+          <div className="flex items-center justify-center">
+            <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+            </svg>
+            Create account
+          </div>
         </button>
       </form>
     </div>

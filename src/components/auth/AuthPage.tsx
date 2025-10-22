@@ -8,14 +8,8 @@ import { Zap } from 'lucide-react';
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
 
-  const handleAuth = async (data: any) => {
-    // Dummy auth logic - just log the data
-    console.log('Auth data:', data);
-    console.log('Is login:', isLogin);
-    
-    // Dummy success - in real app this would handle authentication
-    alert(`${isLogin ? 'Login' : 'Register'} berhasil! (Ini adalah dummy)`);
-  };
+  // Empty handlers for UI-only components
+  const handleAuth = () => {};
 
   return (
     <div className="min-h-screen bg-white flex">
@@ -74,7 +68,7 @@ export default function AuthPage() {
             {/* Main Heading */}
             <div className="mb-8">
               <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-white via-blue-100 to-indigo-200 bg-clip-text text-transparent leading-tight">
-                Future Guide Platform
+                FutureGuide 
               </h1>
               <p className="text-xl text-blue-100 font-light leading-relaxed max-w-md mx-auto">
                 AI-Driven Talent Mapping Assessment

@@ -15,39 +15,16 @@ interface ForgotPasswordFormData {
 }
 
 const ForgotPassword = ({ onBack }: ForgotPasswordProps) => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [emailSent, setEmailSent] = useState('');
 
   const { register, handleSubmit, formState: { errors } } = useForm<ForgotPasswordFormData>();
 
-  const onSubmit = async (data: ForgotPasswordFormData) => {
-    setIsLoading(true);
-    setError('');
-    setSuccess(false);
-
-    try {
-      const email = data.email.toLowerCase().trim();
-
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-
-      // Dummy success
-      setSuccess(true);
-      setEmailSent(email);
-      setError('');
-      
-      console.log('✅ Password reset email sent (dummy):', email);
-      
-    } catch (err: any) {
-      console.error('❌ Forgot Password error:', err);
-      setError('Terjadi kesalahan saat mengirim email reset password');
-      setSuccess(false);
-      
-    } finally {
-      setIsLoading(false);
-    }
+  const onSubmit = (data: ForgotPasswordFormData) => {
+    // UI-only: simulate success without any business logic
+    const email = data.email;
+    setSuccess(true);
+    setEmailSent(email);
   };
 
   return (
@@ -162,7 +139,6 @@ const ForgotPassword = ({ onBack }: ForgotPasswordProps) => {
                 type="email"
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
                 placeholder="Masukkan email Anda"
-                disabled={isLoading}
               />
             </div>
             {errors.email && (
@@ -175,37 +151,17 @@ const ForgotPassword = ({ onBack }: ForgotPasswordProps) => {
             )}
           </div>
 
-          {/* Error Message */}
-          {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-              <div className="flex items-center">
-                <svg className="h-5 w-5 text-red-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                </svg>
-                <p className="text-red-600 text-sm">{error}</p>
-              </div>
-            </div>
-          )}
-
           {/* Submit Button */}
           <button
             type="submit"
-            disabled={isLoading}
-            className="w-full py-3 px-4 bg-gradient-to-r from-slate-600 to-blue-600 text-white font-medium rounded-lg hover:from-slate-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-md"
+            className="w-full py-3 px-4 bg-gradient-to-r from-slate-600 to-blue-600 text-white font-medium rounded-lg hover:from-slate-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 shadow-md"
           >
-            {isLoading ? (
-              <div className="flex items-center justify-center">
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                Sending email...
-              </div>
-            ) : (
-              <div className="flex items-center justify-center">
-                <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-                Send Reset Link
-              </div>
-            )}
+            <div className="flex items-center justify-center">
+              <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+              Send Reset Link
+            </div>
           </button>
 
           {/* Back to Login Link */}

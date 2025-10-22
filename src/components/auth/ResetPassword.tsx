@@ -13,90 +13,18 @@ interface ResetPasswordFormData {
 }
 
 const ResetPassword = () => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [resetCode, setResetCode] = useState('');
-  const [isValidLink, setIsValidLink] = useState(true);
 
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   const { register, handleSubmit, watch, formState: { errors } } = useForm<ResetPasswordFormData>();
   const password = watch('password');
 
-  // Extract parameters from URL on mount
-  useEffect(() => {
-    const oobCode = searchParams.get('oobCode');
-    const actionMode = searchParams.get('mode');
-
-    console.log('🔐 Reset Password: Extracting URL parameters', {
-      oobCode: oobCode ? `${oobCode.substring(0, 10)}...` : 'missing',
-      mode: actionMode || 'missing'
-    });
-
-    // Validate mode parameter
-    if (actionMode && actionMode !== 'resetPassword') {
-      setError(`Mode '${actionMode}' tidak didukung. Halaman ini hanya untuk reset password.`);
-      setIsValidLink(false);
-      return;
-    }
-
-    // Validate oobCode exists
-    if (!oobCode) {
-      setError('Link reset password tidak valid. Parameter oobCode tidak ditemukan.');
-      setIsValidLink(false);
-      return;
-    }
-
-    // Validate oobCode format (basic check)
-    if (oobCode.length < 10) {
-      setError('Link reset password tidak valid. Format oobCode salah.');
-      setIsValidLink(false);
-      return;
-    }
-
-    // All validations passed
-    setResetCode(oobCode);
-    setIsValidLink(true);
-    console.log('✅ Reset Password: Valid reset link detected (dummy)');
-  }, [searchParams]);
-
-  const onSubmit = async (data: ResetPasswordFormData) => {
-    if (!resetCode) {
-      setError('Kode reset password tidak ditemukan. Silakan gunakan link dari email Anda.');
-      return;
-    }
-
-    setIsLoading(true);
-    setError('');
-
-    try {
-      const newPassword = data.password;
-
-      console.log('🔐 Resetting password (dummy)...');
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      console.log('✅ Password reset successful (dummy)');
-      setSuccess(true);
-      setError('');
-
-      // Redirect to login after 3 seconds
-      setTimeout(() => {
-        router.push('/auth?tab=login&message=password-reset-success');
-      }, 3000);
-
-    } catch (error: any) {
-      console.error('❌ Reset Password error:', error);
-      setError('Terjadi kesalahan saat reset password');
-      setSuccess(false);
-    } finally {
-      setIsLoading(false);
-    }
+  const onSubmit = (data: ResetPasswordFormData) => {
+    // UI-only: simulate success without any business logic
+    setSuccess(true);
   };
 
   return (
@@ -172,7 +100,6 @@ const ResetPassword = () => {
                   type={showPassword ? 'text' : 'password'}
                   className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
                   placeholder="Masukkan password baru"
-                  disabled={isLoading || !resetCode}
                 />
                 <button
                   type="button"
@@ -218,7 +145,6 @@ const ResetPassword = () => {
                   type={showConfirmPassword ? 'text' : 'password'}
                   className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
                   placeholder="Konfirmasi password baru"
-                  disabled={isLoading || !resetCode}
                 />
                 <button
                   type="button"
@@ -257,53 +183,17 @@ const ResetPassword = () => {
               </ul>
             </div>
 
-            {/* Error Message */}
-            {error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-3 space-y-3">
-                <div className="flex items-start">
-                  <svg className="h-5 w-5 text-red-400 mr-2 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                  </svg>
-                  <p className="text-red-600 text-sm">{error}</p>
-                </div>
-                 
-                {/* Show "Request New Link" button if code is invalid/expired */}
-                {!isValidLink && (
-                  <button
-                    type="button"
-                    onClick={() => router.push('/forgot-password')}
-                    className="w-full py-2 px-4 bg-white border-2 border-red-300 text-red-700 font-medium rounded-lg hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200"
-                  >
-                    <div className="flex items-center justify-center">
-                      <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                      </svg>
-                      Request Link Baru
-                    </div>
-                  </button>
-                )}
-              </div>
-            )}
-
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={isLoading || !resetCode}
-              className="w-full py-3 px-4 bg-gradient-to-r from-slate-600 to-blue-600 text-white font-medium rounded-lg hover:from-slate-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-[1.01] active:scale-[0.99] shadow-md"
+              className="w-full py-3 px-4 bg-gradient-to-r from-slate-600 to-blue-600 text-white font-medium rounded-lg hover:from-slate-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 transform hover:scale-[1.01] active:scale-[0.99] shadow-md"
             >
-              {isLoading ? (
-                <div className="flex items-center justify-center">
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                  Resetting password...
-                </div>
-              ) : (
-                <div className="flex items-center justify-center">
-                  <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  Reset Password
-                </div>
-              )}
+              <div className="flex items-center justify-center">
+                <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                Reset Password
+              </div>
             </button>
 
             {/* Back to Login Link */}
