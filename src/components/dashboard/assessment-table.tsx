@@ -1,26 +1,14 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Button } from "../ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "../ui/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select"
-import { Badge } from "../ui/badge"
-import { Skeleton } from "../ui/skeleton"
-import { useSWRConfig } from "swr"
-import { toast as showToast } from "@/hooks/use-toast"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "../ui/alert-dialog"
+import { Button } from "./button"
+import { Card, CardContent, CardHeader, CardTitle } from "./card"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./table"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./select"
+import { Badge } from "./badge"
+import { Skeleton } from "./skeleton"
+import { SimpleAlertDialog } from "./alert-dialog-simple"
 import { ExternalLink, Trash2, Plus } from "lucide-react"
 import type { AssessmentData } from "../../types/dashboard"
 import "../../styles/components/dashboard/assessment-table.css"
@@ -30,44 +18,14 @@ interface AssessmentTableProps {
   onRefresh?: () => Promise<void>
   swrKey?: string
   isLoading?: boolean
-  isValidating?: boolean // ✅ SWR's isValidating state
+  isValidating?: boolean
 }
 
 function AssessmentTableComponent({ data, onRefresh, swrKey, isLoading, isValidating }: AssessmentTableProps) {
   const router = useRouter();
-  const { mutate } = useSWRConfig();
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
   const [isDeleting, setIsDeleting] = useState<string | null>(null)
-
-  // ✅ Track previous data untuk detect new items (SWR handles this automatically with keepPreviousData)
-  const [previousData, setPreviousData] = useState<AssessmentData[]>([]);
-  const [newItems, setNewItems] = useState<Set<string>>(new Set());
-
-  // ✅ Detect new items when data changes (simple comparison)
-  useEffect(() => {
-    if (!data || data.length === 0) return;
-
-    // Find new items by comparing IDs
-    const previousIds = new Set(previousData.map(item => item.id));
-    const newIds = new Set(
-      data
-        .filter(item => !previousIds.has(item.id))
-        .map(item => item.id)
-    );
-
-    if (newIds.size > 0) {
-      console.log(`[AssessmentTable] ✨ Detected ${newIds.size} new items:`, Array.from(newIds));
-      setNewItems(newIds);
-
-      // ✅ Remove highlight after 3 seconds
-      setTimeout(() => {
-        setNewItems(new Set());
-      }, 3000);
-    }
-
-    setPreviousData(data);
-  }, [data, previousData]);
 
   // Gunakan langsung data dari props
   const totalPages = Math.ceil(data.length / itemsPerPage)
@@ -83,61 +41,18 @@ function AssessmentTableComponent({ data, onRefresh, swrKey, isLoading, isValida
 
     if (!resultId && !jobId) {
       console.error('No result_id or job_id found for assessment item:', id);
-      try { showToast({ title: 'Gagal menghapus', description: 'ID hasil atau job tidak ditemukan.' } as any); } catch (_) {}
+      alert('ID hasil atau job tidak ditemukan.');
       return;
     }
 
     const deletingKey = (resultId || jobId)!;
     setIsDeleting(deletingKey);
 
-    // Toast: Menghapus...
-    const t = showToast({ title: 'Menghapus…' });
-
-    // Optimistic update: remove row immediately from SWR cache
-    let previousData: AssessmentData[] | undefined;
-    try {
-      if (swrKey) {
-        await mutate(
-          swrKey,
-          (current: any) => {
-            previousData = current as AssessmentData[];
-            const next = (current || []).filter((row: AssessmentData) => (row.result_id !== deletingKey && row.job_id !== deletingKey));
-            return next;
-          },
-          false
-        );
-      }
-
-      // Import API service dynamically
-      const { apiService } = await import('../../services/apiService');
-
-      // Call the API to delete the result or job
-      if (resultId) {
-        await apiService.deleteResult(resultId);
-      } else if (jobId) {
-        await apiService.deleteJob(jobId);
-      }
-
-      // Invalidate to keep sync with server (no page refresh)
-      if (swrKey) {
-        await mutate(swrKey);
-      } else if (onRefresh) {
-        await onRefresh();
-      }
-
-      // Dismiss toast after success
-      t.dismiss();
-    } catch (error) {
-      console.error('Error deleting assessment:', error);
-      // Revert optimistic update if failed
-      if (swrKey && previousData) {
-        await mutate(swrKey, previousData, false);
-      }
-      // Update toast to show failure
-      try { t.update({ title: 'Gagal menghapus' } as any); } catch (_) {}
-    } finally {
+    // Simulasi delete operation
+    setTimeout(() => {
       setIsDeleting(null);
-    }
+      alert('Assessment berhasil dihapus (dummy)');
+    }, 1000);
   }
 
   const handleView = async (id: number) => {
@@ -216,8 +131,6 @@ function AssessmentTableComponent({ data, onRefresh, swrKey, isLoading, isValida
               ) : (
                 <>
                   {currentData.map((item, index) => {
-                    // ✅ Check if this is a new item atau pending item
-                    const isNew = newItems.has(String(item.id));
                     const isPending = (item as any)._isPending;
 
                     return (
@@ -225,8 +138,6 @@ function AssessmentTableComponent({ data, onRefresh, swrKey, isLoading, isValida
                         key={item.id}
                         className="assessment-table__table-row"
                         style={{
-                          // ✅ Smooth transition untuk new items
-                          backgroundColor: isNew ? '#dbeafe' : 'transparent',
                           opacity: isPending ? 0.6 : 1,
                           transition: 'all 0.3s ease-in-out'
                         }}
@@ -283,8 +194,13 @@ function AssessmentTableComponent({ data, onRefresh, swrKey, isLoading, isValida
                             <ExternalLink className="assessment-table__action-icon" />
                           </Button>
 
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
+                          <SimpleAlertDialog
+                            title="Konfirmasi Hapus"
+                            description={`Apakah Anda yakin ingin menghapus assessment "${item.archetype}"? Tindakan ini tidak dapat dibatalkan.`}
+                            onConfirm={() => handleDelete(item.id)}
+                            confirmText={isDeleting === (item.result_id || item.job_id) ? 'Menghapus...' : 'Ya, Hapus'}
+                            cancelText="Batal"
+                            trigger={
                               <Button
                                 variant="ghost"
                                 size="icon"
@@ -302,29 +218,8 @@ function AssessmentTableComponent({ data, onRefresh, swrKey, isLoading, isValida
                               >
                                 <Trash2 className="assessment-table__action-icon" />
                               </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Konfirmasi Hapus</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Apakah Anda yakin ingin menghapus assessment &quot;{item.archetype}&quot;?
-                                  Tindakan ini tidak dapat dibatalkan.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel disabled={isDeleting === (item.result_id || item.job_id)}>
-                                  Batal
-                                </AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => handleDelete(item.id)}
-                                  className="bg-red-600 hover:bg-red-700"
-                                  disabled={isDeleting === (item.result_id || item.job_id)}
-                                >
-                                  {isDeleting === (item.result_id || item.job_id) ? 'Menghapus...' : 'Ya, Hapus'}
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
+                            }
+                          />
                         </div>
                       </TableCell>
                     </TableRow>

@@ -1,5 +1,5 @@
 import React from "react"
-import { Card, CardContent } from "../ui/card"
+import { Card, CardContent } from "./card"
 import { OceanScores } from "../../types/assessment-results"
 import "../../styles/components/dashboard/ocean-card.css"
 

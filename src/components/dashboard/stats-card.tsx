@@ -1,5 +1,5 @@
 import React from "react"
-import { Card, CardContent } from "../ui/card"
+import { Card, CardContent } from "./card"
 import type { StatCard } from "../../types/dashboard"
 import "../../styles/components/dashboard/stats-card.css"
 

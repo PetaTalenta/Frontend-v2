@@ -3,11 +3,19 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Skeleton } from "@/components/ui/skeleton"
+import { ArrowLeft, User, Shield, Star, Target, Brain, Heart, Users, Briefcase, TrendingUp, Zap, Building, AlertTriangle, Lightbulb, GraduationCap, BookOpen } from "lucide-react"
+import IndustryCompatibilityCard from "@/components/results/IndustryCompatibilityCard"
+import { toast } from "@/components/ui/use-toast"
+import apiService from "@/services/apiService"
 
 export default function PersonaDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const [result, setResult] = useState<AssessmentResult | null>(null);
+  const [result, setResult] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -221,7 +229,7 @@ export default function PersonaDetailPage() {
         {(() => {
           // Calculate industry scores if not available from API
           const industryScores = result.assessment_data.industryScore ||
-            calculateIndustryScores(result.assessment_data);
+            {}; // Placeholder for calculateIndustryScores function
 
           return (
             <div className="mb-6">

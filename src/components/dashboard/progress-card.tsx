@@ -1,6 +1,6 @@
 import React from "react"
-import { Card, CardContent } from "../ui/card"
-import { Progress } from "../ui/progress"
+import { Card, CardContent } from "./card"
+import { Progress } from "./progress"
 import type { ProgressItem } from "../../types/dashboard"
 import "../../styles/components/dashboard/progress-card.css"
 

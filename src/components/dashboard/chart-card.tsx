@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "./card"
 import type { ChartData } from "../../types/dashboard"
 import "../../styles/components/dashboard/chart-card.css"
 

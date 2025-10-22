@@ -1,7 +1,34 @@
 import React from "react"
-import { Card, CardContent } from "../ui/card"
-import { ViaScores } from "../../types/assessment-results"
+import { Card, CardContent } from "./card"
 import "../../styles/components/dashboard/viais-card.css"
+
+// Type definition for ViaScores
+interface ViaScores {
+  creativity: number;
+  curiosity: number;
+  judgment: number;
+  loveOfLearning: number;
+  perspective: number;
+  bravery: number;
+  perseverance: number;
+  honesty: number;
+  zest: number;
+  love: number;
+  kindness: number;
+  socialIntelligence: number;
+  teamwork: number;
+  fairness: number;
+  leadership: number;
+  forgiveness: number;
+  humility: number;
+  prudence: number;
+  selfRegulation: number;
+  appreciationOfBeauty: number;
+  gratitude: number;
+  hope: number;
+  humor: number;
+  spirituality: number;
+}
 
 interface VIAISCardProps {
   viaScores?: ViaScores
@@ -98,5 +125,6 @@ function VIAISCardComponent({ viaScores }: VIAISCardProps) {
     </Card>
   )
 }
+
 
 export const VIAISCard = React.memo(VIAISCardComponent)

@@ -1,7 +1,7 @@
 "use client"
 
 import React from "react"
-import { Button } from "../ui/button"
+import { Button } from "./button"
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -9,10 +9,9 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuItem
-} from "../ui/dropdown-menu"
-import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar"
+} from "./dropdown-menu"
+import { Avatar, AvatarFallback, AvatarImage } from "./avatar"
 import { TrendingUp, LogOut } from "lucide-react"
-import { useAuth } from "../../contexts/AuthContext"
 
 // Utility to get user initials
 function getUserInitials(username?: string, name?: string, email?: string) {
@@ -37,6 +36,14 @@ function getUserDisplayName(user?: { name?: string; username?: string; email?: s
   return 'User';
 }
 
+// Dummy user data
+const dummyUser = {
+  name: 'John Doe',
+  username: 'johndoe',
+  email: 'john.doe@example.com',
+  avatar: ''
+};
+
 interface HeaderProps {
   title?: string;
   description?: string;
@@ -44,10 +51,10 @@ interface HeaderProps {
 }
 
 function HeaderComponent({ title, description, logout }: HeaderProps) {
-  const { user } = useAuth();
+  const user = dummyUser;
 
   // Generate title and description if not provided
-  const headerTitle = title || `Welcome, ${getUserDisplayName(user ?? undefined)}!`;
+  const headerTitle = title || `Welcome, ${getUserDisplayName(user)}!`;
   const headerDescription = description || "Track your progress here, You almost reach your goal.";
 
   return (
