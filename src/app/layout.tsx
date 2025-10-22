@@ -12,17 +12,6 @@ const plusJakartaSans = Plus_Jakarta_Sans({
   weight: ['300', '400', '500', '600', '700'],
 })
 import './globals.css'
-import { AuthProvider } from '../contexts/AuthContext'
-import { TokenProvider } from '../contexts/TokenContext'
-import AuthGuard from '../components/auth/AuthGuard'
-import { Toaster } from '../components/ui/sonner'
-import SWRProvider from '../components/providers/SWRProvider'
-import PerformanceInitializer from '../components/performance/PerformanceInitializer'
-import SimplePrefetchProvider from '../components/performance/SimplePrefetchProvider'
-import { ErrorBoundary, AuthErrorFallback } from '../components/ErrorBoundary'
-// import { PageTransition } from '../components/animations/PageTransitions'
-import NotificationRedirectListener from '../components/notifications/NotificationRedirectListener'
-// OptimizationInitializer removed to prevent dynamic import issues
 
 export const metadata: Metadata = {
   title: 'FutureGuide - Future Guide Platform',
@@ -82,31 +71,7 @@ html {
         `}</style>
       </head>
       <body className={`${GeistSans.variable} ${GeistMono.variable} ${plusJakartaSans.variable}`}>
-        {/* Root Error Boundary - catches all errors */}
-        <ErrorBoundary>
-          <SWRProvider>
-            <AuthProvider>
-              <TokenProvider>
-                <SimplePrefetchProvider
-                  enablePrefetch={true}
-                  enableCaching={true}
-                  debug={false}
-                >
-                  {/* Auth-specific Error Boundary */}
-                  <ErrorBoundary fallback={<AuthErrorFallback />}>
-                    <AuthGuard>
-                      {children}
-                    </AuthGuard>
-                  </ErrorBoundary>
-                  {/* Global notification-driven redirect */}
-                  <NotificationRedirectListener />
-                  <PerformanceInitializer />
-                  <Toaster />
-                </SimplePrefetchProvider>
-              </TokenProvider>
-            </AuthProvider>
-          </SWRProvider>
-        </ErrorBoundary>
+        {children}
       </body>
     </html>
   )

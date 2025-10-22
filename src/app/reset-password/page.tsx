@@ -1,5 +1,5 @@
 import { Metadata } from 'next';
-import ResetPasswordWrapper from '../../components/auth/ResetPasswordWrapper';
+import ResetPassword from '../../components/auth/ResetPassword';
 
 export const metadata: Metadata = {
   title: 'Reset Password - FutureGuide',
@@ -11,5 +11,5 @@ export const metadata: Metadata = {
 };
 
 export default function Page() {
-  return <ResetPasswordWrapper />;
+  return <ResetPassword />;
 }

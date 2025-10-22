@@ -1,13 +1,10 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import authV2Service from '../../services/authV2Service';
-import { getFirebaseErrorMessage } from '../../utils/firebase-errors';
 
 /**
- * ForgotPassword Component - Auth V2 (Firebase) Only
- * 
- * Allows users to request a password reset email via Firebase Authentication.
- * Legacy Auth V1 (JWT) has been disabled.
+ * ForgotPassword Component - Dummy Version
+ *
+ * Simple forgot password form without authentication logic
  */
 interface ForgotPasswordProps {
   onBack: () => void;
@@ -33,23 +30,19 @@ const ForgotPassword = ({ onBack }: ForgotPasswordProps) => {
     try {
       const email = data.email.toLowerCase().trim();
 
-      // ===== Auth V2 (Firebase) Flow =====
-      console.log('🔐 Sending password reset email via Auth V2 (Firebase)...');
-      
-      await authV2Service.forgotPassword(email);
-      
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
+      // Dummy success
       setSuccess(true);
       setEmailSent(email);
       setError('');
       
-      console.log('✅ Password reset email sent successfully');
+      console.log('✅ Password reset email sent (dummy):', email);
       
     } catch (err: any) {
-      console.error('❌ Auth V2 Forgot Password error:', err);
-      
-      // Use Firebase error mapping
-      const errorMessage = getFirebaseErrorMessage(err);
-      setError(errorMessage);
+      console.error('❌ Forgot Password error:', err);
+      setError('Terjadi kesalahan saat mengirim email reset password');
       setSuccess(false);
       
     } finally {

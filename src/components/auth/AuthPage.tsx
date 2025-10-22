@@ -1,45 +1,21 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '../../contexts/AuthContext';
+import React, { useState } from 'react';
 import Login from './Login';
 import Register from './Register';
 import { Zap } from 'lucide-react';
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
-  const router = useRouter();
-  const { login, register, isAuthenticated, isLoading } = useAuth();
 
-  // Redirect to dashboard if already authenticated
-  useEffect(() => {
-    if (!isLoading && isAuthenticated) {
-      router.push('/dashboard');
-    }
-  }, [isAuthenticated, isLoading, router]);
-
-  const handleAuth = async (token: string, user: any) => {
-    if (isLogin) {
-      await login(token, user);
-    } else {
-      await register(token, user);
-    }
+  const handleAuth = async (data: any) => {
+    // Dummy auth logic - just log the data
+    console.log('Auth data:', data);
+    console.log('Is login:', isLogin);
+    
+    // Dummy success - in real app this would handle authentication
+    alert(`${isLogin ? 'Login' : 'Register'} berhasil! (Ini adalah dummy)`);
   };
-
-  // Show loading while checking authentication
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#6475e9]"></div>
-      </div>
-    );
-  }
-
-  // Don't render if already authenticated (will redirect)
-  if (isAuthenticated) {
-    return null;
-  }
 
   return (
     <div className="min-h-screen bg-white flex">

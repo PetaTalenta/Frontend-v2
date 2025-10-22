@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
-import ForgotPasswordWrapper from '../../components/auth/ForgotPasswordWrapper';
+import ForgotPassword from '../../components/auth/ForgotPassword';
+import { useRouter } from 'next/navigation';
 
 export const metadata: Metadata = {
   title: 'Lupa Password - FutureGuide',
@@ -11,5 +12,11 @@ export const metadata: Metadata = {
 };
 
 export default function Page() {
-  return <ForgotPasswordWrapper />;
+  const router = useRouter();
+  
+  const handleBack = () => {
+    router.push('/auth');
+  };
+
+  return <ForgotPassword onBack={handleBack} />;
 }

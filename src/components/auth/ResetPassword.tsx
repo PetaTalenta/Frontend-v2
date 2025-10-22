@@ -1,16 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { useRouter, useSearchParams } from 'next/navigation';
-import authV2Service from '../../services/authV2Service';
-import { getFirebaseErrorMessage } from '../../utils/firebase-errors';
 
 /**
- * ResetPassword Component - Auth V2 (Firebase) Only
- * 
- * Allows users to set a new password using Firebase reset code from email.
- * Uses oobCode from Firebase email link (?oobCode=xxx)
- * 
- * URL Example: /reset-password?oobCode=firebase-code-here
+ * ResetPassword Component - Dummy Version
+ *
+ * Simple reset password form without authentication logic
  */
 interface ResetPasswordFormData {
   password: string;
@@ -24,7 +19,6 @@ const ResetPassword = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [resetCode, setResetCode] = useState('');
-  const [mode, setMode] = useState('');
   const [isValidLink, setIsValidLink] = useState(true);
 
   const router = useRouter();
@@ -33,24 +27,20 @@ const ResetPassword = () => {
   const { register, handleSubmit, watch, formState: { errors } } = useForm<ResetPasswordFormData>();
   const password = watch('password');
 
-  // Extract Firebase parameters from URL on mount
-  // Expected URL: https://futureguide.id/reset-password?mode=resetPassword&oobCode=ABC123XYZ&apiKey=xxx
+  // Extract parameters from URL on mount
   useEffect(() => {
     const oobCode = searchParams.get('oobCode');
     const actionMode = searchParams.get('mode');
-    const apiKey = searchParams.get('apiKey');
 
     console.log('🔐 Reset Password: Extracting URL parameters', {
       oobCode: oobCode ? `${oobCode.substring(0, 10)}...` : 'missing',
-      mode: actionMode || 'missing',
-      apiKey: apiKey ? 'present' : 'missing'
+      mode: actionMode || 'missing'
     });
 
     // Validate mode parameter
     if (actionMode && actionMode !== 'resetPassword') {
       setError(`Mode '${actionMode}' tidak didukung. Halaman ini hanya untuk reset password.`);
       setIsValidLink(false);
-      console.error('❌ Reset Password: Invalid mode', actionMode);
       return;
     }
 
@@ -58,7 +48,6 @@ const ResetPassword = () => {
     if (!oobCode) {
       setError('Link reset password tidak valid. Parameter oobCode tidak ditemukan.');
       setIsValidLink(false);
-      console.error('❌ Reset Password: No oobCode found in URL');
       return;
     }
 
@@ -66,15 +55,13 @@ const ResetPassword = () => {
     if (oobCode.length < 10) {
       setError('Link reset password tidak valid. Format oobCode salah.');
       setIsValidLink(false);
-      console.error('❌ Reset Password: Invalid oobCode format', oobCode);
       return;
     }
 
     // All validations passed
     setResetCode(oobCode);
-    setMode(actionMode || 'resetPassword');
     setIsValidLink(true);
-    console.log('✅ Reset Password: Valid Firebase reset link detected');
+    console.log('✅ Reset Password: Valid reset link detected (dummy)');
   }, [searchParams]);
 
   const onSubmit = async (data: ResetPasswordFormData) => {
@@ -89,11 +76,12 @@ const ResetPassword = () => {
     try {
       const newPassword = data.password;
 
-      console.log('🔐 Resetting password with Auth V2 (Firebase)...');
+      console.log('🔐 Resetting password (dummy)...');
       
-      await authV2Service.resetPassword(resetCode, newPassword);
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1500));
       
-      console.log('✅ Password reset successful');
+      console.log('✅ Password reset successful (dummy)');
       setSuccess(true);
       setError('');
 
@@ -103,31 +91,8 @@ const ResetPassword = () => {
       }, 3000);
 
     } catch (error: any) {
-      console.error('❌ Auth V2 Reset Password error:', error);
-      
-      // Use Firebase error mapping
-      const errorMessage = getFirebaseErrorMessage(error);
-      
-      // Enhanced error handling for specific Firebase error codes
-      const errorCode = error?.code || error?.response?.data?.code || '';
-      
-      // Check if code is expired or invalid
-      if (
-        errorCode.includes('invalid-action-code') ||
-        errorCode.includes('expired-action-code') ||
-        errorMessage.includes('kadaluarsa') || 
-        errorMessage.includes('invalid') ||
-        errorMessage.includes('expired')
-      ) {
-        setError(errorMessage);
-        setIsValidLink(false); // Mark link as invalid to show "Request New Link" button
-        console.warn('⚠️ Reset code is expired or invalid');
-      } else if (errorCode.includes('user-disabled')) {
-        setError('Akun Anda telah dinonaktifkan. Silakan hubungi administrator.');
-      } else {
-        setError(errorMessage);
-      }
-      
+      console.error('❌ Reset Password error:', error);
+      setError('Terjadi kesalahan saat reset password');
       setSuccess(false);
     } finally {
       setIsLoading(false);

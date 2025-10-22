@@ -1,8 +1,7 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { useAuth } from '../../contexts/AuthContext';
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -26,28 +25,14 @@ const protectedRoutes = [
 ];
 
 export default function AuthGuard({ children }: AuthGuardProps) {
-  const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
-  const [loadingTimeout, setLoadingTimeout] = React.useState(false);
+  
+  // Dummy auth state - in real app this would come from context
+  const [isAuthenticated] = React.useState(false);
+  const [isLoading] = React.useState(false);
 
-  // ✅ Instrumentasi: Track render count
-
-  // Add timeout for loading state to prevent infinite loading
-  React.useEffect(() => {
-    if (isLoading) {
-      const timer = setTimeout(() => {
-        setLoadingTimeout(true);
-      }, 2000); // 2 second timeout
-
-      return () => clearTimeout(timer);
-    } else {
-      setLoadingTimeout(false);
-    }
-  }, [isLoading]);
-
-  // Calculate route types outside useEffect so they can be used in render
-  // ✅ FIX: Handle null pathname
+  // Calculate route types
   const isProtectedRoute = pathname ? protectedRoutes.some(route =>
     pathname.startsWith(route)
   ) : false;
@@ -56,59 +41,30 @@ export default function AuthGuard({ children }: AuthGuardProps) {
     pathname.startsWith(route)
   ) : false;
 
-  // ✅ FIX: Add proper dependencies and prevent redirect loops with ref tracking
-  const lastRedirectRef = React.useRef<string | null>(null);
-
-  useEffect(() => {
-    // Don't do anything while loading (unless timeout reached)
-    if (isLoading && !loadingTimeout) {
-      return;
-    }
-
+  // Simple redirect logic for demo purposes
+  React.useEffect(() => {
     // If accessing a protected route without authentication, redirect to auth
-    // BUT: Don't redirect if still loading and it's a results page (to avoid race condition)
-    if (isProtectedRoute && !isAuthenticated) {
-      if (isLoading && pathname?.startsWith('/results/')) {
-        return;
-      }
-
-      // ✅ Prevent redirect loop
-      if (lastRedirectRef.current !== '/auth') {
-        lastRedirectRef.current = '/auth';
-        router.push('/auth');
-      }
+    if (isProtectedRoute && !isAuthenticated && !isLoading) {
+      router.push('/auth');
       return;
     }
 
     // If accessing auth page while authenticated, redirect to dashboard
-    // BUT: Don't redirect results pages even if authenticated
-    if (isPublicRoute && isAuthenticated && !pathname?.startsWith('/results')) {
-      // ✅ Prevent redirect loop
-      if (lastRedirectRef.current !== '/dashboard') {
-        lastRedirectRef.current = '/dashboard';
-        router.push('/dashboard');
-      }
+    if (isPublicRoute && isAuthenticated && pathname === '/auth') {
+      router.push('/dashboard');
       return;
     }
 
     // If accessing root path, redirect based on authentication
     if (pathname === '/') {
       const targetPath = isAuthenticated ? '/dashboard' : '/auth';
-      // ✅ Prevent redirect loop
-      if (lastRedirectRef.current !== targetPath) {
-        lastRedirectRef.current = targetPath;
-        router.push(targetPath);
-      }
+      router.push(targetPath);
       return;
     }
+  }, [isAuthenticated, isLoading, pathname, router, isProtectedRoute, isPublicRoute]);
 
-    // ✅ Clear redirect tracking when staying on current page
-    lastRedirectRef.current = null;
-  }, [isAuthenticated, isLoading, loadingTimeout, pathname, router, isProtectedRoute, isPublicRoute]);
-
-  // Show loading spinner while checking authentication (unless timeout reached)
-  // BUT: Don't show loading for public routes like results
-  if (isLoading && !loadingTimeout && !isPublicRoute) {
+  // Show loading while checking authentication
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
@@ -120,13 +76,12 @@ export default function AuthGuard({ children }: AuthGuardProps) {
   }
 
   // For protected routes, don't render children if not authenticated
-  if (isProtectedRoute && !isAuthenticated && !isLoading) {
+  if (isProtectedRoute && !isAuthenticated) {
     return null; // Will redirect in useEffect
   }
 
-  // For public routes, don't render children if authenticated
-  // BUT: Allow results pages even if authenticated
-  if (isPublicRoute && isAuthenticated && !pathname?.startsWith('/results')) {
+  // For public routes, don't render children if authenticated (except auth page itself)
+  if (isPublicRoute && isAuthenticated && pathname === '/auth') {
     return null; // Will redirect in useEffect
   }
 

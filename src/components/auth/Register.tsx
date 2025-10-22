@@ -1,21 +1,13 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import authV2Service from '../../services/authV2Service';
-import tokenService from '../../services/tokenService';
-import { getFirebaseErrorMessage } from '../../utils/firebase-errors';
-import { StorageTransaction } from '../../utils/storage-manager'; // ✅ Consolidated storage utilities
-import PasswordStrengthIndicator from './PasswordStrengthIndicator';
 
 /**
- * Register Component - Auth V2 (Firebase) Only
- * 
- * Uses Firebase Authentication for all registration operations.
- * Legacy Auth V1 (JWT) has been disabled.
- * 
- * Enhanced with real-time password validation and strength indicator.
+ * Register Component - Dummy Version
+ *
+ * Simple registration form without authentication logic
  */
 interface RegisterProps {
-  onRegister: (token: string, user: any) => void;
+  onRegister: (data: any) => void;
 }
 
 interface RegisterFormData {
@@ -24,14 +16,6 @@ interface RegisterFormData {
   email: string;
   password: string;
   confirmPassword: string;
-}
-
-interface User {
-  id: string;
-  username: string;
-  email: string;
-  displayName: string | null;
-  photoURL: string | null;
 }
 
 const Register = ({ onRegister }: RegisterProps) => {
@@ -56,110 +40,28 @@ const Register = ({ onRegister }: RegisterProps) => {
         return;
       }
 
-      const email = data.email.toLowerCase().trim();
-      const password = data.password.trim(); // ✅ Trim password untuk avoid trailing spaces
-      const username = data.username?.trim();
-
-      // Validate password doesn't contain spaces
-      if (password.includes(' ')) {
-        setError('Password tidak boleh mengandung spasi');
+      // Validate password confirmation
+      if (data.password !== data.confirmPassword) {
+        setError('Password tidak sama');
         setIsLoading(false);
         return;
       }
 
-      // ===== Auth V2 (Firebase) Flow =====
-      console.log('🔐 Registering with Auth V2 (Firebase)...');
-      
-      // For V2, username becomes displayName (optional)
-      const v2Response = await authV2Service.register({
-        email,
-        password,
-        displayName: username || undefined,
-        photoURL: undefined,
-        schoolName: data.schoolName?.trim() || undefined
-      }) as {
-        uid: string;
-        idToken: string;
-        refreshToken: string;
-        email: string;
-        displayName?: string;
-        photoURL?: string;
-      };
+      // Simulate loading
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
-      // Extract V2 response structure
-      const { uid, idToken, refreshToken, email: userEmail, displayName, photoURL } = v2Response;
-
-      // ✅ ATOMIC FIX: Store all auth data using atomic transaction
-      // This prevents partial state updates if any operation fails
-      console.log('💾 Storing authentication data atomically...');
-
-      const transaction = new StorageTransaction();
-
-      // Add all token operations to transaction
-      transaction.add('token', idToken);
-      transaction.add('auth_token', idToken);
-      transaction.add('futureguide_token', idToken);
-      transaction.add('accessToken', idToken);
-      transaction.add('refreshToken', refreshToken);
-      transaction.add('auth_version', 'v2');
-
-      // Add user info operations
-      transaction.add('uid', uid);
-      transaction.add('email', userEmail);
-      if (displayName) transaction.add('displayName', displayName);
-      if (photoURL) transaction.add('photoURL', photoURL);
-
-      // Map V2 user structure to consistent format
-      const user: User = {
-        id: uid,
-        username: displayName || userEmail.split('@')[0],
-        email: userEmail,
-        displayName: displayName || null,
-        photoURL: photoURL || null
-      };
-
-      // Add user object to transaction
-      transaction.add('user', JSON.stringify(user));
-
-      // ✅ Commit all operations atomically
-      // If any operation fails, ALL changes are rolled back
-      try {
-        await transaction.commit();
-        console.log('✅ Auth V2 registration successful');
-        console.log('✅ All authentication data stored atomically');
-      } catch (storageError: any) {
-        console.error('❌ Storage transaction failed:', storageError);
-        throw new Error('Failed to save authentication data. Please try again.');
-      } finally {
-        transaction.clear(); // Release memory
-      }
-
-      // Pass to AuthContext
-      onRegister(idToken, user);
+      // Dummy register - just pass the data to parent
+      onRegister({
+        type: 'register',
+        email: data.email.toLowerCase().trim(),
+        password: data.password.trim(),
+        username: data.username?.trim(),
+        schoolName: data.schoolName?.trim(),
+        timestamp: new Date().toISOString()
+      });
 
     } catch (err: any) {
-      console.error('❌ Auth V2 Registration error:', err);
-      
-      // ✅ Granular error handling untuk password issues
-      if (err.message.includes('minimal 8 karakter') || 
-          err.message.includes('mengandung minimal satu') ||
-          err.message.includes('hanya boleh mengandung')) {
-        setError(err.message);
-        // Focus ke password field jika error terkait password
-        const passwordField = document.getElementById('password');
-        if (passwordField) passwordField.focus();
-      } else if (err.code === 'auth/weak-password' || err.code === 'WEAK_PASSWORD') {
-        setError('Password tidak memenuhi syarat: minimal 8 karakter, harus ada huruf dan angka, hanya boleh alphanumerik dan simbol @$!%*#?&');
-        const passwordField = document.getElementById('password');
-        if (passwordField) passwordField.focus();
-      } else if (err.code === 'auth/email-already-in-use' || err.code === 'EMAIL_EXISTS') {
-        setError('Email sudah terdaftar. Silakan login atau gunakan email lain.');
-      } else {
-        // Use Firebase error mapping untuk error lainnya
-        const errorMessage = getFirebaseErrorMessage(err);
-        setError(errorMessage);
-      }
-      
+      setError('Terjadi kesalahan saat registrasi');
     } finally {
       setIsLoading(false);
     }
@@ -332,8 +234,24 @@ const Register = ({ onRegister }: RegisterProps) => {
               </p>
             )}
              
-            {/* Password Strength Indicator - Real-time validation */}
-            <PasswordStrengthIndicator password={password} />
+            {/* Simple Password Requirements */}
+            <div className="mt-3 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+              <p className="text-xs text-gray-600 mb-2 font-medium">Syarat Password:</p>
+              <ul className="space-y-1">
+                <li className="flex items-center text-xs text-gray-500">
+                  <svg className="h-4 w-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="10" strokeWidth="2" />
+                  </svg>
+                  Minimal 8 karakter
+                </li>
+                <li className="flex items-center text-xs text-gray-500">
+                  <svg className="h-4 w-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="10" strokeWidth="2" />
+                  </svg>
+                  Mengandung huruf dan angka
+                </li>
+              </ul>
+            </div>
           </div>
 
           <div>
