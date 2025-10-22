@@ -31,7 +31,7 @@ import {
   BarChart3
 } from 'lucide-react';
 // Trivia data & helpers (following docs/assessmentTrivia.js)
-import { getTriviaForStage, getRandomTrivia } from '../../../docs/assessmentTrivia';
+import { getTriviaForStage, getRandomTrivia } from '../../data/assessmentTrivia';
 // Note: WorkflowState type needs to be updated for the new consolidated service
 interface WorkflowState {
   status: string;
