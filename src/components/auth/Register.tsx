@@ -14,17 +14,37 @@ import PasswordStrengthIndicator from './PasswordStrengthIndicator';
  * 
  * Enhanced with real-time password validation and strength indicator.
  */
-const Register = ({ onRegister }) => {
+interface RegisterProps {
+  onRegister: (token: string, user: any) => void;
+}
+
+interface RegisterFormData {
+  username?: string;
+  schoolName?: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+}
+
+interface User {
+  id: string;
+  username: string;
+  email: string;
+  displayName: string | null;
+  photoURL: string | null;
+}
+
+const Register = ({ onRegister }: RegisterProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
-  const { register, handleSubmit, watch, formState: { errors } } = useForm();
+  const { register, handleSubmit, watch, formState: { errors } } = useForm<RegisterFormData>();
   const password = watch('password');
   const confirmPassword = watch('confirmPassword');
 
-  const onSubmit = async (data) => {
+  const onSubmit = async (data: RegisterFormData) => {
     setIsLoading(true);
     setError('');
 
@@ -54,10 +74,17 @@ const Register = ({ onRegister }) => {
       const v2Response = await authV2Service.register({
         email,
         password,
-        displayName: username || null,
-        photoURL: null,
-        schoolName: data.schoolName?.trim() || null
-      });
+        displayName: username || undefined,
+        photoURL: undefined,
+        schoolName: data.schoolName?.trim() || undefined
+      }) as {
+        uid: string;
+        idToken: string;
+        refreshToken: string;
+        email: string;
+        displayName?: string;
+        photoURL?: string;
+      };
 
       // Extract V2 response structure
       const { uid, idToken, refreshToken, email: userEmail, displayName, photoURL } = v2Response;
@@ -83,7 +110,7 @@ const Register = ({ onRegister }) => {
       if (photoURL) transaction.add('photoURL', photoURL);
 
       // Map V2 user structure to consistent format
-      const user = {
+      const user: User = {
         id: uid,
         username: displayName || userEmail.split('@')[0],
         email: userEmail,
@@ -100,7 +127,7 @@ const Register = ({ onRegister }) => {
         await transaction.commit();
         console.log('✅ Auth V2 registration successful');
         console.log('✅ All authentication data stored atomically');
-      } catch (storageError) {
+      } catch (storageError: any) {
         console.error('❌ Storage transaction failed:', storageError);
         throw new Error('Failed to save authentication data. Please try again.');
       } finally {
@@ -110,7 +137,7 @@ const Register = ({ onRegister }) => {
       // Pass to AuthContext
       onRegister(idToken, user);
 
-    } catch (err) {
+    } catch (err: any) {
       console.error('❌ Auth V2 Registration error:', err);
       
       // ✅ Granular error handling untuk password issues
@@ -304,7 +331,7 @@ const Register = ({ onRegister }) => {
                 {errors.password.message}
               </p>
             )}
-            
+             
             {/* Password Strength Indicator - Real-time validation */}
             <PasswordStrengthIndicator password={password} />
           </div>

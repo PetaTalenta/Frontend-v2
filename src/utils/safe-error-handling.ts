@@ -374,7 +374,7 @@ export function handleAssessmentError(
   return safeError;
 }
 
-export default {
+const safeErrorHandler = {
   createSafeError,
   safeErrorCallback,
   validateApiResponse,
@@ -387,3 +387,4 @@ export default {
   validateErrorObject,
   handleAssessmentError
 };
+export default safeErrorHandler;

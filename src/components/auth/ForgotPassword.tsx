@@ -9,15 +9,23 @@ import { getFirebaseErrorMessage } from '../../utils/firebase-errors';
  * Allows users to request a password reset email via Firebase Authentication.
  * Legacy Auth V1 (JWT) has been disabled.
  */
-const ForgotPassword = ({ onBack }) => {
+interface ForgotPasswordProps {
+  onBack: () => void;
+}
+
+interface ForgotPasswordFormData {
+  email: string;
+}
+
+const ForgotPassword = ({ onBack }: ForgotPasswordProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [emailSent, setEmailSent] = useState('');
 
-  const { register, handleSubmit, formState: { errors } } = useForm();
+  const { register, handleSubmit, formState: { errors } } = useForm<ForgotPasswordFormData>();
 
-  const onSubmit = async (data) => {
+  const onSubmit = async (data: ForgotPasswordFormData) => {
     setIsLoading(true);
     setError('');
     setSuccess(false);
@@ -36,7 +44,7 @@ const ForgotPassword = ({ onBack }) => {
       
       console.log('✅ Password reset email sent successfully');
       
-    } catch (err) {
+    } catch (err: any) {
       console.error('❌ Auth V2 Forgot Password error:', err);
       
       // Use Firebase error mapping

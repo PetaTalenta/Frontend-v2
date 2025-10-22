@@ -6,7 +6,11 @@ import { useMemo } from 'react';
  * Komponen untuk menampilkan validasi password secara real-time dengan visual feedback
  * Menampilkan checklist untuk setiap kriteria password yang harus dipenuhi
  */
-const PasswordStrengthIndicator = ({ password = '' }) => {
+interface PasswordStrengthIndicatorProps {
+  password?: string;
+}
+
+const PasswordStrengthIndicator = ({ password = '' }: PasswordStrengthIndicatorProps) => {
   // Kriteria validasi password sesuai backend requirements
   const criteria = useMemo(() => {
     const hasMinLength = password.length >= 8;

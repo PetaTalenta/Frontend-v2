@@ -228,4 +228,5 @@ class AdminService {
 }
 
 // Export singleton instance
-export default new AdminService();
+const adminServiceInstance = new AdminService();
+export default adminServiceInstance;

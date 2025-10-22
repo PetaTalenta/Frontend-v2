@@ -352,7 +352,7 @@ export function logAuthError(context, error) {
 }
 
 // Export all utilities
-export default {
+const firebaseErrorHandler = {
   getFirebaseErrorMessage,
   isFirebaseAuthError,
   requiresReauth,
@@ -362,3 +362,4 @@ export default {
   createUserError,
   logAuthError,
 };
+export default firebaseErrorHandler;

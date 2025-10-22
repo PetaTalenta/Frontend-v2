@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { AssessmentResult } from '../../../types/assessment-results';
-import { getAssessmentResult } from '../../../services/assessment-api';
+import { apiService } from '../../../services/apiService';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
 import { ArrowLeft, Download, AlertCircle } from 'lucide-react';
@@ -24,7 +24,8 @@ export default function SafeResultsPage() {
         setLoading(true);
         setError(null);
 
-        const assessmentResult = await getAssessmentResult(resultId);
+        const resultResponse = await apiService.getResultById(resultId);
+        const assessmentResult = resultResponse.success ? resultResponse.data : null;
         console.log('SafeResultsPage: Result loaded:', assessmentResult);
 
         if (!assessmentResult) {
@@ -259,14 +260,14 @@ export default function SafeResultsPage() {
           )}
 
           {/* Career Matches */}
-          {result.persona_profile?.career_matches && (
+          {(result.persona_profile as any)?.career_matches && (
             <Card className="bg-white shadow-sm">
               <CardHeader>
                 <CardTitle className="text-lg font-semibold">Career Matches</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {result.persona_profile.career_matches.map((career, index) => (
+                  {(result.persona_profile as any).career_matches.map((career: any, index: number) => (
                     <div key={index} className="border border-gray-200 rounded-lg p-4">
                       <div className="flex justify-between items-start mb-2">
                         <h4 className="font-medium text-gray-900">{career.title}</h4>

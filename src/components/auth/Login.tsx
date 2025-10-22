@@ -12,14 +12,31 @@ import { StorageTransaction } from '../../utils/storage-manager'; // ✅ Consoli
  * Uses Firebase Authentication for all login operations.
  * Legacy Auth V1 (JWT) has been disabled.
  */
-const Login = ({ onLogin }) => {
+interface LoginProps {
+  onLogin: (token: string, user: any) => void;
+}
+
+interface LoginFormData {
+  email: string;
+  password: string;
+}
+
+interface User {
+  id: string;
+  username: string;
+  email: string;
+  displayName: string | null;
+  photoURL: string | null;
+}
+
+const Login = ({ onLogin }: LoginProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-  const { register, handleSubmit, formState: { errors } } = useForm();
+  const { register, handleSubmit, formState: { errors } } = useForm<LoginFormData>();
 
-  const onSubmit = async (data) => {
+  const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true);
     setError('');
 
@@ -43,7 +60,14 @@ const Login = ({ onLogin }) => {
       // ===== Auth V2 (Firebase) Flow =====
       console.log('🔐 Logging in with Auth V2 (Firebase)...');
 
-      const v2Response = await authV2Service.login(email, password);
+      const v2Response = await authV2Service.login(email, password) as {
+        idToken: string;
+        refreshToken: string;
+        uid: string;
+        email: string;
+        displayName?: string;
+        photoURL?: string;
+      };
 
       // Extract V2 response structure
       const { idToken, refreshToken, uid, email: userEmail, displayName, photoURL } = v2Response;
@@ -69,7 +93,7 @@ const Login = ({ onLogin }) => {
       if (photoURL) transaction.add('photoURL', photoURL);
 
       // Map V2 user structure to consistent format
-      const user = {
+      const user: User = {
         id: uid,
         username: displayName || userEmail.split('@')[0], // Fallback to email prefix
         email: userEmail,
@@ -86,7 +110,7 @@ const Login = ({ onLogin }) => {
         await transaction.commit();
         console.log('✅ Auth V2 login successful for user:', userEmail);
         console.log('✅ All authentication data stored atomically');
-      } catch (storageError) {
+      } catch (storageError: any) {
         console.error('❌ Storage transaction failed:', storageError);
         throw new Error('Failed to save authentication data. Please try again.');
       } finally {
@@ -96,7 +120,7 @@ const Login = ({ onLogin }) => {
       // Pass to AuthContext (uses V2 token format)
       onLogin(idToken, user);
 
-    } catch (err) {
+    } catch (err: any) {
       console.error('❌ Auth V2 Login error:', err);
 
       // Use Firebase error mapping for user-friendly messages

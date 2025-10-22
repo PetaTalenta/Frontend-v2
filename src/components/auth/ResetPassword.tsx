@@ -12,6 +12,11 @@ import { getFirebaseErrorMessage } from '../../utils/firebase-errors';
  * 
  * URL Example: /reset-password?oobCode=firebase-code-here
  */
+interface ResetPasswordFormData {
+  password: string;
+  confirmPassword: string;
+}
+
 const ResetPassword = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -25,7 +30,7 @@ const ResetPassword = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const { register, handleSubmit, watch, formState: { errors } } = useForm();
+  const { register, handleSubmit, watch, formState: { errors } } = useForm<ResetPasswordFormData>();
   const password = watch('password');
 
   // Extract Firebase parameters from URL on mount
@@ -72,7 +77,7 @@ const ResetPassword = () => {
     console.log('✅ Reset Password: Valid Firebase reset link detected');
   }, [searchParams]);
 
-  const onSubmit = async (data) => {
+  const onSubmit = async (data: ResetPasswordFormData) => {
     if (!resetCode) {
       setError('Kode reset password tidak ditemukan. Silakan gunakan link dari email Anda.');
       return;
@@ -97,7 +102,7 @@ const ResetPassword = () => {
         router.push('/auth?tab=login&message=password-reset-success');
       }, 3000);
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Auth V2 Reset Password error:', error);
       
       // Use Firebase error mapping
@@ -296,7 +301,7 @@ const ResetPassword = () => {
                   </svg>
                   <p className="text-red-600 text-sm">{error}</p>
                 </div>
-                
+                 
                 {/* Show "Request New Link" button if code is invalid/expired */}
                 {!isValidLink && (
                   <button
