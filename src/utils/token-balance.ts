@@ -1,3 +1,31 @@
+/**
+ * Token Balance Utility - Token balance checking and caching
+ *
+ * ✅ PHASE 6 CONSOLIDATION: Kept as specialized utility for token balance operations
+ * This module handles token balance fetching, caching, and validation.
+ *
+ * Features:
+ * - Fetch token balance from API with error handling
+ * - TTL-based caching untuk reduce API calls
+ * - Validation untuk sufficient tokens
+ * - Diagnostic tools untuk troubleshooting
+ *
+ * Usage:
+ * ```typescript
+ * // Check token balance
+ * const balance = await checkTokenBalance();
+ *
+ * // Validate sufficient tokens
+ * if (balance.hasEnoughTokens) {
+ *   // Proceed with assessment
+ * }
+ * ```
+ *
+ * @module utils/token-balance
+ * @see tokenService untuk token management
+ * @see cache-invalidation untuk cache management
+ */
+
 import apiService from '../services/apiService';
 import { TOKEN_CONFIG, hasEnoughTokensForAssessment, getInsufficientTokensMessage } from '../config/token-config';
 import tokenService from '../services/tokenService';

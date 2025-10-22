@@ -8,9 +8,8 @@ import apiService from '../services/apiService';
 import authV2Service from '../services/authV2Service';
 import tokenService from '../services/tokenService';
 import { shouldUseAuthV2 } from '../config/auth-v2-config';
-import { StorageTransaction } from '../utils/storage-transaction'; // ✅ Atomic storage operations
 import useTokenRefresh from '../hooks/useTokenRefresh';
-import { storageManager } from '../utils/storage-manager';
+import { storageManager, StorageTransaction } from '../utils/storage-manager'; // ✅ Atomic storage operations
 
 interface User {
   id: string;

@@ -1,20 +1,39 @@
 /**
- * StorageManager - Centralized localStorage management
- * 
+ * StorageManager - Centralized localStorage management with atomic transactions
+ *
+ * ✅ PHASE 6 CONSOLIDATION: Integrated StorageTransaction for atomic operations
+ * This module consolidates all storage utilities into a single, unified API.
+ *
  * Solves critical issues:
  * - Race conditions dari concurrent reads/writes
  * - Parse errors dari malformed JSON
  * - Performance degradation dari excessive I/O
  * - Quota exceeded errors
- * 
+ * - Partial state updates during multi-key operations
+ *
  * Features:
  * - Locking mechanism untuk prevent concurrent writes
  * - Debounced writes untuk frequent updates
  * - Automatic quota exceeded handling
  * - Type-safe operations dengan generics
  * - Proper error handling dan recovery
- * 
+ * - ✅ Atomic transactions dengan rollback support
+ *
+ * Usage:
+ * ```typescript
+ * // Simple operations
+ * await storageManager.setItem('key', value);
+ * const value = await storageManager.getItem('key');
+ *
+ * // Atomic multi-key operations
+ * const transaction = storageManager.createTransaction();
+ * transaction.add('token', 'abc123');
+ * transaction.add('user', { id: '1', email: 'test@test.com' });
+ * await transaction.commit();
+ * ```
+ *
  * @module utils/storage-manager
+ * @see StorageTransaction untuk atomic operations
  */
 
 type StorageValue = string | number | boolean | object | null;
@@ -412,12 +431,30 @@ class StorageManager {
   }
 
   /**
+   * ✅ ATOMIC TRANSACTION SUPPORT
+   * Create a transaction for atomic multi-key operations
+   *
+   * @returns StorageTransaction instance
+   *
+   * @example
+   * ```typescript
+   * const transaction = storageManager.createTransaction();
+   * transaction.add('token', 'abc123');
+   * transaction.add('user', { id: '1', email: 'test@test.com' });
+   * await transaction.commit();
+   * ```
+   */
+  createTransaction(): StorageTransaction {
+    return new StorageTransaction();
+  }
+
+  /**
    * Throttled error logging untuk prevent console spam
    */
   private logErrorThrottled(errorKey: string, message: string, error: any): void {
     const now = Date.now();
     const lastLog = this.lastErrorLog.get(errorKey) || 0;
-    
+
     if (now - lastLog > this.ERROR_LOG_THROTTLE) {
       console.error(message, error);
       this.lastErrorLog.set(errorKey, now);
@@ -425,9 +462,157 @@ class StorageManager {
   }
 }
 
+/**
+ * ✅ ATOMIC TRANSACTION CLASS
+ * Ensures all-or-nothing localStorage operations with rollback support
+ * Integrated into StorageManager for centralized storage management
+ */
+class StorageTransaction {
+  private operations: Array<{ key: string; value: any }> = [];
+  private backups: Map<string, string | null> = new Map();
+  private isCommitted = false;
+  private isRolledBack = false;
+
+  /**
+   * Add a storage operation to the transaction
+   *
+   * @param key - localStorage key
+   * @param value - Value to store (will be JSON.stringify if object)
+   */
+  add(key: string, value: any): void {
+    if (this.isCommitted) {
+      throw new Error('Cannot add operations to committed transaction');
+    }
+
+    if (this.isRolledBack) {
+      throw new Error('Cannot add operations to rolled back transaction');
+    }
+
+    // Backup current value if not already backed up
+    if (!this.backups.has(key)) {
+      try {
+        const currentValue = localStorage.getItem(key);
+        this.backups.set(key, currentValue);
+      } catch (error) {
+        console.error(`[StorageTransaction] Failed to backup key "${key}":`, error);
+      }
+    }
+
+    this.operations.push({ key, value });
+  }
+
+  /**
+   * Remove a key from localStorage in this transaction
+   *
+   * @param key - localStorage key to remove
+   */
+  remove(key: string): void {
+    this.add(key, null);
+  }
+
+  /**
+   * Commit all operations atomically
+   *
+   * @throws Error if commit fails
+   */
+  async commit(): Promise<void> {
+    if (this.isCommitted) {
+      console.warn('[StorageTransaction] Transaction already committed');
+      return;
+    }
+
+    if (this.isRolledBack) {
+      throw new Error('Cannot commit a rolled back transaction');
+    }
+
+    try {
+      console.log(`[StorageTransaction] Committing ${this.operations.length} operations...`);
+
+      // Execute all operations
+      for (const { key, value } of this.operations) {
+        if (value === null || value === undefined) {
+          localStorage.removeItem(key);
+          console.debug(`[StorageTransaction] Removed: ${key}`);
+        } else {
+          const stringValue = typeof value === 'string'
+            ? value
+            : JSON.stringify(value);
+
+          localStorage.setItem(key, stringValue);
+          console.debug(`[StorageTransaction] Set: ${key}`);
+        }
+      }
+
+      this.isCommitted = true;
+      this.backups.clear();
+
+      console.log(`✅ [StorageTransaction] Successfully committed ${this.operations.length} operations`);
+    } catch (error) {
+      console.error('❌ [StorageTransaction] Commit failed:', error);
+      await this.rollback();
+      throw new Error(`Commit failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Rollback all operations and restore original values
+   */
+  async rollback(): Promise<void> {
+    if (this.isRolledBack) {
+      console.warn('[StorageTransaction] Transaction already rolled back');
+      return;
+    }
+
+    console.log(`[StorageTransaction] Rolling back ${this.backups.size} operations...`);
+
+    try {
+      for (const [key, value] of this.backups.entries()) {
+        if (value === null) {
+          localStorage.removeItem(key);
+        } else {
+          localStorage.setItem(key, value);
+        }
+      }
+
+      this.isRolledBack = true;
+      this.backups.clear();
+
+      console.log('✅ [StorageTransaction] Rollback completed successfully');
+    } catch (error) {
+      console.error('❌ [StorageTransaction] Rollback failed:', error);
+      throw new Error(`Rollback failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Get transaction status
+   */
+  getStatus(): {
+    isCommitted: boolean;
+    isRolledBack: boolean;
+    operationCount: number;
+    backupCount: number;
+  } {
+    return {
+      isCommitted: this.isCommitted,
+      isRolledBack: this.isRolledBack,
+      operationCount: this.operations.length,
+      backupCount: this.backups.size,
+    };
+  }
+
+  /**
+   * Clear transaction (release memory)
+   */
+  clear(): void {
+    this.operations = [];
+    this.backups.clear();
+  }
+}
+
 // Export singleton instance
 export const storageManager = new StorageManager();
 
-// Export class untuk testing
-export { StorageManager };
+// Export classes untuk testing dan direct usage
+export { StorageManager, StorageTransaction };
 

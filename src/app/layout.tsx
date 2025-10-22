@@ -16,7 +16,6 @@ import { AuthProvider } from '../contexts/AuthContext'
 import { TokenProvider } from '../contexts/TokenContext'
 import AuthGuard from '../components/auth/AuthGuard'
 import { Toaster } from '../components/ui/sonner'
-import DemoDataInitializer from '../components/debug/DemoDataInitializer'
 import SWRProvider from '../components/providers/SWRProvider'
 import PerformanceInitializer from '../components/performance/PerformanceInitializer'
 import SimplePrefetchProvider from '../components/performance/SimplePrefetchProvider'
@@ -101,7 +100,6 @@ html {
                   </ErrorBoundary>
                   {/* Global notification-driven redirect */}
                   <NotificationRedirectListener />
-                  <DemoDataInitializer />
                   <PerformanceInitializer />
                   <Toaster />
                 </SimplePrefetchProvider>

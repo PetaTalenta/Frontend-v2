@@ -307,7 +307,7 @@ function AssessmentTableComponent({ data, onRefresh, swrKey, isLoading, isValida
                               <AlertDialogHeader>
                                 <AlertDialogTitle>Konfirmasi Hapus</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  Apakah Anda yakin ingin menghapus assessment "{item.archetype}"?
+                                  Apakah Anda yakin ingin menghapus assessment &quot;{item.archetype}&quot;?
                                   Tindakan ini tidak dapat dibatalkan.
                                 </AlertDialogDescription>
                               </AlertDialogHeader>

@@ -1,16 +1,30 @@
 /**
- * Token Validation Utility
- * 
- * Provides centralized token validation and auto-refresh functionality
- * to prevent authentication errors during critical operations like assessment submission.
- * 
+ * Token Validation Utility - Token validation and auto-refresh
+ *
+ * ✅ PHASE 6 CONSOLIDATION: Kept as specialized utility for token validation
+ * This module handles token validation and auto-refresh before critical operations.
+ *
  * Key Features:
  * - Validates token expiry before critical operations
  * - Auto-refreshes expired or soon-to-expire tokens
  * - Handles both Auth V1 and Auth V2
  * - Provides clear error messages
- * 
- * @module token-validation
+ * - Prevents authentication errors during assessment submission
+ *
+ * Usage:
+ * ```typescript
+ * // Ensure valid token before critical operation
+ * const token = await ensureValidToken();
+ *
+ * // Validate without refresh
+ * const result = validateToken();
+ * if (!result.isValid) {
+ *   // Handle invalid token
+ * }
+ * ```
+ *
+ * @module utils/token-validation
+ * @see tokenService untuk token management
  */
 
 import tokenService from '../services/tokenService';

@@ -77,12 +77,6 @@ export default function SafeResultsPage() {
               >
                 Back to Dashboard
               </button>
-              <button
-                onClick={() => window.location.href = '/my-results'}
-                className="border border-gray-200 px-4 py-2 rounded-lg hover:bg-gray-50"
-              >
-                View All Results
-              </button>
             </div>
           </div>
         </div>

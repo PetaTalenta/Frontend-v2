@@ -383,10 +383,86 @@ class TokenService {
       // Clear old v1 token
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      
+
       logger.debug('Auth V2: Cleared v1 tokens for migration');
     } catch (error) {
       logger.error('Auth V2: Failed to migrate from v1', error);
+    }
+  }
+
+  /**
+   * Store user data in localStorage
+   * @param {object} user - User data object
+   */
+  storeUserData(user) {
+    try {
+      if (!user) return;
+
+      const raw = JSON.stringify(user);
+      localStorage.setItem('user', raw);
+      localStorage.setItem('user_data', raw);
+
+      logger.debug('Auth V2: User data stored successfully');
+    } catch (error) {
+      logger.error('Auth V2: Failed to store user data', error);
+    }
+  }
+
+  /**
+   * Get user data from localStorage
+   * @returns {object|null} - User data or null
+   */
+  getUserData() {
+    try {
+      const userKeys = ['user', 'user_data'];
+
+      for (const key of userKeys) {
+        const raw = localStorage.getItem(key);
+        if (raw) {
+          try {
+            return JSON.parse(raw);
+          } catch {
+            // ignore parse errors and continue
+          }
+        }
+      }
+
+      return null;
+    } catch (error) {
+      logger.error('Auth V2: Failed to get user data', error);
+      return null;
+    }
+  }
+
+  /**
+   * Clear user data from localStorage
+   */
+  clearUserData() {
+    try {
+      const userKeys = ['user', 'user_data'];
+
+      for (const key of userKeys) {
+        localStorage.removeItem(key);
+      }
+
+      logger.debug('Auth V2: User data cleared successfully');
+    } catch (error) {
+      logger.error('Auth V2: Failed to clear user data', error);
+    }
+  }
+
+  /**
+   * Clear all authentication data (tokens + user data)
+   * Replaces the deprecated clearAuth() from token-storage.ts
+   */
+  clearAuth() {
+    try {
+      this.clearTokens();
+      this.clearUserData();
+
+      logger.debug('Auth V2: All authentication data cleared successfully');
+    } catch (error) {
+      logger.error('Auth V2: Failed to clear auth data', error);
     }
   }
 }
@@ -406,4 +482,8 @@ export const {
   getTokenStatus,
   getAuthVersion,
   detectTokenFormat,
+  storeUserData,
+  getUserData,
+  clearUserData,
+  clearAuth,
 } = tokenService;

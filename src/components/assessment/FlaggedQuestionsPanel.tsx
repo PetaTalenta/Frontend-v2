@@ -97,7 +97,7 @@ export default function FlaggedQuestionsPanel({ isOpen, onClose }: FlaggedQuesti
               <span className="text-6xl mb-4 block">🏷️</span>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">No Flagged Questions</h3>
               <p className="text-gray-600">
-                You haven't flagged any questions for review yet. Click the flag button on any question to mark it for later review.
+                You haven&apos;t flagged any questions for review yet. Click the flag button on any question to mark it for later review.
               </p>
             </div>
           ) : (

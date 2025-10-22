@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { initializePerformanceOptimizations, setupRoutePreloading } from '../../utils/performance';
 
 export default function PerformanceInitializer() {
   const [isMounted, setIsMounted] = useState(false);
@@ -13,13 +12,7 @@ export default function PerformanceInitializer() {
   useEffect(() => {
     if (!isMounted || typeof window === 'undefined') return;
 
-    // Initialize performance optimizations
-    try {
-      initializePerformanceOptimizations();
-      setupRoutePreloading();
-    } catch (error) {
-      console.error('Failed to initialize performance optimizations:', error);
-    }
+    // Performance initialization removed - using SimplePrefetchProvider instead
 
     // Report web vitals to analytics (if available)
     if ('gtag' in window) {

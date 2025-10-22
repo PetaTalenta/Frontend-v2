@@ -11,6 +11,9 @@ interface VisualSummaryProps {
 }
 
 export default function VisualSummary({ scores }: VisualSummaryProps) {
+  // State for hover effects - must be before early returns
+  const [hoveredIndex, setHoveredIndex] = React.useState<number | null>(null);
+
   // Ensure scores data exists to prevent errors
   if (!scores) {
     return (
@@ -142,9 +145,6 @@ export default function VisualSummary({ scores }: VisualSummaryProps) {
 
   // Sort by score to show highest first
   const sortedCompetencies = careerCompetencies.sort((a, b) => b.score - a.score);
-
-  // State for hover effects
-  const [hoveredIndex, setHoveredIndex] = React.useState<number | null>(null);
 
   // Circular Progress Component with hover effects
   const CircularProgress = ({

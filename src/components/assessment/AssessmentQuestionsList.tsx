@@ -25,26 +25,20 @@ export default function AssessmentQuestionsList() {
     setAnswer
   } = useAssessment();
 
+  const { user } = useAuth();
 
   const currentAssessment: AssessmentType = getCurrentAssessment();
-  if (!currentAssessment || !currentAssessment.scaleType || !currentAssessment.questions) {
-    return <div className="text-red-500">Data assessment tidak valid. Silakan refresh halaman atau hubungi admin.</div>;
-  }
-  const scaleConfig = scaleConfigurations[currentAssessment.scaleType as keyof typeof scaleConfigurations];
-  if (!scaleConfig) {
-    return <div className="text-red-500">Konfigurasi skala assessment tidak ditemukan.</div>;
-  }
+  const scaleConfig = currentAssessment && scaleConfigurations[currentAssessment.scaleType as keyof typeof scaleConfigurations];
+
   // Group questions by category
-  const grouped: Record<string, Question[]> = currentAssessment.questions.reduce((acc: Record<string, Question[]>, q: Question) => {
+  const grouped: Record<string, Question[]> = currentAssessment?.questions?.reduce((acc: Record<string, Question[]>, q: Question) => {
     acc[q.category] = acc[q.category] || [];
     acc[q.category].push(q);
     return acc;
-  }, {});
+  }, {}) || {};
+
   // Use ordered categories instead of Object.keys to ensure consistency
-  const categories: string[] = getOrderedCategories(currentAssessment.id, currentAssessment.questions);
-  if (!categories || !Array.isArray(categories) || categories.length === 0) {
-    return <div className="text-red-500">Kategori assessment tidak ditemukan.</div>;
-  }
+  const categories: string[] = currentAssessment ? getOrderedCategories(currentAssessment.id, currentAssessment.questions) : [];
 
   // Auto-correct invalid section index and log navigation changes
   useEffect(() => {
@@ -123,7 +117,18 @@ export default function AssessmentQuestionsList() {
     }
   };
 
-  const { user } = useAuth();
+  // Validate data before rendering
+  if (!currentAssessment || !currentAssessment.scaleType || !currentAssessment.questions) {
+    return <div className="text-red-500">Data assessment tidak valid. Silakan refresh halaman atau hubungi admin.</div>;
+  }
+
+  if (!scaleConfig) {
+    return <div className="text-red-500">Konfigurasi skala assessment tidak ditemukan.</div>;
+  }
+
+  if (!categories || !Array.isArray(categories) || categories.length === 0) {
+    return <div className="text-red-500">Kategori assessment tidak ditemukan.</div>;
+  }
 
   // Validate currentSectionIndex is within bounds
   if (currentSectionIndex < 0 || currentSectionIndex >= categories.length) {
@@ -135,15 +140,15 @@ export default function AssessmentQuestionsList() {
 
   // Current section data
   const category = categories[currentSectionIndex];
-  
+
   // Validate category exists in grouped questions
   if (!category || !grouped[category]) {
     console.error(`Category "${category}" not found in grouped questions`);
     return <div className="text-red-500">Kategori tidak ditemukan. Silakan refresh halaman.</div>;
   }
-  
+
   const questions = grouped[category];
-  
+
   // Additional validation: ensure questions is an array
   if (!questions || !Array.isArray(questions) || questions.length === 0) {
     console.error(`Questions array is invalid for category "${category}":`, questions);

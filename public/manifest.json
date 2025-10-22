@@ -85,18 +85,6 @@
         }
       ]
     },
-    {
-      "name": "Hasil Saya",
-      "short_name": "Hasil",
-      "description": "Lihat hasil assessment Anda",
-      "url": "/my-results",
-      "icons": [
-        {
-          "src": "/icon-96x96.png",
-          "sizes": "96x96"
-        }
-      ]
-    }
   ],
   "screenshots": [
     {

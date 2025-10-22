@@ -1,10 +1,32 @@
-import useSWR from 'swr';
+/**
+ * ⚠️ DEPRECATED: Use useAssessmentUnified instead
+ *
+ * This file is maintained for backward compatibility only.
+ * All functionality has been consolidated into useAssessmentUnified.
+ *
+ * Migration guide:
+ * - Replace: import { useAssessmentResult } from './hooks/useAssessmentData'
+ * - With: import { useAssessmentUnified } from './hooks/useAssessmentUnified'
+ */
+
+import useSWR, { mutate } from 'swr';
 import { AssessmentResult } from '../types/assessment-results';
 import { getLatestAssessmentFromArchive as getAssessmentResultFromAPI, fetchAssessmentHistoryFromAPI as getUserAssessmentResults } from '../utils/user-stats';
 
-// Hook for fetching single assessment result
+/**
+ * @deprecated Use useAssessmentUnified instead
+ * Hook for fetching single assessment result
+ */
 export function useAssessmentResult(resultId: string | null) {
-  const { data, error, isLoading, mutate } = useSWR(
+  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+    console.warn(
+      '[DEPRECATION] useAssessmentResult is deprecated. ' +
+      'Please use useAssessmentUnified instead. ' +
+      'This will be removed in the next major version.'
+    );
+  }
+
+  const { data, error, isLoading, mutate: refetch } = useSWR(
     resultId ? `assessment-result-${resultId}` : null,
     () => getAssessmentResultFromAPI(resultId!),
     {
@@ -23,13 +45,24 @@ export function useAssessmentResult(resultId: string | null) {
     result: data as AssessmentResult | undefined,
     isLoading,
     error,
-    refetch: mutate,
+    refetch,
   };
 }
 
-// Hook for fetching user's assessment results
+/**
+ * @deprecated Use useAssessmentUnified instead
+ * Hook for fetching user's assessment results
+ */
 export function useUserAssessmentResults() {
-  const { data, error, isLoading, mutate } = useSWR(
+  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+    console.warn(
+      '[DEPRECATION] useUserAssessmentResults is deprecated. ' +
+      'Please use useAssessmentUnified instead. ' +
+      'This will be removed in the next major version.'
+    );
+  }
+
+  const { data, error, isLoading, mutate: refetch } = useSWR(
     'user-assessment-results',
     getUserAssessmentResults,
     {
@@ -48,29 +81,39 @@ export function useUserAssessmentResults() {
     results: data as AssessmentResult[] | undefined,
     isLoading,
     error,
-    refetch: mutate,
+    refetch,
   };
 }
 
-// Hook for fetching assessment result with optimistic updates
+/**
+ * @deprecated Use useAssessmentUnified instead
+ * Hook for fetching assessment result with optimistic updates
+ */
 export function useAssessmentResultOptimistic(resultId: string | null) {
-  const { data, error, isLoading, mutate } = useSWR(
+  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+    console.warn(
+      '[DEPRECATION] useAssessmentResultOptimistic is deprecated. ' +
+      'Please use useAssessmentUnified instead. ' +
+      'This will be removed in the next major version.'
+    );
+  }
+
+  const { data, error, isLoading, mutate: refetch } = useSWR(
     resultId ? `assessment-result-optimistic-${resultId}` : null,
     () => getAssessmentResultFromAPI(resultId!),
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: true,
       dedupingInterval: 300000, // 5 minutes
-      keepPreviousData: true, // Keep previous data while loading new data
+      keepPreviousData: true,
       errorRetryCount: 3,
       errorRetryInterval: 5000,
     }
   );
 
-  // Optimistic update function
   const updateOptimistic = (updatedData: Partial<AssessmentResult>) => {
     if (data) {
-      mutate({ ...data, ...updatedData }, false); // Update without revalidation
+      refetch({ ...data, ...updatedData }, false);
     }
   };
 
@@ -78,15 +121,25 @@ export function useAssessmentResultOptimistic(resultId: string | null) {
     result: data as AssessmentResult | undefined,
     isLoading,
     error,
-    refetch: mutate,
+    refetch,
     updateOptimistic,
   };
 }
 
-// Hook for preloading assessment results
+/**
+ * @deprecated Use useAssessmentUnified instead
+ * Hook for preloading assessment results
+ */
 export function usePreloadAssessmentResults() {
+  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+    console.warn(
+      '[DEPRECATION] usePreloadAssessmentResults is deprecated. ' +
+      'Please use useAssessmentUnified instead. ' +
+      'This will be removed in the next major version.'
+    );
+  }
+
   const preloadResult = (resultId: string) => {
-    // Preload the data without subscribing to it
     mutate(
       `assessment-result-${resultId}`,
       getAssessmentResultFromAPI(resultId),
@@ -103,6 +156,3 @@ export function usePreloadAssessmentResults() {
     preloadUserResults,
   };
 }
-
-// Import mutate for preloading
-import { mutate } from 'swr';

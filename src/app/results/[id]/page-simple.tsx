@@ -152,7 +152,7 @@ export default function SimpleResultsPage() {
             Assessment Result Not Found
           </h1>
           <p style={{ color: '#6b7280', marginBottom: '24px' }}>
-            The assessment result with ID "{resultId}" could not be found.
+            The assessment result with ID &quot;{resultId}&quot; could not be found.
           </p>
           <button 
             onClick={() => router.push('/dashboard')}

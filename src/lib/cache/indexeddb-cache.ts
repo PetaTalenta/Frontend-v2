@@ -15,6 +15,8 @@ interface CacheOptions {
   tags?: string[];
   version?: string;
   maxSize?: number; // Maximum cache size in bytes
+  staleWhileRevalidate?: number; // Time to serve stale data while refreshing
+  backgroundRefresh?: boolean; // Enable background refresh
 }
 
 class IndexedDBCache {
@@ -315,6 +317,85 @@ class IndexedDBCache {
       request.onerror = () => reject(request.error);
     });
   }
+
+  // Get with stale-while-revalidate pattern
+  async getWithSWR<T>(
+    key: string,
+    fetcher: () => Promise<T>,
+    options: CacheOptions = {}
+  ): Promise<T> {
+    const {
+      ttl = 30 * 60 * 1000, // 30 minutes default
+      staleWhileRevalidate = 60 * 60 * 1000, // 1 hour default
+      tags = [],
+      version = '1.0.0',
+      backgroundRefresh = true
+    } = options;
+
+    const now = Date.now();
+    const entry = await this.getEntry(key);
+
+    // Cache miss - fetch fresh data
+    if (!entry) {
+      console.log(`[IndexedDBCache] Cache MISS for key: ${key}`);
+      const data = await fetcher();
+      await this.set(key, data, { ttl, tags, version });
+      return data;
+    }
+
+    // Check if expired
+    if (now > entry.expiresAt) {
+      // Data is too old - force refresh
+      console.log(`[IndexedDBCache] Cache EXPIRED for key: ${key}, forcing refresh`);
+      const data = await fetcher();
+      await this.set(key, data, { ttl, tags, version });
+      return data;
+    }
+
+    // Data is fresh
+    if (now < entry.expiresAt) {
+      console.log(`[IndexedDBCache] Cache HIT (fresh) for key: ${key}`);
+      return entry.data;
+    }
+
+    // Data is stale but within stale-while-revalidate window
+    if (now < entry.timestamp + staleWhileRevalidate) {
+      console.log(`[IndexedDBCache] Cache HIT (stale) for key: ${key}, triggering background refresh`);
+
+      // Trigger background refresh if enabled
+      if (backgroundRefresh) {
+        fetcher()
+          .then(data => this.set(key, data, { ttl, tags, version }))
+          .catch(error => console.warn(`[IndexedDBCache] Background refresh failed for key: ${key}`, error));
+      }
+
+      return entry.data;
+    }
+
+    // Fallback: fetch fresh data
+    const data = await fetcher();
+    await this.set(key, data, { ttl, tags, version });
+    return data;
+  }
+
+  // Get entry with metadata (internal use)
+  private async getEntry<T>(key: string): Promise<CacheEntry<T> | null> {
+    const db = await this.ensureDB();
+    if (!db) return null;
+
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction([this.storeName], 'readonly');
+      const store = transaction.objectStore(this.storeName);
+      const request = store.get(key);
+
+      request.onsuccess = () => {
+        const entry = request.result as CacheEntry<T> | undefined;
+        resolve(entry || null);
+      };
+
+      request.onerror = () => reject(request.error);
+    });
+  }
 }
 
 // ✅ Lazy singleton instance - only create on client-side
@@ -341,6 +422,18 @@ export const indexedDBCache = {
   async get<T>(key: string): Promise<T | null> {
     if (!this.isClient) return null;
     return getIndexedDBCache().get(key);
+  },
+
+  async getWithSWR<T>(
+    key: string,
+    fetcher: () => Promise<T>,
+    options?: any
+  ): Promise<T> {
+    if (!this.isClient) {
+      // On server-side, just fetch directly
+      return fetcher();
+    }
+    return getIndexedDBCache().getWithSWR(key, fetcher, options);
   },
 
   async has(key: string): Promise<boolean> {

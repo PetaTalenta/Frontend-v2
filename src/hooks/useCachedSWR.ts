@@ -44,47 +44,25 @@ export function useCachedSWR<T>(
 
   const finalCacheKey = cacheKey || key;
   
-  // Enhanced fetcher that integrates with IndexedDB
+  // Enhanced fetcher that integrates with IndexedDB using stale-while-revalidate pattern
   const cachedFetcher = useCallback(async (fetchKey: string): Promise<T> => {
     if (!fetcher) throw new Error('No fetcher provided');
 
     const cacheKeyForData = `swr:${finalCacheKey || fetchKey}`;
-    
-    // If cacheFirst is enabled, try cache first
-    if (cacheFirst) {
-      const cachedData = await indexedDBCache.get<T>(cacheKeyForData);
-      if (cachedData !== null) {
-        // Return cached data and optionally sync in background
-        if (backgroundSync) {
-          // Background sync without blocking
-          fetcher(fetchKey)
-            .then(freshData => {
-              indexedDBCache.set(cacheKeyForData, freshData, {
-                ttl: cacheTTL,
-                tags: ['swr', ...cacheTags],
-                version: cacheVersion
-              });
-            })
-            .catch(error => {
-              console.warn('[useCachedSWR] Background sync failed:', error);
-            });
-        }
-        return cachedData;
-      }
-    }
 
+    // Use IndexedDB's built-in stale-while-revalidate pattern
     try {
-      // Fetch fresh data
-      const freshData = await fetcher(fetchKey);
-      
-      // Cache the fresh data
-      await indexedDBCache.set(cacheKeyForData, freshData, {
-        ttl: cacheTTL,
-        tags: ['swr', ...cacheTags],
-        version: cacheVersion
-      });
-      
-      return freshData;
+      return await indexedDBCache.getWithSWR<T>(
+        cacheKeyForData,
+        () => fetcher(fetchKey),
+        {
+          ttl: cacheTTL,
+          tags: ['swr', ...cacheTags],
+          version: cacheVersion,
+          staleWhileRevalidate: cacheFirst ? 60 * 60 * 1000 : 0, // 1 hour if cacheFirst
+          backgroundRefresh: backgroundSync
+        }
+      );
     } catch (error) {
       // If fetch fails and useCacheAsFallback is enabled, try cache
       if (useCacheAsFallback) {
@@ -121,21 +99,14 @@ export function useCachedSWR<T>(
     const updateCacheStats = async () => {
       try {
         const cacheKeyForData = `swr:${finalCacheKey}`;
-        const cachedEntry = await indexedDBCache.get(cacheKeyForData);
-        
-        if (cachedEntry) {
-          setCacheStats({
-            isFromCache: true,
-            cacheAge: Date.now() - (cachedEntry as any).timestamp,
-            lastSync: (cachedEntry as any).timestamp
-          });
-        } else {
-          setCacheStats({
-            isFromCache: false,
-            cacheAge: null,
-            lastSync: null
-          });
-        }
+        // Check if data exists in cache
+        const hasCache = await indexedDBCache.has(cacheKeyForData);
+
+        setCacheStats({
+          isFromCache: hasCache,
+          cacheAge: hasCache ? Date.now() : null,
+          lastSync: hasCache ? Date.now() : null
+        });
       } catch (error) {
         console.warn('[useCachedSWR] Failed to get cache stats:', error);
       }

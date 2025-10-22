@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { API_CONFIG, API_ENDPOINTS } from '../config/api';
-import { getToken, clearAuth } from '../utils/token-storage';
+import tokenService from './tokenService';
 import { logger } from '../utils/env-logger';
 
 /**
@@ -25,7 +25,7 @@ class ApiService {
     this.handlers = {
       onAuthError: (error) => {
         // default: no redirect, only clear auth
-        clearAuth();
+        tokenService.clearAuth();
         delete axios.defaults.headers.common['Authorization'];
       }
     };
@@ -120,7 +120,7 @@ class ApiService {
             }
           } else {
             // Auth V1: Use legacy JWT token
-            const token = getToken();
+            const token = tokenService.getIdToken();
 
             if (token) {
               config.headers.Authorization = `Bearer ${token}`;
@@ -154,7 +154,7 @@ class ApiService {
           // Fallback to V1 token if tokenService not available
           logger.error('API Request Interceptor Error:', error);
 
-          const token = getToken();
+          const token = tokenService.getIdToken();
           if (token) {
             config.headers.Authorization = `Bearer ${token}`;
           } else {

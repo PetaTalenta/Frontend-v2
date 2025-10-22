@@ -9,7 +9,6 @@ const protectedRoutes = [
   '/assessment',
   '/assessment-demo',
   '/select-assessment',
-  '/my-results',
   '/all-questions',
   '/auth-demo',
   '/auth-test',
@@ -30,13 +29,7 @@ export function middleware(request: NextRequest) {
     console.log(`[Middleware] ${pathname}`);
   }
 
-  // Handle /results route conflict - redirect to /my-results
-  if (pathname === '/results') {
-    if (isDev) console.log(`[Middleware] Redirecting /results → /my-results`);
-    const myResultsUrl = new URL('/my-results', request.url);
-    return NextResponse.redirect(myResultsUrl);
-  }
-  
+
   // Allow unauthenticated access to /api/archive/result/{id}
   if (/^\/api\/archive\/result\/[\w-]+$/.test(pathname)) {
     return NextResponse.next();

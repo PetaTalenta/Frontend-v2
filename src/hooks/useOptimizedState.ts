@@ -1,10 +1,10 @@
 'use client';
 
-import { 
-  useState, 
-  useCallback, 
-  useMemo, 
-  useRef, 
+import React, {
+  useState,
+  useCallback,
+  useMemo,
+  useRef,
   useEffect,
   memo,
   forwardRef
@@ -259,27 +259,29 @@ export function withShallowMemo<P extends object>(
 /**
  * Optimized list item component
  */
-export const OptimizedListItem = memo(function OptimizedListItem<T>({
+function OptimizedListItemComponent({
   item,
   index,
   onItemClick,
   renderItem,
 }: {
-  item: T;
+  item: any;
   index: number;
-  onItemClick: (item: T, index: number) => void;
-  renderItem: (item: T, index: number) => React.ReactNode;
+  onItemClick: (item: any, index: number) => void;
+  renderItem: (item: any, index: number) => React.ReactNode;
 }) {
   const handleClick = useCallback(() => {
     onItemClick(item, index);
   }, [item, index, onItemClick]);
 
-  return (
-    <div onClick={handleClick}>
-      {renderItem(item, index)}
-    </div>
+  return React.createElement(
+    'div',
+    { onClick: handleClick },
+    renderItem(item, index)
   );
-});
+}
+
+export const OptimizedListItem = memo(OptimizedListItemComponent);
 
 // ===== PERFORMANCE UTILITIES =====
 

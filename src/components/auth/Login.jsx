@@ -4,7 +4,7 @@ import Link from 'next/link';
 import authV2Service from '../../services/authV2Service';
 import tokenService from '../../services/tokenService';
 import { getFirebaseErrorMessage } from '../../utils/firebase-errors';
-import { StorageTransaction } from '../../utils/storage-transaction';
+import { StorageTransaction } from '../../utils/storage-manager'; // ✅ Consolidated storage utilities
 
 /**
  * Login Component - Auth V2 (Firebase) Only

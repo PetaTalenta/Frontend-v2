@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { Button } from '../../../components/ui/button';
-import { ArrowLeft, Search } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 
 export default function NotFound() {
   const router = useRouter();
@@ -16,23 +16,15 @@ export default function NotFound() {
             Assessment Result Not Found
           </h1>
           <p className="text-gray-600 mb-6">
-            The assessment result you're looking for could not be found. It may have been deleted or the link is incorrect.
+            The assessment result you&apos;re looking for could not be found. It may have been deleted or the link is incorrect.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Button 
+            <Button
               onClick={() => router.push('/dashboard')}
               className="bg-[#6475e9] text-white hover:bg-[#5a6bd8]"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Dashboard
-            </Button>
-            <Button 
-              onClick={() => router.push('/my-results')}
-              variant="outline"
-              className="border-gray-200"
-            >
-              <Search className="w-4 h-4 mr-2" />
-              View All Results
             </Button>
           </div>
         </div>

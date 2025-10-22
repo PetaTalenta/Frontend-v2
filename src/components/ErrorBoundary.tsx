@@ -127,7 +127,7 @@ export class ErrorBoundary extends Component<Props, State> {
             </h1>
 
             <p className="text-gray-600 text-center mb-6">
-              We're sorry for the inconvenience. An unexpected error occurred.
+              We&apos;re sorry for the inconvenience. An unexpected error occurred.
             </p>
 
             {/* Show error details in development */}

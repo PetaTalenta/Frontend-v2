@@ -70,35 +70,6 @@ class AdminService {
     }
   }
 
-  // Mock login removed
-    if (username === 'superadmin' && password === 'admin123') {
-      const mockAdmin = {
-        id: 'mock-admin-id',
-        username: 'superadmin',
-        email: 'admin@atma.com',
-        full_name: 'Super Administrator',
-        role: 'superadmin',
-        is_active: true,
-        last_login: new Date().toISOString(),
-        created_at: '2024-01-01T00:00:00Z',
-        updated_at: new Date().toISOString()
-      };
-
-      const mockToken = 'mock-jwt-token-for-development';
-
-      // Store admin session
-      localStorage.setItem('adminToken', mockToken);
-      localStorage.setItem('adminUser', JSON.stringify(mockAdmin));
-
-      this.adminToken = mockToken;
-      this.adminUser = mockAdmin;
-
-      return { admin: mockAdmin, token: mockToken };
-    } else {
-      throw new Error('Invalid credentials');
-    }
-  }
-
   async logout() {
     try {
       if (this.adminToken) {

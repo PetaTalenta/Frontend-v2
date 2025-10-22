@@ -17,6 +17,8 @@ interface AssessmentScoresSummaryProps {
 }
 
 export default function AssessmentScoresSummary({ scores, resultId }: AssessmentScoresSummaryProps) {
+  const { prefetchOnHover } = usePrefetch();
+
   // Early return if scores data is not available
   if (!scores || !scores.riasec || !scores.ocean || !scores.viaIs) {
     return (
@@ -41,8 +43,6 @@ export default function AssessmentScoresSummary({ scores, resultId }: Assessment
 
   // Get top 3 VIA strengths
   const topViaStrengths = getTopViaStrengths(scores.viaIs, 3);
-
-  const { prefetchOnHover } = usePrefetch();
 
   // RIASEC labels mapping
   const riasecLabels: { [key: string]: string } = {

@@ -28,9 +28,9 @@ let downloadPDF: any = null;
 
 const loadPDFExportUtils = async () => {
   if (!exportCompletePDF || !downloadPDF) {
-    const module = await import('../../utils/pdf-export-utils');
-    exportCompletePDF = module.exportCompletePDF;
-    downloadPDF = module.downloadPDF;
+    const pdfModule = await import('../../utils/pdf-export-utils');
+    exportCompletePDF = pdfModule.exportCompletePDF;
+    downloadPDF = pdfModule.downloadPDF;
   }
   return { exportCompletePDF, downloadPDF };
 };

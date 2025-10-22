@@ -17,7 +17,6 @@ const protectedRoutes = [
   '/assessment',
   '/assessment-demo',
   '/select-assessment',
-  '/my-results',
   '/all-questions',
   '/auth-demo',
   '/auth-test',

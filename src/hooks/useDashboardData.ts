@@ -1,25 +1,38 @@
 /**
- * ✅ SWR-based Dashboard Data Hook
- * 
- * Replaces complex optimistic updates with SWR's built-in features:
- * - Automatic caching
+ * ✅ Unified Dashboard Data Hook (Phase 4 Consolidation)
+ *
+ * Consolidated hook combining best features from:
+ * - useDashboardData.ts (SWR-based, optimistic updates)
+ * - useEnhancedDashboard.ts (real-time, notifications, refresh)
+ * - useUserData.ts (user-specific data fetching)
+ *
+ * Features:
+ * - Automatic caching with SWR
  * - Background revalidation
  * - Optimistic updates via mutate
- * - Error handling
- * - Loading states
- * 
+ * - Real-time updates with window focus detection
+ * - Browser notifications for completed assessments
+ * - Comprehensive error handling
+ * - Loading states with granular control
+ *
  * @module hooks/useDashboardData
  */
 
+import { useState, useEffect, useCallback, useRef } from 'react';
 import useSWR, { mutate as globalMutate } from 'swr';
-import { calculateUserStats, formatStatsForDashboard, fetchAssessmentHistoryFromAPI as formatAssessmentHistory, calculateUserProgress } from '../utils/user-stats';
+import { useAuth } from '../contexts/AuthContext';
+import { calculateUserStats, formatStatsForDashboard, fetchAssessmentHistoryFromAPI as formatAssessmentHistory, calculateUserProgress, getLatestAssessmentFromArchive } from '../utils/user-stats';
 import apiService from '../services/apiService';
 import type { AssessmentData } from '../types/dashboard';
 import type { OceanScores, ViaScores } from '../types/assessment-results';
 
 interface UseDashboardDataOptions {
-  userId: string;
+  userId?: string;
   enabled?: boolean;
+  enableRealTimeUpdates?: boolean;
+  enableNotifications?: boolean;
+  refreshInterval?: number;
+  optimisticUpdates?: boolean;
 }
 
 interface DashboardData {
@@ -28,32 +41,63 @@ interface DashboardData {
   isLoadingHistory: boolean;
   isValidatingHistory: boolean;
   historyError: any;
-  
+
   // User stats
   userStats: any;
   isLoadingStats: boolean;
   statsError: any;
-  
+
   // Latest result
   latestResult: any;
   isLoadingResult: boolean;
   resultError: any;
-  
+
   // Mutations
   refreshHistory: () => Promise<void>;
   refreshStats: () => Promise<void>;
   refreshAll: () => Promise<void>;
-  
+
   // Optimistic updates
   addAssessmentOptimistic: (newAssessment: AssessmentData) => Promise<void>;
   updateAssessmentOptimistic: (id: string, updates: Partial<AssessmentData>) => Promise<void>;
   removeAssessmentOptimistic: (id: string) => Promise<void>;
+
+  // Enhanced features
+  isRefreshing: boolean;
+  error: string | null;
+  lastUpdated: Date | null;
+  hasActiveAssessment: boolean;
 }
 
 /**
- * ✅ Main dashboard data hook using SWR
+ * ✅ Unified dashboard data hook using SWR
+ * Combines all dashboard data fetching with real-time updates and optimistic UI
  */
-export function useDashboardData({ userId, enabled = true }: UseDashboardDataOptions): DashboardData {
+export function useDashboardData(options: UseDashboardDataOptions = {}): DashboardData {
+  const { user } = useAuth();
+
+  // Resolve userId from options or auth context
+  const userId = options.userId || user?.id;
+  const enabled = options.enabled !== false && !!userId;
+
+  // Enhanced options with defaults
+  const opts = {
+    enableRealTimeUpdates: options.enableRealTimeUpdates !== false,
+    enableNotifications: options.enableNotifications !== false,
+    refreshInterval: options.refreshInterval || 30000, // 30 seconds
+    optimisticUpdates: options.optimisticUpdates !== false,
+  };
+
+  // State management for enhanced features
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [hasActiveAssessment, setHasActiveAssessment] = useState(false);
+
+  // Refs for tracking
+  const lastNotificationRef = useRef<string | null>(null);
+  const lastFocusTimeRef = useRef<number>(Date.now());
+
   // ✅ SWR for user stats
   const {
     data: userStats,
@@ -61,13 +105,21 @@ export function useDashboardData({ userId, enabled = true }: UseDashboardDataOpt
     isLoading: isLoadingStats,
     mutate: mutateStats
   } = useSWR(
-    enabled && userId ? `user-stats-${userId}` : null,
+    enabled ? `user-stats-${userId}` : null,
     () => calculateUserStats(userId),
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: true,
       dedupingInterval: 60000, // 1 minute
-      refreshInterval: 0, // ✅ FIX: Disable auto-refresh, use manual refresh only
+      refreshInterval: 0, // Manual refresh only
+      onSuccess: () => {
+        setError(null);
+        setLastUpdated(new Date());
+      },
+      onError: (err) => {
+        console.error('[Dashboard] ❌ Failed to load user stats:', err);
+        setError(err?.message || 'Failed to load stats');
+      }
     }
   );
 
@@ -104,49 +156,86 @@ export function useDashboardData({ userId, enabled = true }: UseDashboardDataOpt
     }
   );
 
-  // ✅ SWR for latest assessment result
+  // ✅ SWR for latest assessment result with enhanced features
   const {
     data: latestResult,
     error: resultError,
     isLoading: isLoadingResult,
     mutate: mutateResult
   } = useSWR(
-    enabled && userId ? `latest-result-${userId}` : null,
+    enabled ? `latest-result-${userId}` : null,
     async () => {
-      // @ts-ignore: api accepts sort/order
-      const resp = await apiService.getResults({ 
-        limit: 1, 
-        status: 'completed', 
-        sort: 'created_at', 
-        order: 'DESC' 
-      } as any);
-      return resp.success && resp.data?.results?.length ? resp.data.results[0] : null;
+      // Use enhanced fetcher that gets full assessment data
+      return getLatestAssessmentFromArchive();
     },
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: true,
       dedupingInterval: 300000, // 5 minutes
-      refreshInterval: 60000, // Auto-refresh every 1 minute
+      refreshInterval: opts.refreshInterval * 2, // Less frequent for results
       fallbackData: null,
+      onSuccess: (data) => {
+        if (data) {
+          setLastUpdated(new Date());
+          // Check for new completed assessment
+          const isNewCompletion = data.id !== lastNotificationRef.current &&
+                                 data.status === 'completed' &&
+                                 opts.enableNotifications;
+          if (isNewCompletion) {
+            lastNotificationRef.current = data.id;
+            // Show browser notification if available
+            if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+              new Notification('Assessment Complete', {
+                body: 'Your assessment has been completed successfully!',
+                icon: '/favicon.ico',
+              });
+            }
+          }
+        }
+      },
+      onError: (err) => {
+        console.error('[Dashboard] ❌ Failed to load latest result:', err);
+      }
     }
   );
 
-  // ✅ Refresh functions
-  const refreshHistory = async () => {
-    await mutateHistory();
-  };
+  // ✅ Enhanced refresh functions
+  const refreshHistory = useCallback(async () => {
+    try {
+      await mutateHistory();
+    } catch (err) {
+      console.error('[Dashboard] Error refreshing history:', err);
+    }
+  }, [mutateHistory]);
 
-  const refreshStats = async () => {
-    await mutateStats();
-  };
+  const refreshStats = useCallback(async () => {
+    try {
+      await mutateStats();
+    } catch (err) {
+      console.error('[Dashboard] Error refreshing stats:', err);
+    }
+  }, [mutateStats]);
 
-  const refreshAll = async () => {
-    await Promise.all([
-      mutateHistory(),
-      mutateStats(),
-      mutateResult()
-    ]);
-  };
+  const refreshAll = useCallback(async () => {
+    if (isRefreshing) return;
+
+    setIsRefreshing(true);
+    setError(null);
+
+    try {
+      await Promise.all([
+        mutateHistory(),
+        mutateStats(),
+        mutateResult()
+      ]);
+      setLastUpdated(new Date());
+    } catch (err) {
+      console.error('[Dashboard] Error refreshing all:', err);
+      setError(err instanceof Error ? err.message : 'Refresh failed');
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [isRefreshing, mutateHistory, mutateStats, mutateResult]);
 
   // ✅ Optimistic update: Add new assessment
   const addAssessmentOptimistic = async (newAssessment: AssessmentData) => {
@@ -201,7 +290,7 @@ export function useDashboardData({ userId, enabled = true }: UseDashboardDataOpt
   // ✅ Optimistic update: Remove assessment
   const removeAssessmentOptimistic = async (id: string) => {
     const key = `assessment-history-${userId}`;
-    
+
     await mutateHistory(
       async (currentData) => {
         if (!currentData) return currentData;
@@ -218,32 +307,77 @@ export function useDashboardData({ userId, enabled = true }: UseDashboardDataOpt
     setTimeout(() => mutateHistory(), 1000);
   };
 
+  // ✅ Auto-refresh on window focus (optimized)
+  useEffect(() => {
+    if (!opts.enableRealTimeUpdates || !enabled) return;
+
+    const handleFocus = () => {
+      const now = Date.now();
+      const timeSinceLastFocus = now - lastFocusTimeRef.current;
+
+      // Refresh if window was unfocused for more than 5 seconds
+      if (timeSinceLastFocus > 5000) {
+        console.log('[Dashboard] Window focus detected, refreshing data');
+        refreshAll();
+      }
+
+      lastFocusTimeRef.current = now;
+    };
+
+    const handleBlur = () => {
+      lastFocusTimeRef.current = Date.now();
+    };
+
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('blur', handleBlur);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('blur', handleBlur);
+    };
+  }, [opts.enableRealTimeUpdates, enabled, refreshAll]);
+
+  // ✅ Initialize notifications
+  useEffect(() => {
+    if (opts.enableNotifications && typeof window !== 'undefined' && 'Notification' in window) {
+      if (Notification.permission === 'default') {
+        Notification.requestPermission().catch(() => {});
+      }
+    }
+  }, [opts.enableNotifications]);
+
   return {
     // Assessment history
     assessmentHistory,
     isLoadingHistory,
     isValidatingHistory,
     historyError,
-    
+
     // User stats
     userStats,
     isLoadingStats,
     statsError,
-    
+
     // Latest result
     latestResult,
     isLoadingResult,
     resultError,
-    
+
     // Mutations
     refreshHistory,
     refreshStats,
     refreshAll,
-    
+
     // Optimistic updates
     addAssessmentOptimistic,
     updateAssessmentOptimistic,
     removeAssessmentOptimistic,
+
+    // Enhanced features
+    isRefreshing,
+    error,
+    lastUpdated,
+    hasActiveAssessment,
   };
 }
 
