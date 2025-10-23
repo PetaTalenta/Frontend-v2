@@ -1,10 +1,6 @@
 'use client';
 
-<<<<<<< HEAD
 import React, { useState, useRef, useEffect, Suspense, useMemo, useCallback } from 'react';
-=======
-import React, { useState, useRef, useEffect } from 'react';
->>>>>>> 539a6f6b0cea62264673a0c9c25a6deb8013257c
 import { useRouter, useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { Button } from '../ui/button';

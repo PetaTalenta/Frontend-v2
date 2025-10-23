@@ -3,7 +3,7 @@
 import React, { ReactNode, useEffect } from 'react';
 import { useAuthStore } from '../stores/useAuthStore';
 import { useAssessmentStore } from '../stores/useAssessmentStore';
-import { SWRProvider } from './SWRProvider';
+import { TanStackProvider } from './TanStackProvider';
 
 interface AppProviderProps {
   children: ReactNode;
@@ -19,9 +19,9 @@ export function AppProvider({ children }: AppProviderProps) {
   }, [initializeAuth]);
 
   return (
-    <SWRProvider>
+    <TanStackProvider>
       {children}
-    </SWRProvider>
+    </TanStackProvider>
   );
 }
 
