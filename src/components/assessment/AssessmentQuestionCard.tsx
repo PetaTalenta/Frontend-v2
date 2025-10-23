@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
-import { useAssessment } from "../../contexts/AssessmentContext";
+import React from "react";
+import { useFlaggedQuestions } from "../../hooks/useFlaggedQuestions";
 
 export default function AssessmentQuestionCard({
   question,
@@ -20,7 +20,8 @@ export default function AssessmentQuestionCard({
   isLastQuestion?: boolean,
   navigationButtons?: React.ReactNode,
 }) {
-  const { toggleFlag, isFlagged } = useAssessment();
+  // Use shared flagged questions state
+  const { toggleFlag, isFlagged } = useFlaggedQuestions();
   const isQuestionFlagged = isFlagged(question.id);
 
   const handleFlagToggle = () => {

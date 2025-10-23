@@ -6,13 +6,8 @@ import { Card, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
 import {
   CheckCircle,
-  Sparkles,
   Clock,
-  ArrowRight,
-  Target,
-  TrendingUp,
   BookOpen,
-  User,
   Loader2
 } from 'lucide-react';
 

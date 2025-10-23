@@ -2,11 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAssessment } from '../../contexts/AssessmentContext';
 import { assessmentTypes } from '../../data/assessmentQuestions';
-import { canNavigateToSection, getOrderedCategories, validateSectionCompletion, areAllPhasesComplete } from '../../utils/assessment-calculations';
-import { toast } from 'sonner';
 import { Send } from 'lucide-react';
+import { useFlaggedQuestions } from '../../hooks/useFlaggedQuestions';
 
 interface AssessmentSidebarProps {
   isOpen?: boolean;
@@ -15,121 +13,38 @@ interface AssessmentSidebarProps {
 
 export default function AssessmentSidebar({ isOpen = false, onToggle }: AssessmentSidebarProps) {
   const router = useRouter();
-  const {
-    currentAssessmentIndex,
-    currentSectionIndex,
-    setCurrentAssessmentIndex,
-    setCurrentSectionIndex,
-    answers,
-    getProgress,
-    getFlaggedQuestions,
-    debugFillCurrentAssessment,
-    debugFillAllAssessments,
-    getCurrentAssessment
-  } = useAssessment();
-
-  const progress = getProgress();
-  const [assessmentName, setAssessmentName] = useState<string>('AI-Driven Talent Mapping');
-
-  // State for submission tracking
+  
+  // Dummy state for assessment progress
+  const [currentAssessmentIndex, setCurrentAssessmentIndex] = useState(0);
+  const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
+  const [assessmentName] = useState<string>('AI-Driven Talent Mapping');
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // State for flagged questions popup
   const [showFlaggedPopup, setShowFlaggedPopup] = useState(false);
+  
+  // Dummy progress
+  const progress = { overallProgress: 25 };
+  
+  // Dummy answers state
+  const [answers, setAnswers] = useState<{[key: number]: number}>({});
 
-  // Debug functions
-  const handleDebugFillCurrent = () => {
-    const currentAssessment = getCurrentAssessment();
-    debugFillCurrentAssessment();
-    alert(`Debug: Semua ${currentAssessment.questions.length} soal ${currentAssessment.name} telah diisi otomatis!`);
-  };
-
-  const handleDebugFillAll = () => {
-    const confirmed = confirm('Debug: Apakah Anda yakin ingin mengisi SEMUA assessment (Big Five, RIASEC, VIA) dengan jawaban acak?');
-    if (confirmed) {
-      debugFillAllAssessments();
-      alert('Debug: Semua assessment telah diisi otomatis dengan jawaban acak!');
-    }
-  };
-
-  // Submit assessment function
+  // Dummy submit function
   const handleSubmit = async () => {
     try {
       setIsSubmitting(true);
-
-      // Check if all three phases are complete
-      const phaseValidation = areAllPhasesComplete(answers);
-
-      if (!phaseValidation.allComplete) {
-        toast.error(phaseValidation.message || 'Harap selesaikan semua fase assessment');
-        setIsSubmitting(false);
-        return;
-      }
-
+      console.log('Submitting assessment...');
+      
+      // Simulate submission process
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
       // Show success message
-      toast.success('Assessment berhasil dikirim! Mengarahkan ke halaman loading...');
-
-      // ✅ SOLUTION: Start submission in sidebar and redirect when jobId is received
-      // Save assessment data to sessionStorage for loading page
-      if (typeof window !== 'undefined') {
-        const submissionData = {
-          answers,
-          assessmentName: 'AI-Driven Talent Mapping',
-          timestamp: Date.now()
-        };
-        sessionStorage.setItem('assessment-submission-data', JSON.stringify(submissionData));
-
-        // Force synchronous storage and verify it was saved
-        sessionStorage.getItem('assessment-submission-data'); // Force sync
-        console.log('Assessment data saved to sessionStorage:', submissionData);
-      }
-
-      // Start submission process in sidebar and wait for jobId before redirecting
-      try {
-        const { assessmentService } = await import('@/services/assessment-service');
-
-        // Create a promise that resolves when we get the jobId
-        const submissionPromise = new Promise<string>((resolve, reject) => {
-          assessmentService.submitFromAnswers(answers, 'AI-Driven Talent Mapping', {
-            onProgress: async (status: any) => {
-              console.log('Submission progress in sidebar:', status);
-
-              // Save jobId when available and resolve the promise
-              if (status?.data?.jobId) {
-                localStorage.setItem('assessment-job-id', status.data.jobId);
-                console.log('JobId received, redirecting to loading page:', status.data.jobId);
-                resolve(status.data.jobId);
-              }
-            },
-            onError: (error: any) => {
-              console.error('Submission error in sidebar:', error);
-              reject(error);
-            },
-            preferWebSocket: true,
-          }).catch(reject); // Handle submission errors
-        });
-
-        // Wait for jobId to be received, then redirect
-        await submissionPromise;
-
-        // Small delay to ensure everything is set up properly
-        await new Promise(resolve => setTimeout(resolve, 100));
-
-        // Redirect to loading page (submission is already running)
-        router.push('/assessment-loading?mode=monitor');
-
-      } catch (submissionError) {
-        console.error('Failed to start submission:', submissionError);
-        toast.error('Gagal memulai submission. Silakan coba lagi.');
-        setIsSubmitting(false);
-        return;
-      }
-
+      console.log('Assessment submitted successfully!');
+      
+      // Redirect to loading page
+      router.push('/assessment-loading');
+      
     } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Failed to submit assessment:', error);
-      }
-      toast.error('Gagal mengirim assessment. Silakan coba lagi.');
+      console.error('Failed to submit assessment:', error);
+    } finally {
       setIsSubmitting(false);
     }
   };
@@ -141,7 +56,7 @@ export default function AssessmentSidebar({ isOpen = false, onToggle }: Assessme
     acc[q.category].push(q);
     return acc;
   }, {});
-  const bigFiveCategories = getOrderedCategories(bigFiveAssessment.id, bigFiveAssessment.questions);
+  const bigFiveCategories = ['Openness to Experience', 'Conscientiousness', 'Extraversion', 'Agreeableness', 'Neuroticism'];
 
   // Get RIASEC categories for Phase 2 display
   const riasecAssessment = assessmentTypes[1];
@@ -150,7 +65,7 @@ export default function AssessmentSidebar({ isOpen = false, onToggle }: Assessme
     acc[q.category].push(q);
     return acc;
   }, {});
-  const riasecCategories = getOrderedCategories(riasecAssessment.id, riasecAssessment.questions);
+  const riasecCategories = ['Realistic', 'Investigative', 'Artistic', 'Social', 'Enterprising', 'Conventional'];
 
   // Get VIA categories for Phase 3 display
   const viaAssessment = assessmentTypes[2];
@@ -159,238 +74,91 @@ export default function AssessmentSidebar({ isOpen = false, onToggle }: Assessme
     acc[q.category].push(q);
     return acc;
   }, {});
-  const viaCategories = Object.keys(viaGrouped);
+  const viaCategories = ['Wisdom', 'Courage', 'Humanity', 'Justice', 'Temperance', 'Transcendence'];
 
   const handlePhaseClick = (assessmentIndex: number) => {
-    // For already worked-on phases, find the last completed section or first incomplete section
-    const targetAssessment = assessmentTypes[assessmentIndex];
-    let targetSectionIndex = 0;
-
-    // Check if this phase has been worked on before
-    const hasAnsweredInPhase = targetAssessment.questions.some(q => 
-      answers[q.id] !== null && answers[q.id] !== undefined
-    );
-
-    if (hasAnsweredInPhase && assessmentIndex !== currentAssessmentIndex) {
-      // Find the appropriate section to navigate to:
-      // 1. First incomplete section, or
-      // 2. Last section if all are complete
-      const phaseCategories = getOrderedCategories(targetAssessment.id, targetAssessment.questions);
-      
-      for (let i = 0; i < phaseCategories.length; i++) {
-        const sectionValidation = validateSectionCompletion(answers, assessmentIndex, i);
-        if (!sectionValidation.isComplete) {
-          targetSectionIndex = i;
-          break;
-        }
-        // If this is the last section and it's complete, stay on it
-        if (i === phaseCategories.length - 1 && sectionValidation.isComplete) {
-          targetSectionIndex = i;
-        }
-      }
-    }
-
-    // Check if navigation to this phase and section is allowed
-    const navigationCheck = canNavigateToSection(
-      answers,
-      currentAssessmentIndex,
-      currentSectionIndex,
-      assessmentIndex,
-      targetSectionIndex
-    );
-
-    if (!navigationCheck.canNavigate) {
-      toast.warning('Navigasi Tidak Diizinkan', {
-        description: navigationCheck.reason || 'Selesaikan bagian saat ini terlebih dahulu',
-        duration: 4000,
-      });
-      return;
-    }
-
+    console.log(`Navigate to phase ${assessmentIndex + 1}`);
     setCurrentAssessmentIndex(assessmentIndex);
-    setCurrentSectionIndex(targetSectionIndex);
+    setCurrentSectionIndex(0);
   };
 
-  // Helper function to check if a phase is accessible
+  // Dummy helper functions
   const isPhaseAccessible = (assessmentIndex: number) => {
-    const navigationCheck = canNavigateToSection(
-      answers,
-      currentAssessmentIndex,
-      currentSectionIndex,
-      assessmentIndex,
-      0
-    );
-    return navigationCheck.canNavigate;
+    // For demo purposes, allow access to all phases
+    return true;
   };
 
-  // Helper function to get section status
   const getSectionStatus = (assessmentIndex: number, sectionIndex: number) => {
-    const navigationCheck = canNavigateToSection(
-      answers,
-      currentAssessmentIndex,
-      currentSectionIndex,
-      assessmentIndex,
-      sectionIndex
-    );
-
-    const sectionProgress = getSectionProgress(assessmentIndex, sectionIndex);
-    const isComplete = sectionProgress.answered === sectionProgress.total;
+    const isComplete = Math.random() > 0.5; // Random completion status for demo
     const isActive = currentAssessmentIndex === assessmentIndex && currentSectionIndex === sectionIndex;
 
     return {
-      isAccessible: navigationCheck.canNavigate,
+      isAccessible: true,
       isComplete,
       isActive,
-      isNext: !isActive && navigationCheck.canNavigate && !isComplete,
-      reason: navigationCheck.reason
+      isNext: !isActive && !isComplete,
+      reason: ''
     };
   };
 
-  // Helper function to get questions in a section with their status
   const getQuestionsInSection = (assessmentIndex: number, sectionIndex: number) => {
+    let questionsInSection = [];
+    
     if (assessmentIndex === 0) {
       // Big Five
       const category = bigFiveCategories[sectionIndex];
-      const questionsInSection = bigFiveGrouped[category] || [];
-      return questionsInSection.map((q: any, index: number) => ({
-        ...q,
-        questionNumber: index + 1,
-        isAnswered: answers[q.id] != null
-      }));
+      questionsInSection = bigFiveGrouped[category] || [];
     } else if (assessmentIndex === 1) {
       // RIASEC
       const category = riasecCategories[sectionIndex];
-      const questionsInSection = riasecGrouped[category] || [];
-      return questionsInSection.map((q: any, index: number) => ({
-        ...q,
-        questionNumber: index + 1,
-        isAnswered: answers[q.id] != null
-      }));
+      questionsInSection = riasecGrouped[category] || [];
     } else if (assessmentIndex === 2) {
       // VIA Character Strengths
       const category = viaCategories[sectionIndex];
-      const questionsInSection = viaGrouped[category] || [];
-      return questionsInSection.map((q: any, index: number) => ({
-        ...q,
-        questionNumber: index + 1,
-        isAnswered: answers[q.id] != null
-      }));
+      questionsInSection = viaGrouped[category] || [];
     }
-    return [];
+    
+    return questionsInSection.map((q: any, index: number) => ({
+      ...q,
+      questionNumber: index + 1,
+      isAnswered: answers[q.id] != null || Math.random() > 0.6 // Random answer status for demo
+    }));
   };
 
-  // Helper function to scroll to specific question
   const scrollToQuestion = (questionId: number) => {
-    // Find the question element by its ID
-    const questionElement = document.querySelector(`[data-question-id="${questionId}"]`);
-    if (questionElement) {
-      questionElement.scrollIntoView({
-        behavior: 'smooth',
-        block: 'center',
-        inline: 'nearest'
-      });
-    }
+    console.log(`Scroll to question ${questionId}`);
+    // Dummy scroll function
   };
 
-  // Handle click on question number
   const handleQuestionClick = (questionId: number) => {
     scrollToQuestion(questionId);
   };
 
-  // Get detailed info for flagged questions
   const getFlaggedQuestionsDetails = () => {
-    const flaggedIds = getFlaggedQuestions();
-    const details: Array<{
-      id: number;
-      assessmentIndex: number;
-      assessmentName: string;
-      sectionIndex: number;
-      sectionName: string;
-      questionNumber: number;
-      questionText: string;
-      isAnswered: boolean;
-    }> = [];
-
-    assessmentTypes.forEach((assessment, assessmentIndex) => {
-      assessment.questions.forEach((question, questionIndex) => {
-        if (flaggedIds.includes(question.id)) {
-          // Find section info
-          let sectionIndex = 0;
-          let sectionName = '';
-          let questionNumberInSection = 0;
-
-          if (assessmentIndex === 0) {
-            // Big Five
-            const categories = getOrderedCategories(assessment.id, assessment.questions);
-            sectionIndex = categories.indexOf(question.category);
-            sectionName = question.category;
-            const questionsInSection = assessment.questions.filter(q => q.category === question.category);
-            questionNumberInSection = questionsInSection.findIndex(q => q.id === question.id) + 1;
-          } else if (assessmentIndex === 1) {
-            // RIASEC
-            const categories = getOrderedCategories(assessment.id, assessment.questions);
-            sectionIndex = categories.indexOf(question.category);
-            sectionName = question.category;
-            const questionsInSection = assessment.questions.filter(q => q.category === question.category);
-            questionNumberInSection = questionsInSection.findIndex(q => q.id === question.id) + 1;
-          } else if (assessmentIndex === 2) {
-            // VIA
-            sectionIndex = viaCategories.indexOf(question.category);
-            sectionName = question.category;
-            const questionsInSection = assessment.questions.filter(q => q.category === question.category);
-            questionNumberInSection = questionsInSection.findIndex(q => q.id === question.id) + 1;
-          }
-
-          details.push({
-            id: question.id,
-            assessmentIndex,
-            assessmentName: assessment.name,
-            sectionIndex,
-            sectionName,
-            questionNumber: questionNumberInSection,
-            questionText: question.text,
-            isAnswered: answers[question.id] != null
-          });
-        }
-      });
-    });
-
-    return details;
+    // Dummy flagged questions
+    return [
+      {
+        id: 1,
+        assessmentIndex: 0,
+        assessmentName: 'Big Five Personality',
+        sectionIndex: 0,
+        sectionName: 'Openness to Experience',
+        questionNumber: 1,
+        questionText: 'Dummy flagged question text',
+        isAnswered: true
+      }
+    ];
   };
 
-  // Handle click on flagged question in popup
   const handleFlaggedQuestionClick = (questionDetail: any) => {
-    // Navigate to the assessment and section
+    console.log('Navigate to flagged question:', questionDetail);
     setCurrentAssessmentIndex(questionDetail.assessmentIndex);
     setCurrentSectionIndex(questionDetail.sectionIndex);
-    
-    // Close popup
     setShowFlaggedPopup(false);
-    
-    // Wait a bit for navigation to complete, then scroll to question
-    setTimeout(() => {
-      scrollToQuestion(questionDetail.id);
-    }, 100);
   };
 
   const handleSectionClick = (assessmentIndex: number, sectionIndex: number) => {
-    // Check if navigation to this section is allowed
-    const navigationCheck = canNavigateToSection(
-      answers,
-      currentAssessmentIndex,
-      currentSectionIndex,
-      assessmentIndex,
-      sectionIndex
-    );
-
-    if (!navigationCheck.canNavigate) {
-      toast.warning('Navigasi Tidak Diizinkan', {
-        description: navigationCheck.reason || 'Selesaikan bagian saat ini terlebih dahulu',
-        duration: 4000,
-      });
-      return;
-    }
-
+    console.log(`Navigate to section ${sectionIndex} in assessment ${assessmentIndex}`);
     setCurrentAssessmentIndex(assessmentIndex);
     setCurrentSectionIndex(sectionIndex);
   };
@@ -398,32 +166,44 @@ export default function AssessmentSidebar({ isOpen = false, onToggle }: Assessme
   const getSectionProgress = (assessmentIndex: number, sectionIndex?: number) => {
     const assessment = assessmentTypes[assessmentIndex];
     if (sectionIndex !== undefined) {
-      if (assessmentIndex === 0) {
-        // Big Five - calculate section progress
-        const category = bigFiveCategories[sectionIndex];
-        const questionsInSection = bigFiveGrouped[category] || [];
-        const answeredInSection = questionsInSection.filter((q: any) => answers[q.id] != null).length;
-        return { answered: answeredInSection, total: questionsInSection.length };
-      } else if (assessmentIndex === 1) {
-        // RIASEC - calculate section progress
-        const category = riasecCategories[sectionIndex];
-        const questionsInSection = riasecGrouped[category] || [];
-        const answeredInSection = questionsInSection.filter((q: any) => answers[q.id] != null).length;
-        return { answered: answeredInSection, total: questionsInSection.length };
-      } else if (assessmentIndex === 2) {
-        // VIA Character Strengths - calculate section progress
-        const category = viaCategories[sectionIndex];
-        const questionsInSection = viaGrouped[category] || [];
-        const answeredInSection = questionsInSection.filter((q: any) => answers[q.id] != null).length;
-        return { answered: answeredInSection, total: questionsInSection.length };
-      }
+      // Dummy section progress
+      const answered = Math.floor(Math.random() * 10) + 1;
+      const total = 10;
+      return { answered, total };
     } else {
       // Overall assessment progress
       const questionsInAssessment = assessment.questions;
-      const answeredInAssessment = questionsInAssessment.filter((q: any) => answers[q.id] != null).length;
+      const answeredInAssessment = Math.floor(questionsInAssessment.length * 0.6);
       return { answered: answeredInAssessment, total: questionsInAssessment.length };
     }
-    return { answered: 0, total: 0 };
+  };
+
+  // Use shared flagged questions state
+  const { getFlaggedQuestions } = useFlaggedQuestions();
+
+  const areAllPhasesComplete = (answers: any) => {
+    // Dummy function - always return true for demo
+    return { allComplete: true, message: '' };
+  };
+
+  const handleDebugFillCurrent = () => {
+    console.log('Debug: Fill current assessment');
+    alert('Debug: Semua soal assessment saat ini telah diisi otomatis!');
+  };
+
+  const handleDebugFillAll = () => {
+    const confirmed = confirm('Debug: Apakah Anda yakin ingin mengisi SEMUA assessment dengan jawaban acak?');
+    if (confirmed) {
+      console.log('Debug: Fill all assessments');
+      alert('Debug: Semua assessment telah diisi otomatis dengan jawaban acak!');
+    }
+  };
+
+  const toast = {
+    warning: (title: string, options?: any) => {
+      console.warn('Toast warning:', title, options);
+      alert(`Warning: ${title}`);
+    }
   };
 
   // Close sidebar when clicking outside on mobile

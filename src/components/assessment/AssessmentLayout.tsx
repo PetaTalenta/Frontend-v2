@@ -1,43 +1,26 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-// Reset state answers and flags jika localStorage assessment-answers sudah kosong
-import { useAssessment } from '../../contexts/AssessmentContext';
-// Reset state answers and flags jika localStorage assessment-answers sudah kosong
-function useSyncAnswersWithLocalStorage() {
-  const { answers, resetAnswers, clearAssessmentData, getFlaggedQuestions } = useAssessment();
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const saved = window.localStorage.getItem('assessment-answers');
-      
-      // If no saved answers or empty, clear everything including flags
-      if (!saved || saved === '{}' || saved === 'null') {
-        const hasAnswers = Object.keys(answers).length > 0;
-        const hasFlags = getFlaggedQuestions().length > 0;
-        
-        // Clear all assessment data (answers + flags) if user is starting fresh
-        if (hasAnswers || hasFlags) {
-          clearAssessmentData();
-        }
-      }
-    }
-    // Jalankan hanya saat mount
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-}
 import AssessmentSidebar from "./AssessmentSidebar";
 import AssessmentHeader from "./AssessmentHeader";
 import AssessmentProgressBar from "./AssessmentProgressBar";
 import AssessmentQuestionsList from "./AssessmentQuestionsList";
-import { AssessmentProvider } from '../../contexts/AssessmentContext';
-import { TokenWarning } from '../ui/TokenBalance';
+import { FlaggedQuestionsProvider } from "../../hooks/useFlaggedQuestions";
+
+// Dummy data for assessment
+const dummyAssessment = {
+  id: 'big-five',
+  name: 'Big Five Personality',
+  totalQuestions: 44,
+};
+
+const dummyProgress = {
+  overallProgress: 25,
+};
 
 function AssessmentContent() {
-  useSyncAnswersWithLocalStorage();
-  const { getCurrentAssessment, currentSectionIndex, getProgress } = useAssessment();
-  const currentAssessment = getCurrentAssessment();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const progress = getProgress();
+  const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
 
   useEffect(() => {
     // Add error handler for unhandled errors
@@ -51,10 +34,10 @@ function AssessmentContent() {
     return () => {
       window.removeEventListener('error', handleError);
     };
-  }, [currentAssessment, currentSectionIndex]);
+  }, []);
 
   const getPhaseNumber = () => {
-    switch (currentAssessment.id) {
+    switch (dummyAssessment.id) {
       case 'big-five': return '1';
       case 'riasec': return '2';
       case 'via-character': return '3';
@@ -72,7 +55,7 @@ function AssessmentContent() {
       >
         {/* Progress percentage text */}
         <span className="text-sm font-bold text-[#6475e9] z-10">
-          {progress.overallProgress}%
+          {dummyProgress.overallProgress}%
         </span>
 
         {/* Progress indicator - circular ring */}
@@ -97,7 +80,7 @@ function AssessmentContent() {
               strokeWidth="6"
               strokeLinecap="round"
               strokeDasharray={`${2 * Math.PI * 45}`}
-              strokeDashoffset={`${2 * Math.PI * 45 * (1 - progress.overallProgress / 100)}`}
+              strokeDashoffset={`${2 * Math.PI * 45 * (1 - dummyProgress.overallProgress / 100)}`}
               className="transition-all duration-500"
             />
           </svg>
@@ -116,16 +99,16 @@ function AssessmentContent() {
       <div className="flex-1 flex flex-col lg:mr-[300px]">
         <AssessmentHeader
           currentQuestion={currentSectionIndex + 1}
-          totalQuestions={currentAssessment.totalQuestions}
-          assessmentName={currentAssessment.name}
+          totalQuestions={dummyAssessment.totalQuestions}
+          assessmentName={dummyAssessment.name}
           phase={`Phase ${getPhaseNumber()}`}
         />
         <AssessmentProgressBar />
         <div className="flex-1 flex flex-col items-center justify-start overflow-y-auto py-4 lg:py-8">
-          {/* Token Warning */}
-          <div className="w-full max-w-4xl px-4 lg:px-8 mb-4">
+          {/* Token Warning - Removed as it depends on TokenContext */}
+          {/* <div className="w-full max-w-4xl px-4 lg:px-8 mb-4">
             <TokenWarning />
-          </div>
+          </div> */}
 
           {/* Render all questions vertically */}
           <AssessmentQuestionsList />
@@ -146,9 +129,9 @@ function AssessmentLayoutComponent() {
   }, []);
 
   return (
-    <AssessmentProvider>
+    <FlaggedQuestionsProvider>
       <AssessmentContent />
-    </AssessmentProvider>
+    </FlaggedQuestionsProvider>
   );
 }
 

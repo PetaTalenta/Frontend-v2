@@ -14,6 +14,22 @@ const upperRightIcon = "/icons/upper-right.svg";
 
 export default function SelectAssessmentPage() {
   const router = useRouter();
+  
+  // Dummy function for navigation
+  const handleStartAssessment = () => {
+    // In production, this would navigate to assessment
+    // For now, just log the action
+    console.log("Navigate to assessment page");
+    router.push("/assessment");
+  };
+
+  const handleGoBack = () => {
+    // In production, this would go back
+    // For now, just log the action
+    console.log("Go back");
+    window.history.back();
+  };
+
   return (
     <div className="bg-[#f5f7fb] flex flex-col items-center justify-center px-4 sm:px-8 lg:px-[90px] py-8 sm:py-12 lg:py-[62px] 2xl:py-8 h-screen overflow-hidden w-full relative">
       {/* Back Button */}
@@ -21,7 +37,7 @@ export default function SelectAssessmentPage() {
         <button
           className="flex items-center gap-2 px-3 sm:px-5 py-2 rounded-full border border-[#E5E7EB] bg-white text-[#64707D] text-sm sm:text-[18px] font-medium shadow-sm hover:bg-[#f5f7fb] transition"
           type="button"
-          onClick={() => window.history.back()}
+          onClick={handleGoBack}
         >
           <img src="/icons/CaretLeft.svg" alt="Back" className="w-4 h-4 sm:w-5 sm:h-5" />
           Kembali
@@ -96,7 +112,7 @@ export default function SelectAssessmentPage() {
             <button
               className="flex items-center justify-center gap-2 border border-[#6475E9] rounded-[12px] bg-white text-[#6475E9] text-sm sm:text-[16px] font-semibold transition hover:bg-[#f2f4ff] focus:outline-none focus:ring-2 focus:ring-[#6475E9] focus:ring-offset-2 w-full max-w-[320px] h-12 sm:h-[48px] px-6"
               type="button"
-              onClick={() => router.push("/assessment")}
+              onClick={handleStartAssessment}
             >
               Mulai Tes
               <img src="/icons/Chevron right.svg" alt="Chevron Right" className="w-4 h-4 sm:w-5 sm:h-5 ml-1" />

@@ -1,65 +1,42 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { scaleConfigurations, assessmentTypes, AssessmentType, Question } from '../../data/assessmentQuestions';
 import AssessmentQuestionCard from './AssessmentQuestionCard';
-import { useAssessment } from '../../contexts/AssessmentContext';
-import { useAuth } from '../../contexts/AuthContext';
-
-import { validateSectionCompletion, canNavigateToSection } from '../../utils/assessment-calculations';
-import { toast } from 'sonner';
-
-// Import the helper function for ordered categories
-import { getOrderedCategories } from '../../utils/assessment-calculations';
 
 export default function AssessmentQuestionsList() {
-  const {
-    getCurrentAssessment,
-    getCurrentSection,
-    currentSectionIndex,
-    currentAssessmentIndex,
-    setCurrentSectionIndex,
-    setCurrentAssessmentIndex,
-    answers,
-    setAnswer
-  } = useAssessment();
+  // Dummy state for assessment progress
+  const [currentAssessmentIndex, setCurrentAssessmentIndex] = useState(0);
+  const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
+  const [answers, setAnswers] = useState<{[key: number]: number}>({});
 
-  const { user } = useAuth();
-
-  const currentAssessment: AssessmentType = getCurrentAssessment();
-  const scaleConfig = currentAssessment && scaleConfigurations[currentAssessment.scaleType as keyof typeof scaleConfigurations];
+  // Get current assessment
+  const currentAssessment: AssessmentType = assessmentTypes[currentAssessmentIndex];
+  const scaleConfig = scaleConfigurations[currentAssessment.scaleType as keyof typeof scaleConfigurations];
 
   // Group questions by category
   const grouped: Record<string, Question[]> = currentAssessment?.questions?.reduce((acc: Record<string, Question[]>, q: Question) => {
-    acc[q.category] = acc[q.category] || [];
+    if (!acc[q.category]) {
+      acc[q.category] = [];
+    }
     acc[q.category].push(q);
     return acc;
-  }, {}) || {};
+  }, {} as Record<string, Question[]>) || {};
 
-  // Use ordered categories instead of Object.keys to ensure consistency
-  const categories: string[] = currentAssessment ? getOrderedCategories(currentAssessment.id, currentAssessment.questions) : [];
+  // Use dummy categories
+  const categories: string[] = currentAssessment ? Object.keys(grouped) : [];
 
-  // Auto-correct invalid section index and log navigation changes
+  // Auto-correct invalid section index
   useEffect(() => {
-    console.log('Navigation state:', {
-      currentAssessmentIndex,
-      currentSectionIndex,
-      categoriesLength: categories.length,
-      assessmentId: currentAssessment.id,
-      categories: categories
-    });
-
     if (currentSectionIndex < 0 || currentSectionIndex >= categories.length) {
-      console.error(`⚠️ INVALID INDEX DETECTED! currentSectionIndex: ${currentSectionIndex}, categories.length: ${categories.length}`);
-      console.error('Auto-correcting to index 0...');
+      console.error(`Invalid currentSectionIndex: ${currentSectionIndex}, categories.length: ${categories.length}`);
       setCurrentSectionIndex(0);
     }
-  }, [currentSectionIndex, currentAssessmentIndex, categories, currentAssessment.id, setCurrentSectionIndex]);
+  }, [currentSectionIndex, categories.length]);
 
   // Handler to update answer for a question
   const handleAnswer = (questionId: number, value: number) => {
-    setAnswer(questionId, value);
+    setAnswers(prev => ({ ...prev, [questionId]: value }));
   };
 
   // Paging controls
@@ -74,28 +51,18 @@ export default function AssessmentQuestionsList() {
       setCurrentAssessmentIndex(currentAssessmentIndex - 1);
       // Set to the last section of the previous phase
       const prevAssessment = assessmentTypes[currentAssessmentIndex - 1];
-      const prevCategories = getOrderedCategories(prevAssessment.id, prevAssessment.questions);
+      const prevCategories = Object.keys(prevAssessment.questions.reduce((acc: Record<string, Question[]>, q: Question) => {
+        if (!acc[q.category]) {
+          acc[q.category] = [];
+        }
+        acc[q.category].push(q);
+        return acc;
+      }, {} as Record<string, Question[]>));
       setCurrentSectionIndex(Math.max(0, prevCategories.length - 1));
     }
   };
 
   const handleNextSection = () => {
-    // Check if current section is complete before allowing forward navigation
-    const currentSectionValidation = validateSectionCompletion(
-      answers,
-      currentAssessmentIndex,
-      currentSectionIndex
-    );
-
-    if (!currentSectionValidation.isComplete) {
-      const missingCount = currentSectionValidation.totalQuestions - currentSectionValidation.answeredQuestions;
-      toast.warning('Section Belum Selesai', {
-        description: `Mohon selesaikan ${missingCount} soal yang tersisa di section ini sebelum melanjutkan ke section berikutnya.`,
-        duration: 4000,
-      });
-      return;
-    }
-
     if (currentSectionIndex < categories.length - 1) {
       // Navigate to next section within current assessment
       setCurrentSectionIndex(currentSectionIndex + 1);
@@ -109,10 +76,7 @@ export default function AssessmentQuestionsList() {
         setCurrentSectionIndex(0); // Reset to first section of new phase
         // Scroll to top smoothly
         window.scrollTo({ top: 0, behavior: 'smooth' });
-        toast.success('Pindah ke Phase Selanjutnya', {
-          description: `Anda telah menyelesaikan ${currentAssessment.name}. Melanjutkan ke phase berikutnya.`,
-          duration: 3000,
-        });
+        console.log(`Moving to next phase: ${assessmentTypes[currentAssessmentIndex + 1].name}`);
       }
     }
   };
@@ -128,14 +92,6 @@ export default function AssessmentQuestionsList() {
 
   if (!categories || !Array.isArray(categories) || categories.length === 0) {
     return <div className="text-red-500">Kategori assessment tidak ditemukan.</div>;
-  }
-
-  // Validate currentSectionIndex is within bounds
-  if (currentSectionIndex < 0 || currentSectionIndex >= categories.length) {
-    console.error(`Invalid currentSectionIndex: ${currentSectionIndex}, categories length: ${categories.length}`);
-    // Reset to first section if out of bounds
-    setCurrentSectionIndex(0);
-    return <div className="text-yellow-600">Memuat ulang section...</div>;
   }
 
   // Current section data

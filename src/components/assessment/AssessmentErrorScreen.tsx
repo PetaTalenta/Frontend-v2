@@ -1,17 +1,15 @@
 'use client';
 
 import React from 'react';
-import { Card, CardContent } from '../ui/card';
-import { Button } from '../ui/button';
+import { Card, CardContent } from './Card';
+import { Button } from './Button';
 import {
   XCircle,
   RefreshCw,
   ArrowLeft,
   AlertTriangle,
-  Wifi,
   WifiOff,
   Clock,
-  HelpCircle
 } from 'lucide-react';
 
 interface AssessmentErrorScreenProps {

@@ -1,27 +1,16 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Card, CardContent } from '../ui/card';
-import { Button } from '../ui/button';
-import { Progress } from '../ui/progress';
-import { Badge } from '../ui/badge';
+import { Button } from './Button';
 import {
   Clock,
-  Users,
   Activity,
   CheckCircle,
-  XCircle,
-  AlertCircle,
-  RefreshCw,
-  Loader2,
   Brain,
   Sparkles,
   Target,
   TrendingUp,
   BookOpen,
-  Wifi,
-  WifiOff,
-  Zap,
   ArrowLeft,
   Shield,
   GraduationCap,
@@ -39,6 +28,10 @@ interface WorkflowState {
   message: string;
   jobId?: string;
   error?: string;
+  result?: any;
+  webSocketConnected?: boolean;
+  queuePosition?: number;
+  estimatedTimeRemaining?: string;
 }
 import AssessmentCompletionScreen from './AssessmentCompletionScreen';
 import AssessmentQueueStatus from './AssessmentQueueStatus';
@@ -130,7 +123,7 @@ export default function AssessmentLoadingPage({
   const [elapsedTime, setElapsedTime] = useState(0);
   const [currentProgressStep, setCurrentProgressStep] = useState(0); // 0 = Processing, 1 = Analysis, 2 = Report
 
-  // Trivia state and rotation (see docs/trivia.md)
+  // Trivia state and rotation
   const [currentTrivia, setCurrentTrivia] = useState<any | null>(null);
   const [displayTrivia, setDisplayTrivia] = useState<any | null>(null);
   const [isAnimating, setIsAnimating] = useState(false);
@@ -165,7 +158,7 @@ export default function AssessmentLoadingPage({
     }
   };
 
-  // Map our workflow statuses to trivia stages described in docs
+  // Map our workflow statuses to trivia stages
   const getStageForTrivia = (status: string): 'processing' | 'analyzing' | 'preparing' => {
     switch (status) {
       case 'processing':
@@ -181,27 +174,18 @@ export default function AssessmentLoadingPage({
   };
 
   const updateTrivia = () => {
-    const stage = getStageForTrivia(workflowState.status);
-    const trivia = getTriviaForStage(stage);
-
-    // Prevent immediate duplicate
-    if (currentTrivia && trivia && trivia.id === currentTrivia.id) {
-      const alternative = getRandomTrivia();
-      if (alternative && alternative.id !== currentTrivia.id) {
-        setCurrentTrivia(alternative);
-        setIsAnimating(true);
-        const timer = setTimeout(() => {
-          setDisplayTrivia(alternative);
-          setIsAnimating(false);
-        }, 300);
-        return () => clearTimeout(timer as any);
-      }
-    }
-
-    setCurrentTrivia(trivia);
+    // Dummy trivia update
+    const dummyTrivia = {
+      id: 'dummy-1',
+      title: 'AI mempercepat analisis',
+      content: 'Pipeline kami menormalisasi jawaban dan menghitung beberapa skala sebelum dikirim ke mesin analisis.',
+      category: 'concept'
+    };
+    
+    setCurrentTrivia(dummyTrivia);
     setIsAnimating(true);
     const timer = setTimeout(() => {
-      setDisplayTrivia(trivia);
+      setDisplayTrivia(dummyTrivia);
       setIsAnimating(false);
     }, 300);
     return () => clearTimeout(timer as any);
@@ -212,7 +196,7 @@ export default function AssessmentLoadingPage({
     updateTrivia();
     triviaIntervalRef.current = setInterval(() => {
       updateTrivia();
-    }, 5000); // 10s per docs
+    }, 5000); // 5s per trivia
   };
 
   const stopTriviaRotation = () => {

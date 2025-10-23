@@ -1,17 +1,11 @@
 'use client';
 
 import React from 'react';
-import { Card, CardContent } from '../ui/card';
-import { Badge } from '../ui/badge';
+import { Card, CardContent } from './Card';
+import { Badge } from './Badge';
 import {
   Users,
   Clock,
-  Activity,
-  Wifi,
-  WifiOff,
-  Zap,
-  CheckCircle,
-  AlertCircle
 } from 'lucide-react';
 
 interface AssessmentQueueStatusProps {
