@@ -4,49 +4,52 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '../ui/chart';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts';
-import { AssessmentScores } from '../../types/assessment-results';
 import { Brain } from 'lucide-react';
+import { AssessmentScores, getDummyAssessmentScores } from '../../data/dummy-assessment-data';
 
 interface OceanRadarChartProps {
-  scores: AssessmentScores;
+  scores?: AssessmentScores;
 }
 
 function OceanRadarChartComponent({ scores }: OceanRadarChartProps) {
+  // Use dummy data if no scores provided
+  const assessmentScores = scores || getDummyAssessmentScores();
+
   // Transform OCEAN scores for radar chart
   const radarData = [
     {
       category: 'O',
       fullName: 'Openness',
       description: 'Keterbukaan terhadap pengalaman baru',
-      score: scores.ocean.openness,
+      score: assessmentScores.ocean.openness,
       fullMark: 100,
     },
     {
       category: 'C',
       fullName: 'Conscientiousness',
       description: 'Kehati-hatian dan kedisiplinan',
-      score: scores.ocean.conscientiousness,
+      score: assessmentScores.ocean.conscientiousness,
       fullMark: 100,
     },
     {
       category: 'E',
       fullName: 'Extraversion',
       description: 'Orientasi sosial dan energi',
-      score: scores.ocean.extraversion,
+      score: assessmentScores.ocean.extraversion,
       fullMark: 100,
     },
     {
       category: 'A',
       fullName: 'Agreeableness',
       description: 'Keramahan dan kerjasama',
-      score: scores.ocean.agreeableness,
+      score: assessmentScores.ocean.agreeableness,
       fullMark: 100,
     },
     {
       category: 'N',
       fullName: 'Neuroticism',
       description: 'Stabilitas emosional',
-      score: scores.ocean.neuroticism,
+      score: assessmentScores.ocean.neuroticism,
       fullMark: 100,
     },
   ];

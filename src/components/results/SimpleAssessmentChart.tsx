@@ -2,15 +2,15 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { AssessmentScores } from '../../types/assessment-results';
 import { BarChart3 } from 'lucide-react';
+import { AssessmentScores, getDummyAssessmentScores } from '../../data/dummy-assessment-data';
 
 interface SimpleAssessmentChartProps {
-  scores: AssessmentScores;
+  scores?: AssessmentScores;
 }
 
 // Simple bar chart component that doesn't rely on external chart libraries
-const SimpleBarChart = ({ data, title, color }: { 
+const SimpleBarChart = ({ data, title, color }: {
   data: Array<{ label: string; value: number; fullName?: string }>;
   title: string;
   color: string;
@@ -44,8 +44,11 @@ const SimpleBarChart = ({ data, title, color }: {
 };
 
 export default function SimpleAssessmentChart({ scores }: SimpleAssessmentChartProps) {
+  // Use dummy data if no scores provided
+  const assessmentScores = scores || getDummyAssessmentScores();
+
   // Early return if scores data is not available
-  if (!scores || !scores.riasec || !scores.ocean || !scores.viaIs) {
+  if (!assessmentScores || !assessmentScores.riasec || !assessmentScores.ocean || !assessmentScores.viaIs) {
     return (
       <Card className="bg-white border-amber-200 shadow-sm">
         <CardContent className="p-6">
@@ -67,25 +70,25 @@ export default function SimpleAssessmentChart({ scores }: SimpleAssessmentChartP
 
   // Prepare RIASEC data
   const riasecData = [
-    { label: 'R', value: scores.riasec.realistic, fullName: 'Realistic' },
-    { label: 'I', value: scores.riasec.investigative, fullName: 'Investigative' },
-    { label: 'A', value: scores.riasec.artistic, fullName: 'Artistic' },
-    { label: 'S', value: scores.riasec.social, fullName: 'Social' },
-    { label: 'E', value: scores.riasec.enterprising, fullName: 'Enterprising' },
-    { label: 'C', value: scores.riasec.conventional, fullName: 'Conventional' }
+    { label: 'R', value: assessmentScores.riasec.realistic, fullName: 'Realistic' },
+    { label: 'I', value: assessmentScores.riasec.investigative, fullName: 'Investigative' },
+    { label: 'A', value: assessmentScores.riasec.artistic, fullName: 'Artistic' },
+    { label: 'S', value: assessmentScores.riasec.social, fullName: 'Social' },
+    { label: 'E', value: assessmentScores.riasec.enterprising, fullName: 'Enterprising' },
+    { label: 'C', value: assessmentScores.riasec.conventional, fullName: 'Conventional' }
   ];
 
   // Prepare OCEAN data
   const oceanData = [
-    { label: 'O', value: scores.ocean.openness, fullName: 'Openness' },
-    { label: 'C', value: scores.ocean.conscientiousness, fullName: 'Conscientiousness' },
-    { label: 'E', value: scores.ocean.extraversion, fullName: 'Extraversion' },
-    { label: 'A', value: scores.ocean.agreeableness, fullName: 'Agreeableness' },
-    { label: 'N', value: scores.ocean.neuroticism, fullName: 'Neuroticism' }
+    { label: 'O', value: assessmentScores.ocean.openness, fullName: 'Openness' },
+    { label: 'C', value: assessmentScores.ocean.conscientiousness, fullName: 'Conscientiousness' },
+    { label: 'E', value: assessmentScores.ocean.extraversion, fullName: 'Extraversion' },
+    { label: 'A', value: assessmentScores.ocean.agreeableness, fullName: 'Agreeableness' },
+    { label: 'N', value: assessmentScores.ocean.neuroticism, fullName: 'Neuroticism' }
   ];
 
   // Prepare top VIA strengths
-  const viaEntries = Object.entries(scores.viaIs).map(([key, value]) => ({
+  const viaEntries = Object.entries(assessmentScores.viaIs).map(([key, value]) => ({
     label: key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
     value: value as number,
     fullName: key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())

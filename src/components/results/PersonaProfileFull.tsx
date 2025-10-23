@@ -3,18 +3,24 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
-import { AssessmentResult, PersonaProfile } from '../../types/assessment-results';
 import { ArrowLeft, User, Star, Target, Users, Briefcase, TrendingUp, BookOpen, Lightbulb, GraduationCap, AlertTriangle, Building, Shield, Zap, Brain, Heart } from 'lucide-react';
 import IndustryCompatibilityCard from './IndustryCompatibilityCard';
-import { calculateIndustryScores } from '../../utils/industry-scoring';
+import {
+  AssessmentResult,
+  PersonaProfile,
+  getDummyAssessmentResult,
+  getDummyPersonaProfile
+} from '../../data/dummy-assessment-data';
 
 interface PersonaProfileFullProps {
-  result: AssessmentResult;
+  result?: AssessmentResult;
 }
 
 export default function PersonaProfileFull({ result }: PersonaProfileFullProps) {
-  const profile: PersonaProfile = result.persona_profile as any;
-  const industryScores = result.assessment_data.industryScore || calculateIndustryScores(result.assessment_data);
+  // Use dummy data if no result provided
+  const assessmentResult = result || getDummyAssessmentResult();
+  const profile: PersonaProfile = assessmentResult.persona_profile || getDummyPersonaProfile();
+  const industryScores = assessmentResult.assessment_data.industryScore || {};
 
   if (!profile) {
     return (

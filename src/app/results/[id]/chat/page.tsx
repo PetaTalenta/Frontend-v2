@@ -1,72 +1,22 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { AssessmentResult } from '../../../../types/assessment-results';
-import apiService from '../../../../services/apiService';
 import ChatInterface from '../../../../components/chat/ChatInterface';
 import { Loader2, AlertCircle, ArrowLeft } from 'lucide-react';
 import { Button } from '../../../../components/ui/button';
 import { Alert, AlertDescription } from '../../../../components/ui/alert';
+import { getDummyAssessmentResult } from '../../../../data/dummy-assessment-data';
 
 export default function ChatPage() {
   const params = useParams();
   const router = useRouter();
   const resultId = params.id as string;
 
-  const [assessmentResult, setAssessmentResult] = useState<AssessmentResult | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!resultId) return;
-
-    // 1) Try to restore from sessionStorage (fast path from Results page)
-    try {
-      const cached = typeof window !== 'undefined'
-        ? sessionStorage.getItem(`assessmentResult:${resultId}`)
-        : null;
-      if (cached) {
-        const parsed = JSON.parse(cached) as AssessmentResult;
-        setAssessmentResult(parsed);
-        setIsLoading(false);
-        return; // Skip network if we already have it
-      }
-    } catch (e) {
-      console.warn('Failed to restore assessment result from sessionStorage:', e);
-    }
-
-    // 2) Fallback to API fetch
-    loadAssessmentResult();
-  }, [resultId]);
-
-
-  const loadAssessmentResult = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-
-      const resp = await apiService.getResultById(resultId);
-      const result = resp?.success ? resp.data : null;
-
-      if (!result) {
-        setError('Hasil assessment tidak ditemukan. Pastikan Anda telah menyelesaikan assessment terlebih dahulu.');
-        return;
-      }
-
-      if (result.status !== 'completed') {
-        setError('Assessment belum selesai diproses. Silakan tunggu hingga proses analisis selesai.');
-        return;
-      }
-
-      setAssessmentResult(result);
-    } catch (err) {
-      console.error('Failed to load assessment result:', err);
-      setError('Gagal memuat hasil assessment. Silakan coba lagi atau kembali ke halaman hasil.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // Use dummy data instead of API calls
+  const dummyResult = getDummyAssessmentResult();
+  const isLoading = false;
+  const error = null;
 
   const handleBack = () => {
     router.push(`/results/${resultId}`);
@@ -90,7 +40,7 @@ export default function ChatPage() {
   }
 
   // Error state
-  if (error || !assessmentResult) {
+  if (error || !dummyResult) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="max-w-md w-full">
@@ -137,10 +87,10 @@ export default function ChatPage() {
     <div className="h-screen flex flex-col">
       <ChatInterface
         assessmentResult={{
-          ...assessmentResult,
+          ...dummyResult,
           // Force ChatInterface context building to focus on persona profile only
-          assessment_data: assessmentResult.assessment_data, // untouched
-          persona_profile: assessmentResult.persona_profile,
+          assessment_data: dummyResult.assessment_data, // untouched
+          persona_profile: dummyResult.persona_profile,
         }}
         onBack={handleBack}
       />

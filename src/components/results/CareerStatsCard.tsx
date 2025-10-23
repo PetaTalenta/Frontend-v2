@@ -3,16 +3,19 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
-import { AssessmentScores } from '../../types/assessment-results';
 import { TrendingUp, Target, Award, Users } from 'lucide-react';
+import { AssessmentScores, getDummyAssessmentScores } from '../../data/dummy-assessment-data';
 
 interface CareerStatsCardProps {
-  scores: AssessmentScores;
+  scores?: AssessmentScores;
 }
 
 function CareerStatsCardComponent({ scores }: CareerStatsCardProps) {
+  // Use dummy data if no scores provided
+  const assessmentScores = scores || getDummyAssessmentScores();
+
   // Early return if scores data is not available
-  if (!scores || !scores.riasec || !scores.ocean || !scores.viaIs) {
+  if (!assessmentScores || !assessmentScores.riasec || !assessmentScores.ocean || !assessmentScores.viaIs) {
     return (
       <Card className="bg-white border-gray-200/60 shadow-sm">
         <CardContent className="p-6">
@@ -26,12 +29,12 @@ function CareerStatsCardComponent({ scores }: CareerStatsCardProps) {
 
   // Calculate career-focused statistics matching the radar chart
   const riasecScores = [
-    { name: 'Development', score: scores.riasec.investigative, category: 'Technical' },
-    { name: 'Design', score: scores.riasec.artistic, category: 'Creative' },
-    { name: 'Management', score: scores.riasec.enterprising, category: 'Leadership' },
-    { name: 'Sales', score: Math.round((scores.riasec.enterprising + scores.riasec.social) / 2), category: 'Business' },
-    { name: 'Support', score: scores.riasec.social, category: 'Social' },
-    { name: 'Administration', score: scores.riasec.conventional, category: 'Operational' },
+    { name: 'Development', score: assessmentScores.riasec.investigative, category: 'Technical' },
+    { name: 'Design', score: assessmentScores.riasec.artistic, category: 'Creative' },
+    { name: 'Management', score: assessmentScores.riasec.enterprising, category: 'Leadership' },
+    { name: 'Sales', score: Math.round((assessmentScores.riasec.enterprising + assessmentScores.riasec.social) / 2), category: 'Business' },
+    { name: 'Support', score: assessmentScores.riasec.social, category: 'Social' },
+    { name: 'Administration', score: assessmentScores.riasec.conventional, category: 'Operational' },
   ];
 
   const topSkill = riasecScores.reduce((prev, current) => 
@@ -55,11 +58,11 @@ function CareerStatsCardComponent({ scores }: CareerStatsCardProps) {
 
   // Calculate skill distribution
   const skillDistribution = {
-    technical: scores.riasec.investigative + scores.riasec.realistic,
-    creative: scores.riasec.artistic,
-    social: scores.riasec.social,
-    business: scores.riasec.enterprising,
-    operational: scores.riasec.conventional,
+    technical: assessmentScores.riasec.investigative + assessmentScores.riasec.realistic,
+    creative: assessmentScores.riasec.artistic,
+    social: assessmentScores.riasec.social,
+    business: assessmentScores.riasec.enterprising,
+    operational: assessmentScores.riasec.conventional,
   };
 
   const maxDistribution = Math.max(...Object.values(skillDistribution));

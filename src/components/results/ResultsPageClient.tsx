@@ -5,35 +5,13 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '../ui/button';
 import { Card } from '../ui/card';
 import { toast } from '../ui/use-toast';
-import { AssessmentResult, AssessmentScores } from '../../types/assessment-results';
-import apiService from '../../services/apiService';
-// Toggle public API via direct backend endpoint
-async function toggleResultPublic(resultId: string, isPublic: boolean): Promise<{success: boolean, is_public: boolean}> {
-  const resp = await apiService.setResultPublic(resultId, isPublic);
-  if (!resp?.success) {
-    throw new Error(resp?.message || 'Gagal mengubah status publikasi hasil assessment');
-  }
-  return { success: true, is_public: resp.data?.is_public ?? isPublic };
-}
 import {
-  capturePageScreenshot,
-  downloadBlob,
-  isScreenshotSupported,
-  getBrowserLimitations
-} from '../../utils/screenshot-utils';
-
-// Lazy load PDF export utilities (only loaded when needed)
-let exportCompletePDF: any = null;
-let downloadPDF: any = null;
-
-const loadPDFExportUtils = async () => {
-  if (!exportCompletePDF || !downloadPDF) {
-    const pdfModule = await import('../../utils/pdf-export-utils');
-    exportCompletePDF = pdfModule.exportCompletePDF;
-    downloadPDF = pdfModule.downloadPDF;
-  }
-  return { exportCompletePDF, downloadPDF };
-};
+  AssessmentResult,
+  AssessmentScores,
+  getDummyAssessmentResult,
+  getDummyAssessmentScores
+} from '../../data/dummy-assessment-data';
+// Removed imports for screenshot and PDF utils since they're not available
 import PersonaProfileSummary from './PersonaProfileSummary';
 import AssessmentScoresSummary from './AssessmentScoresSummary';
 import ResultSummaryStats from './ResultSummaryStats';
@@ -183,18 +161,24 @@ const SafeCareerStatsCard = ({ scores }: { scores: AssessmentScores }) => {
 };
 
 interface ResultsPageClientProps {
-  initialResult: AssessmentResult;
-  resultId: string;
+  initialResult?: AssessmentResult;
+  resultId?: string;
 }
 
 function ResultsPageClientComponent({ initialResult, resultId }: ResultsPageClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [result, setResult] = useState<AssessmentResult>(initialResult);
+  
+  // Use dummy data if no result provided
+  const dummyResult = getDummyAssessmentResult();
+  const assessmentResult = initialResult || dummyResult;
+  const dummyResultId = resultId || dummyResult.id;
+  
+  const [result, setResult] = useState<AssessmentResult>(assessmentResult);
   const [exporting, setExporting] = useState(false);
   const [screenshotting, setScreenshotting] = useState(false);
   const [exportType, setExportType] = useState<string>('');
-  const [isPublic, setIsPublic] = useState<boolean>(initialResult?.is_public ?? false);
+  const [isPublic, setIsPublic] = useState<boolean>(assessmentResult?.is_public ?? false);
   const [isTogglingPublic, setIsTogglingPublic] = useState(false);
   const [retrying, setRetrying] = useState(false);
 
@@ -249,17 +233,15 @@ function ResultsPageClientComponent({ initialResult, resultId }: ResultsPageClie
   };
 
 
-  // Toggle public/private status
+  // Toggle public/private status (removed API calls)
   const handleTogglePublic = async () => {
-    if (!result?.id) return;
     setIsTogglingPublic(true);
     try {
       const nextPublic = !isPublic;
-      const res = await toggleResultPublic(result.id, nextPublic);
-      setIsPublic(res.is_public);
+      setIsPublic(nextPublic);
       toast({
-        title: res.is_public ? 'Hasil assessment kini bersifat publik!' : 'Hasil assessment kini bersifat privat!',
-        description: res.is_public
+        title: nextPublic ? 'Hasil assessment kini bersifat publik!' : 'Hasil assessment kini bersifat privat!',
+        description: nextPublic
           ? 'Siapa saja yang memiliki link dapat melihat hasil assessment ini.'
           : 'Hasil assessment ini kini hanya dapat diakses oleh Anda.',
       });
@@ -313,66 +295,19 @@ function ResultsPageClientComponent({ initialResult, resultId }: ResultsPageClie
       setExporting(true);
       setExportType('pdf');
 
-      // Lazy load PDF export utilities only when needed
-      const { exportCompletePDF: exportPDF } = await loadPDFExportUtils();
-      const pdfBlob = await exportPDF(result.id, result);
-
-      // Create download link for the PDF
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
-      const filename = `assessment-result-${result.id}-${timestamp}.pdf`;
-
-      const url = URL.createObjectURL(pdfBlob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-
-      console.log(`PDF downloaded successfully: ${filename}, size: ${pdfBlob.size} bytes`);
-
+      // Show demo message instead of actual PDF export
       toast({
-        title: "PDF berhasil diunduh!",
-        description: "Hasil assessment telah diunduh dalam format PDF.",
+        title: "Demo Mode",
+        description: "PDF export tidak tersedia dalam mode demo.",
+        variant: "destructive",
       });
     } catch (error) {
       console.error('Error exporting PDF:', error);
-
-      // Provide more specific error messages
-      let errorMessage = "Terjadi kesalahan saat mengunduh PDF. Silakan coba lagi.";
-
-      if (typeof error === 'object' && error && 'message' in error && typeof (error as any).message === 'string') {
-        const msg = (error as any).message as string;
-        if (msg.includes('format lama yang tidak lagi didukung')) {
-          errorMessage = "Hasil assessment ini menggunakan format lama. Silakan buat assessment baru untuk mendapatkan fitur unduh PDF.";
-        } else if (msg.includes('Authentication token not found')) {
-          errorMessage = "Sesi Anda telah berakhir. Silakan login kembali.";
-        } else if (msg.includes('not found')) {
-          errorMessage = "Hasil assessment tidak ditemukan. Data mungkin sudah dihapus.";
-        } else if (msg.includes('Format ID') && msg.includes('tidak valid')) {
-          errorMessage = "Format ID hasil assessment tidak valid. Silakan hubungi administrator.";
-        }
-        toast({
-          title: "Gagal mengunduh PDF",
-          description: errorMessage,
-          variant: "destructive",
-          action: msg.includes('format lama') ? (
-            <button
-              onClick={handleScreenshot}
-              className="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600"
-            >
-              Unduh Screenshot
-            </button>
-          ) : undefined,
-        });
-      } else {
-        toast({
-          title: "Gagal mengunduh PDF",
-          description: errorMessage,
-          variant: "destructive",
-        });
-      }
+      toast({
+        title: "Gagal mengunduh PDF",
+        description: "Terjadi kesalahan saat mengunduh PDF. Silakan coba lagi.",
+        variant: "destructive",
+      });
     } finally {
       setExporting(false);
       setExportType('');
@@ -383,23 +318,11 @@ function ResultsPageClientComponent({ initialResult, resultId }: ResultsPageClie
     try {
       setScreenshotting(true);
 
-      if (!isScreenshotSupported()) {
-        const limitations = getBrowserLimitations();
-        toast({
-          title: "Screenshot tidak didukung",
-          description: Array.isArray((limitations as any).warnings) ? (limitations as any).warnings.join(', ') : 'Browser tidak mendukung fitur screenshot.',
-          variant: "destructive",
-        });
-        return;
-      }
-
-      console.log('Taking page screenshot...');
-      const blob = await capturePageScreenshot();
-      downloadBlob(blob, `assessment-result-${resultId}.png`);
-
+      // Show demo message instead of actual screenshot
       toast({
-        title: "Screenshot berhasil!",
-        description: "Screenshot hasil assessment telah diunduh.",
+        title: "Demo Mode",
+        description: "Screenshot tidak tersedia dalam mode demo.",
+        variant: "destructive",
       });
     } catch (error) {
       console.error('Error taking screenshot:', error);
@@ -429,49 +352,12 @@ function ResultsPageClientComponent({ initialResult, resultId }: ResultsPageClie
     try {
       setRetrying(true);
 
-      // 0) Coba ambil jobId dari query param jika tersedia
-      const jobIdFromQuery = searchParams?.get('jobId') || null;
-
-      // 1) Coba ambil jobId langsung dari object result (kalau backend menyertakan)
-      let jobId: string | null = jobIdFromQuery;
-      const r: any = result as any;
-      if (!jobId) jobId = r?.job_id || r?.jobId || r?.job?.id || null;
-
-      // 2) Jika tidak ada, cari berdasarkan resultId melalui archive/jobs
-      if (!jobId) {
-        try {
-          // @ts-ignore - apiService is JS
-          jobId = await apiService.findJobIdByResultId(resultId);
-        } catch (_) {
-          jobId = null;
-        }
-      }
-
-      if (!jobId) {
-        toast({
-          title: 'Job ID tidak ditemukan',
-          description: 'Tidak dapat menemukan jobId terkait hasil ini. Silakan coba lagi nanti.',
-          variant: 'destructive',
-        });
-        return;
-      }
-
-      // 3) Kirim ulang berdasarkan jobId (sesuai validasi backend)
-      // @ts-ignore - apiService is JS
-      const resp = await apiService.retryAssessmentByJob(jobId);
-      if (resp?.success && (resp?.data?.jobId || resp?.data?.id)) {
-        toast({
-          title: 'Assessment dikirim ulang',
-          description: 'Kami akan memproses ulang hasil Anda. Anda akan diarahkan ke Dashboard.',
-        });
-        router.push('/dashboard?refresh=1');
-      } else {
-        toast({
-          title: 'Gagal submit ulang',
-          description: resp?.error?.message || 'Gagal mengirim ulang assessment.',
-          variant: 'destructive',
-        });
-      }
+      // Show demo message instead of actual retry
+      toast({
+        title: 'Demo Mode',
+        description: 'Submit ulang tidak tersedia dalam mode demo.',
+        variant: 'destructive',
+      });
     } catch (e: any) {
       toast({
         title: 'Gagal submit ulang',
@@ -604,7 +490,7 @@ function ResultsPageClientComponent({ initialResult, resultId }: ResultsPageClie
                 {/* Profil Kepribadian Anda */}
                 {result.persona_profile && (
                   <div ref={personaCardRef}>
-                    <PersonaProfileSummary persona={result.persona_profile} resultId={result.id} />
+                    <PersonaProfileSummary persona={result.persona_profile} resultId={dummyResultId} />
                   </div>
                 )}
               </div>
@@ -627,7 +513,7 @@ function ResultsPageClientComponent({ initialResult, resultId }: ResultsPageClie
               {/* Assessment Scores Summary - Right */}
               <AssessmentScoresSummary
                 scores={scores}
-                resultId={result.id}
+                resultId={dummyResultId}
               />
             </div>
           )}

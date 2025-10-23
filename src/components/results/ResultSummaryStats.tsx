@@ -2,14 +2,18 @@
 
 import React from 'react';
 import { Card, CardContent } from '../ui/card';
-import { AssessmentScores } from '../../types/assessment-results';
-import { getDominantRiasecType, getTopViaStrengths } from '../../utils/assessment-calculations';
 import { BarChart3, Trophy, Target, Calendar } from 'lucide-react';
+import {
+  AssessmentScores,
+  getDominantRiasecType,
+  getTopViaStrengths,
+  getDummyAssessmentResult
+} from '../../data/dummy-assessment-data';
 
 interface ResultSummaryStatsProps {
-  scores: AssessmentScores;
+  scores?: AssessmentScores;
   // Accept flexible input so we can parse fields like createdAt/created_at/createdAtUtc or nested
-  createdAt: any;
+  createdAt?: any;
 }
 
 // Safe date parsing and formatting helpers
@@ -47,8 +51,13 @@ const formatDateIDParts = (value: any): { main: string; sub: string } => {
 
 
 export default function ResultSummaryStats({ scores, createdAt }: ResultSummaryStatsProps) {
+  // Use dummy data if no scores provided
+  const dummyResult = getDummyAssessmentResult();
+  const assessmentScores = scores || dummyResult.assessment_data;
+  const dummyCreatedAt = createdAt || dummyResult.created_at || dummyResult.createdAt;
+
   // Ensure scores data exists to prevent errors
-  if (!scores || !scores.riasec || !scores.ocean || !scores.viaIs) {
+  if (!assessmentScores || !assessmentScores.riasec || !assessmentScores.ocean || !assessmentScores.viaIs) {
     console.error('ResultSummaryStats: Missing required scores data');
     return (
       <Card className="bg-white border-gray-200 shadow-sm">
@@ -61,18 +70,18 @@ export default function ResultSummaryStats({ scores, createdAt }: ResultSummaryS
     );
   }
 
-  const dominantRiasec = getDominantRiasecType(scores.riasec);
-  const topStrengths = getTopViaStrengths(scores.viaIs, 3);
+  const dominantRiasec = getDominantRiasecType(assessmentScores.riasec);
+  const topStrengths = getTopViaStrengths(assessmentScores.viaIs, 3);
 
   // Calculate overall scores
   const riasecAverage = Math.round(
-    Object.values(scores.riasec).reduce((sum, score) => sum + score, 0) / 6
+    Object.values(assessmentScores.riasec).reduce((sum: number, score: number) => sum + score, 0) / 6
   );
   const oceanAverage = Math.round(
-    Object.values(scores.ocean).reduce((sum, score) => sum + score, 0) / 5
+    Object.values(assessmentScores.ocean).reduce((sum: number, score: number) => sum + score, 0) / 5
   );
   const viaAverage = Math.round(
-    Object.values(scores.viaIs).reduce((sum, score) => sum + score, 0) / 24
+    Object.values(assessmentScores.viaIs).reduce((sum: number, score: number) => sum + score, 0) / 24
   );
 
   const StatCard = ({
@@ -126,7 +135,7 @@ export default function ResultSummaryStats({ scores, createdAt }: ResultSummaryS
       <StatCard
         icon={Trophy}
         title="Top Strength"
-        value={topStrengths[0]?.strength.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()) || 'N/A'}
+        value={topStrengths[0]?.strength.replace(/([A-Z])/g, ' $1').replace(/^./, (str: string) => str.toUpperCase()) || 'N/A'}
         subtitle={`Skor: ${topStrengths[0]?.score || 0}`}
         color="#22c55e"
       />
@@ -142,8 +151,8 @@ export default function ResultSummaryStats({ scores, createdAt }: ResultSummaryS
       <StatCard
         icon={Calendar}
         title="Assessment Date"
-        value={formatDateIDParts(createdAt).main}
-        subtitle={formatDateIDParts(createdAt).sub}
+        value={formatDateIDParts(dummyCreatedAt).main}
+        subtitle={formatDateIDParts(dummyCreatedAt).sub}
         color="#8b5cf6"
       />
     </div>

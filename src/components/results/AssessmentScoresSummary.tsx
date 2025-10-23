@@ -6,21 +6,27 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Progress } from '../ui/progress';
-import { AssessmentScores, getScoreInterpretation } from '../../types/assessment-results';
-import { getDominantRiasecType, getTopViaStrengths } from '../../utils/assessment-calculations';
 import { BarChart3, Brain, Palette, ArrowRight } from 'lucide-react';
-import { usePrefetch } from '../../hooks/usePrefetch';
+import {
+  AssessmentScores,
+  getScoreInterpretation,
+  getDominantRiasecType,
+  getTopViaStrengths,
+  getDummyAssessmentScores
+} from '../../data/dummy-assessment-data';
 
 interface AssessmentScoresSummaryProps {
-  scores: AssessmentScores;
-  resultId: string;
+  scores?: AssessmentScores;
+  resultId?: string;
 }
 
 export default function AssessmentScoresSummary({ scores, resultId }: AssessmentScoresSummaryProps) {
-  const { prefetchOnHover } = usePrefetch();
+  // Use dummy data if no scores provided
+  const assessmentScores = scores || getDummyAssessmentScores();
+  const dummyResultId = resultId || 'dummy-result-123';
 
   // Early return if scores data is not available
-  if (!scores || !scores.riasec || !scores.ocean || !scores.viaIs) {
+  if (!assessmentScores || !assessmentScores.riasec || !assessmentScores.ocean || !assessmentScores.viaIs) {
     return (
       <Card className="bg-white border-gray-200 shadow-sm">
         <CardContent className="p-6">
@@ -33,16 +39,16 @@ export default function AssessmentScoresSummary({ scores, resultId }: Assessment
   }
 
   // Get dominant RIASEC type
-  const dominantRiasec = getDominantRiasecType(scores.riasec);
-  const dominantRiasecScore = scores.riasec[dominantRiasec.primary as keyof typeof scores.riasec];
+  const dominantRiasec = getDominantRiasecType(assessmentScores.riasec);
+  const dominantRiasecScore = assessmentScores.riasec[dominantRiasec.primary as keyof typeof assessmentScores.riasec];
 
   // Get highest Big Five trait
-  const oceanEntries = Object.entries(scores.ocean).sort(([,a], [,b]) => b - a);
+  const oceanEntries = Object.entries(assessmentScores.ocean).sort(([,a], [,b]) => b - a);
   const topOceanTrait = oceanEntries[0];
   const topOceanScore = topOceanTrait[1];
 
   // Get top 3 VIA strengths
-  const topViaStrengths = getTopViaStrengths(scores.viaIs, 3);
+  const topViaStrengths = getTopViaStrengths(assessmentScores.viaIs, 3);
 
   // RIASEC labels mapping
   const riasecLabels: { [key: string]: string } = {
@@ -212,19 +218,19 @@ export default function AssessmentScoresSummary({ scores, resultId }: Assessment
         {/* View Details Button */}
         <div className="border-t border-gray-200 pt-4">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <Link href={`/results/${resultId}/riasec`} onMouseEnter={() => prefetchOnHover(`/results/${resultId}/riasec`)}>
+            <Link href={`/results/${dummyResultId}/riasec`}>
               <Button variant="outline" className="w-full justify-between">
                 <span>Detail RIASEC</span>
                 <ArrowRight className="w-4 h-4" />
               </Button>
             </Link>
-            <Link href={`/results/${resultId}/ocean`} onMouseEnter={() => prefetchOnHover(`/results/${resultId}/ocean`)}>
+            <Link href={`/results/${dummyResultId}/ocean`}>
               <Button variant="outline" className="w-full justify-between">
                 <span>Detail Big Five</span>
                 <ArrowRight className="w-4 h-4" />
               </Button>
             </Link>
-            <Link href={`/results/${resultId}/via`} onMouseEnter={() => prefetchOnHover(`/results/${resultId}/via`)}>
+            <Link href={`/results/${dummyResultId}/via`}>
               <Button variant="outline" className="w-full justify-between">
                 <span>Detail VIA</span>
                 <ArrowRight className="w-4 h-4" />

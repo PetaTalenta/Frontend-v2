@@ -2,20 +2,28 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { AssessmentScores, getScoreInterpretation } from '../../types/assessment-results';
-import { getDominantRiasecType, getTopViaStrengths } from '../../utils/assessment-calculations';
 import { TrendingUp, BarChart3, Palette } from 'lucide-react';
+import {
+  AssessmentScores,
+  getScoreInterpretation,
+  getDominantRiasecType,
+  getTopViaStrengths,
+  getDummyAssessmentScores
+} from '../../data/dummy-assessment-data';
 
 interface VisualSummaryProps {
-  scores: AssessmentScores;
+  scores?: AssessmentScores;
 }
 
 export default function VisualSummary({ scores }: VisualSummaryProps) {
   // State for hover effects - must be before early returns
   const [hoveredIndex, setHoveredIndex] = React.useState<number | null>(null);
 
+  // Use dummy data if no scores provided
+  const assessmentScores = scores || getDummyAssessmentScores();
+
   // Ensure scores data exists to prevent errors
-  if (!scores) {
+  if (!assessmentScores) {
     return (
       <Card className="bg-white border-gray-200 shadow-sm">
         <CardContent className="p-6">
@@ -27,11 +35,11 @@ export default function VisualSummary({ scores }: VisualSummaryProps) {
     );
   }
 
-  if (!scores.riasec || !scores.ocean || !scores.viaIs) {
+  if (!assessmentScores.riasec || !assessmentScores.ocean || !assessmentScores.viaIs) {
     console.error('VisualSummary: Missing required scores data', {
-      hasRiasec: !!scores.riasec,
-      hasOcean: !!scores.ocean,
-      hasViaIs: !!scores.viaIs
+      hasRiasec: !!assessmentScores.riasec,
+      hasOcean: !!assessmentScores.ocean,
+      hasViaIs: !!assessmentScores.viaIs
     });
     return (
       <Card className="bg-white border-gray-200 shadow-sm">
@@ -45,11 +53,11 @@ export default function VisualSummary({ scores }: VisualSummaryProps) {
   }
 
   // Get top categories from each assessment type
-  const dominantRiasec = getDominantRiasecType(scores.riasec);
-  const topViaStrengths = getTopViaStrengths(scores.viaIs, 1);
+  const dominantRiasec = getDominantRiasecType(assessmentScores.riasec);
+  const topViaStrengths = getTopViaStrengths(assessmentScores.viaIs, 1);
 
   // Get highest Big Five trait
-  const oceanEntries = Object.entries(scores.ocean).sort(([,a], [,b]) => b - a);
+  const oceanEntries = Object.entries(assessmentScores.ocean).sort(([,a], [,b]) => b - a);
   const topOceanTrait = oceanEntries[0];
 
   // Calculate career competency scores based on assessment results
@@ -58,42 +66,42 @@ export default function VisualSummary({ scores }: VisualSummaryProps) {
   // TECHNICAL: Development and analytical capabilities
   // Based on Investigative RIASEC + analytical traits + technical VIA strengths
   const technicalScore = Math.round((
-    scores.riasec.investigative +
-    scores.ocean.openness +
-    (scores.viaIs.curiosity || 0) +
-    (scores.viaIs.judgment || 0) +
-    (scores.viaIs.loveOfLearning || 0)
+    assessmentScores.riasec.investigative +
+    assessmentScores.ocean.openness +
+    (assessmentScores.viaIs.curiosity || 0) +
+    (assessmentScores.viaIs.judgment || 0) +
+    (assessmentScores.viaIs.loveOfLearning || 0)
   ) / 5);
 
   // CREATIVE: Design and innovation capabilities
   // Based on Artistic RIASEC + creative traits + innovative VIA strengths
   const creativeScore = Math.round((
-    scores.riasec.artistic +
-    scores.ocean.openness +
-    (scores.viaIs.creativity || 0) +
-    (scores.viaIs.appreciationOfBeauty || 0) +
-    (scores.viaIs.perspective || 0)
+    assessmentScores.riasec.artistic +
+    assessmentScores.ocean.openness +
+    (assessmentScores.viaIs.creativity || 0) +
+    (assessmentScores.viaIs.appreciationOfBeauty || 0) +
+    (assessmentScores.viaIs.perspective || 0)
   ) / 5);
 
   // LEADERSHIP: Management and entrepreneurial capabilities
   // Based on Enterprising RIASEC + leadership traits + management VIA strengths
   const leadershipScore = Math.round((
-    scores.riasec.enterprising +
-    scores.ocean.extraversion +
-    scores.ocean.conscientiousness +
-    (scores.viaIs.leadership || 0) +
-    (scores.viaIs.bravery || 0)
+    assessmentScores.riasec.enterprising +
+    assessmentScores.ocean.extraversion +
+    assessmentScores.ocean.conscientiousness +
+    (assessmentScores.viaIs.leadership || 0) +
+    (assessmentScores.viaIs.bravery || 0)
   ) / 5);
 
   // INTERPERSONAL: Social and support capabilities
   // Based on Social RIASEC + social traits + interpersonal VIA strengths
   const interpersonalScore = Math.round((
-    scores.riasec.social +
-    scores.ocean.agreeableness +
-    scores.ocean.extraversion +
-    (scores.viaIs.socialIntelligence || 0) +
-    (scores.viaIs.kindness || 0) +
-    (scores.viaIs.teamwork || 0)
+    assessmentScores.riasec.social +
+    assessmentScores.ocean.agreeableness +
+    assessmentScores.ocean.extraversion +
+    (assessmentScores.viaIs.socialIntelligence || 0) +
+    (assessmentScores.viaIs.kindness || 0) +
+    (assessmentScores.viaIs.teamwork || 0)
   ) / 6);
 
   const careerCompetencies = [

@@ -4,12 +4,16 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '../ui/chart';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts';
-import { AssessmentScores, VIA_CATEGORIES } from '../../types/assessment-results';
 import { BarChart3, AlertCircle } from 'lucide-react';
 import { ChartErrorBoundary } from '../ui/chart-error-boundary';
+import {
+  AssessmentScores,
+  VIA_CATEGORIES,
+  getDummyAssessmentScores
+} from '../../data/dummy-assessment-data';
 
 interface AssessmentRadarChartProps {
-  scores: AssessmentScores;
+  scores?: AssessmentScores;
 }
 
 type RadarType = 'riasec' | 'ocean' | 'viais';
@@ -17,8 +21,11 @@ type RadarType = 'riasec' | 'ocean' | 'viais';
 function AssessmentRadarChartComponent({ scores }: AssessmentRadarChartProps) {
   const [activeRadar, setActiveRadar] = useState<RadarType>('riasec');
 
+  // Use dummy data if no scores provided
+  const assessmentScores = scores || getDummyAssessmentScores();
+
   // Early return if scores data is not available
-  if (!scores || !scores.riasec || !scores.ocean || !scores.viaIs) {
+  if (!assessmentScores || !assessmentScores.riasec || !assessmentScores.ocean || !assessmentScores.viaIs) {
     return (
       <Card className="bg-white border-amber-200 shadow-sm">
         <CardContent className="p-6">
@@ -47,37 +54,37 @@ function AssessmentRadarChartComponent({ scores }: AssessmentRadarChartProps) {
     {
       category: 'R',
       fullName: 'Realistic',
-      score: scores.riasec.realistic,
+      score: assessmentScores.riasec.realistic,
       fullMark: 100,
     },
     {
       category: 'I',
       fullName: 'Investigative',
-      score: scores.riasec.investigative,
+      score: assessmentScores.riasec.investigative,
       fullMark: 100,
     },
     {
       category: 'A',
       fullName: 'Artistic',
-      score: scores.riasec.artistic,
+      score: assessmentScores.riasec.artistic,
       fullMark: 100,
     },
     {
       category: 'S',
       fullName: 'Social',
-      score: scores.riasec.social,
+      score: assessmentScores.riasec.social,
       fullMark: 100,
     },
     {
       category: 'E',
       fullName: 'Enterprising',
-      score: scores.riasec.enterprising,
+      score: assessmentScores.riasec.enterprising,
       fullMark: 100,
     },
     {
       category: 'C',
       fullName: 'Conventional',
-      score: scores.riasec.conventional,
+      score: assessmentScores.riasec.conventional,
       fullMark: 100,
     },
   ];
@@ -87,31 +94,31 @@ function AssessmentRadarChartComponent({ scores }: AssessmentRadarChartProps) {
     {
       category: 'O',
       fullName: 'Openness',
-      score: scores.ocean.openness,
+      score: assessmentScores.ocean.openness,
       fullMark: 100,
     },
     {
       category: 'C',
       fullName: 'Conscientiousness',
-      score: scores.ocean.conscientiousness,
+      score: assessmentScores.ocean.conscientiousness,
       fullMark: 100,
     },
     {
       category: 'E',
       fullName: 'Extraversion',
-      score: scores.ocean.extraversion,
+      score: assessmentScores.ocean.extraversion,
       fullMark: 100,
     },
     {
       category: 'A',
       fullName: 'Agreeableness',
-      score: scores.ocean.agreeableness,
+      score: assessmentScores.ocean.agreeableness,
       fullMark: 100,
     },
     {
       category: 'N',
       fullName: 'Neuroticism',
-      score: scores.ocean.neuroticism,
+      score: assessmentScores.ocean.neuroticism,
       fullMark: 100,
     },
   ];
@@ -120,7 +127,7 @@ function AssessmentRadarChartComponent({ scores }: AssessmentRadarChartProps) {
   const viaCategories = Object.entries(VIA_CATEGORIES);
   const viaisData = viaCategories.map(([categoryName, strengths]) => {
     const categoryScore = strengths.reduce((sum, strength) => {
-      return sum + (scores.viaIs[strength as keyof typeof scores.viaIs] || 0);
+      return sum + (assessmentScores.viaIs[strength as keyof typeof assessmentScores.viaIs] || 0);
     }, 0) / strengths.length;
 
     return {

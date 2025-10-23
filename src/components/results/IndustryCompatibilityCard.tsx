@@ -4,16 +4,24 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Progress } from '../ui/progress';
 import { Badge } from '../ui/badge';
-import { IndustryScores } from '../../types/assessment-results';
-import { getTopIndustries, getIndustryCompatibilityLevel } from '../../utils/industry-scoring';
 import { Building, TrendingUp, Star, Target } from 'lucide-react';
+import {
+  IndustryScores,
+  getTopIndustries,
+  getIndustryCompatibilityLevel,
+  getDummyAssessmentScores
+} from '../../data/dummy-assessment-data';
 
 interface IndustryCompatibilityCardProps {
-  industryScores: IndustryScores;
+  industryScores?: IndustryScores;
 }
 
 export default function IndustryCompatibilityCard({ industryScores }: IndustryCompatibilityCardProps) {
-  const topIndustries = getTopIndustries(industryScores, 8);
+  // Use dummy data if no industry scores provided
+  const assessmentScores = getDummyAssessmentScores();
+  const dummyIndustryScores = industryScores || assessmentScores.industryScore || {};
+  
+  const topIndustries = getTopIndustries(dummyIndustryScores, 8);
 
   // Get industry icons mapping
   const getIndustryIcon = (industry: string) => {

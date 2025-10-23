@@ -1,8 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
-import { ResultsProvider } from '../../../contexts/ResultsContext';
-import { usePrefetch } from '../../../hooks/usePrefetch';
+import React from 'react';
 
 export default function ResultsLayout({
   children,
@@ -11,25 +9,11 @@ export default function ResultsLayout({
   children: React.ReactNode;
   params: Promise<{ id: string }>;
 }) {
-  const resolvedParams = React.use(params);
-  const resultId = resolvedParams.id;
-  const { prefetchRoutes } = usePrefetch();
-
-  useEffect(() => {
-    if (!resultId) return;
-    // Prefetch related sub-pages to remove loading between tabs
-    prefetchRoutes([
-      `/results/${resultId}/riasec`,
-      `/results/${resultId}/ocean`,
-      `/results/${resultId}/via`,
-      `/results/${resultId}/combined`,
-    ], { priority: 'high' });
-  }, [resultId, prefetchRoutes]);
-
+  // Removed ResultsProvider and prefetch hooks
   return (
-    <ResultsProvider resultId={resultId}>
+    <div>
       {children}
-    </ResultsProvider>
+    </div>
   );
 }
 

@@ -4,20 +4,28 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Progress } from '../ui/progress';
-import { AssessmentScores, getScoreInterpretation } from '../../types/assessment-results';
-import { getDominantRiasecType, getTopViaStrengths } from '../../utils/assessment-calculations';
 import { BarChart3, Brain, Palette, TrendingUp } from 'lucide-react';
 import RiasecRadarChart from './RiasecRadarChart';
 import OceanRadarChart from './OceanRadarChart';
 import ViaRadarChart from './ViaRadarChart';
+import {
+  AssessmentScores,
+  getScoreInterpretation,
+  getDominantRiasecType,
+  getTopViaStrengths,
+  getDummyAssessmentScores
+} from '../../data/dummy-assessment-data';
 
 interface CombinedAssessmentGridProps {
-  scores: AssessmentScores;
+  scores?: AssessmentScores;
 }
 
 export default function CombinedAssessmentGrid({ scores }: CombinedAssessmentGridProps) {
+  // Use dummy data if no scores provided
+  const assessmentScores = scores || getDummyAssessmentScores();
+
   // Early return if scores data is not available
-  if (!scores || !scores.riasec || !scores.ocean || !scores.viaIs) {
+  if (!assessmentScores || !assessmentScores.riasec || !assessmentScores.ocean || !assessmentScores.viaIs) {
     return (
       <div className="w-full max-w-[1280px] mx-auto">
         <Card className="bg-white border-gray-200 shadow-sm">
@@ -32,22 +40,22 @@ export default function CombinedAssessmentGrid({ scores }: CombinedAssessmentGri
   }
 
   // Get dominant types and top strengths
-  const dominantRiasec = getDominantRiasecType(scores.riasec);
-  const topViaStrengths = getTopViaStrengths(scores.viaIs, 3);
+  const dominantRiasec = getDominantRiasecType(assessmentScores.riasec);
+  const topViaStrengths = getTopViaStrengths(assessmentScores.viaIs, 3);
   
   // Get highest Big Five trait
-  const oceanEntries = Object.entries(scores.ocean).sort(([,a], [,b]) => b - a);
+  const oceanEntries = Object.entries(assessmentScores.ocean).sort(([,a], [,b]) => b - a);
   const topOceanTrait = oceanEntries[0];
 
   // Calculate overall scores
   const riasecAverage = Math.round(
-    Object.values(scores.riasec).reduce((sum, score) => sum + score, 0) / 6
+    Object.values(assessmentScores.riasec).reduce((sum, score) => sum + score, 0) / 6
   );
   const oceanAverage = Math.round(
-    Object.values(scores.ocean).reduce((sum, score) => sum + score, 0) / 5
+    Object.values(assessmentScores.ocean).reduce((sum, score) => sum + score, 0) / 5
   );
   const viaAverage = Math.round(
-    Object.values(scores.viaIs).reduce((sum, score) => sum + score, 0) / 24
+    Object.values(assessmentScores.viaIs).reduce((sum, score) => sum + score, 0) / 24
   );
 
   const overallScore = Math.round((riasecAverage + oceanAverage + viaAverage) / 3);
@@ -130,7 +138,7 @@ export default function CombinedAssessmentGrid({ scores }: CombinedAssessmentGri
                 </div>
                 <div className="text-right">
                   <p className="text-2xl lg:text-3xl font-bold">
-                    {scores.riasec[dominantRiasec.primary as keyof typeof scores.riasec]}
+                    {assessmentScores.riasec[dominantRiasec.primary as keyof typeof assessmentScores.riasec]}
                   </p>
                   <p className="text-sm lg:text-base opacity-90">Skor</p>
                 </div>
@@ -139,12 +147,12 @@ export default function CombinedAssessmentGrid({ scores }: CombinedAssessmentGri
 
             {/* Mini Radar Chart */}
             <div className="h-[280px] -mx-2">
-              <RiasecRadarChart scores={scores} />
+              <RiasecRadarChart scores={assessmentScores} />
             </div>
 
             {/* Top 3 RIASEC Scores */}
             <div className="space-y-2">
-              {Object.entries(scores.riasec)
+              {Object.entries(assessmentScores.riasec)
                 .sort(([,a], [,b]) => b - a)
                 .slice(0, 3)
                 .map(([type, score]) => (
@@ -197,7 +205,7 @@ export default function CombinedAssessmentGrid({ scores }: CombinedAssessmentGri
 
             {/* Mini Radar Chart */}
             <div className="h-[280px] -mx-2">
-              <OceanRadarChart scores={scores} />
+              <OceanRadarChart scores={assessmentScores} />
             </div>
 
             {/* All OCEAN Scores */}
@@ -252,7 +260,7 @@ export default function CombinedAssessmentGrid({ scores }: CombinedAssessmentGri
 
             {/* Mini Radar Chart */}
             <div className="h-[280px] -mx-2">
-              <ViaRadarChart scores={scores} />
+              <ViaRadarChart scores={assessmentScores} />
             </div>
 
             {/* Top 5 VIA Strengths */}

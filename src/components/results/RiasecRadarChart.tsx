@@ -4,16 +4,19 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '../ui/chart';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts';
-import { AssessmentScores } from '../../types/assessment-results';
 import { BarChart3 } from 'lucide-react';
+import { AssessmentScores, getDummyAssessmentScores } from '../../data/dummy-assessment-data';
 
 interface RiasecRadarChartProps {
-  scores: AssessmentScores;
+  scores?: AssessmentScores;
 }
 
 function RiasecRadarChartComponent({ scores }: RiasecRadarChartProps) {
+  // Use dummy data if no scores provided
+  const assessmentScores = scores || getDummyAssessmentScores();
+
   // Early return if scores data is not available
-  if (!scores || !scores.riasec) {
+  if (!assessmentScores || !assessmentScores.riasec) {
     return (
       <Card className="bg-white border-gray-200 shadow-sm">
         <CardContent className="p-6">
@@ -31,42 +34,42 @@ function RiasecRadarChartComponent({ scores }: RiasecRadarChartProps) {
       category: 'R',
       fullName: 'Realistic',
       description: 'Praktis, hands-on, teknis',
-      score: scores.riasec.realistic,
+      score: assessmentScores.riasec.realistic,
       fullMark: 100,
     },
     {
       category: 'I',
       fullName: 'Investigative',
       description: 'Analitis, penelitian, ilmiah',
-      score: scores.riasec.investigative,
+      score: assessmentScores.riasec.investigative,
       fullMark: 100,
     },
     {
       category: 'A',
       fullName: 'Artistic',
       description: 'Kreatif, ekspresif, inovatif',
-      score: scores.riasec.artistic,
+      score: assessmentScores.riasec.artistic,
       fullMark: 100,
     },
     {
       category: 'S',
       fullName: 'Social',
       description: 'Membantu, mengajar, melayani',
-      score: scores.riasec.social,
+      score: assessmentScores.riasec.social,
       fullMark: 100,
     },
     {
       category: 'E',
       fullName: 'Enterprising',
       description: 'Memimpin, menjual, persuasif',
-      score: scores.riasec.enterprising,
+      score: assessmentScores.riasec.enterprising,
       fullMark: 100,
     },
     {
       category: 'C',
       fullName: 'Conventional',
       description: 'Terorganisir, detail, sistematis',
-      score: scores.riasec.conventional,
+      score: assessmentScores.riasec.conventional,
       fullMark: 100,
     },
   ];

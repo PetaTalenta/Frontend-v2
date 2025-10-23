@@ -4,17 +4,24 @@ import React from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
-import { PersonaProfile } from '../../types/assessment-results';
 import { User, Star, ArrowRight, Briefcase } from 'lucide-react';
+import {
+  PersonaProfile,
+  getDummyPersonaProfile
+} from '../../data/dummy-assessment-data';
 
 interface PersonaProfileSummaryProps {
-  persona: PersonaProfile;
+  persona?: PersonaProfile;
   resultId?: string;
 }
 
 export default function PersonaProfileSummary({ persona, resultId }: PersonaProfileSummaryProps) {
+  // Use dummy data if no persona provided
+  const personaProfile = persona || getDummyPersonaProfile();
+  const dummyResultId = resultId || 'dummy-result-123';
+
   // Ensure profile data exists to prevent errors
-  if (!persona) {
+  if (!personaProfile) {
     console.error('PersonaProfileSummary: Missing profile data');
     return (
       <Card className="bg-gradient-to-br from-[#6475e9] to-[#5a6bd8] text-white border-none shadow-lg">
@@ -29,12 +36,12 @@ export default function PersonaProfileSummary({ persona, resultId }: PersonaProf
 
   // Helper function to get the profile title with fallbacks
   const getProfileTitle = () => {
-    return persona.archetype || persona.title || 'Profil Tidak Tersedia';
+    return personaProfile.archetype || personaProfile.title || 'Profil Tidak Tersedia';
   };
 
   // Helper function to get the profile description with fallbacks
   const getProfileDescription = () => {
-    return persona.shortSummary || persona.description || 'Deskripsi tidak tersedia';
+    return personaProfile.shortSummary || personaProfile.description || 'Deskripsi tidak tersedia';
   };
 
   // Get first 2 sentences of description for summary
@@ -45,10 +52,10 @@ export default function PersonaProfileSummary({ persona, resultId }: PersonaProf
   };
 
   // Get top 3 strengths
-  const topStrengths = (persona.strengths || []).slice(0, 3);
+  const topStrengths = (personaProfile.strengths || []).slice(0, 3);
 
   // Get top 2 career recommendations
-  const topCareers = (persona.careerRecommendation || []).slice(0, 2);
+  const topCareers = (personaProfile.careerRecommendation || []).slice(0, 2);
 
   return (
     <Card className="bg-gradient-to-br from-[#6475e9] to-[#5a6bd8] text-white border-none shadow-lg">
@@ -127,9 +134,9 @@ export default function PersonaProfileSummary({ persona, resultId }: PersonaProf
 
 
         {/* View Full Profile Button */}
-        {resultId && (
+        {dummyResultId && (
           <div className="pt-2">
-            <Link href={`/results/${resultId}/persona`}>
+            <Link href={`/results/${dummyResultId}/persona`}>
               <Button
                 variant="secondary"
                 className="w-full bg-white/20 text-white border-white/30 hover:bg-white/30 transition-colors"

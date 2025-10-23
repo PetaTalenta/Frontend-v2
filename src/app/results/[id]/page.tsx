@@ -1,20 +1,20 @@
 'use client';
 
 import { useState } from 'react';
-import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import ResultsPageClient from '../../../components/results/ResultsPageClient';
-import apiService from '../../../services/apiService';
-import { useResultContext } from '../../../contexts/ResultsContext';
+import { getDummyAssessmentResult } from '../../../data/dummy-assessment-data';
 
-// Results page using shared SWR context
+// Results page using dummy data
 export default function ResultsPage() {
   const params = useParams();
   const router = useRouter();
-  const searchParams = useSearchParams();
   const resultId = params.id as string;
 
-  const { result, isLoading, error } = useResultContext();
-  const [retrying, setRetrying] = useState(false);
+  // Use dummy data instead of context
+  const dummyResult = getDummyAssessmentResult();
+  const isLoading = false;
+  const error = null;
 
   if (isLoading) {
     return (
@@ -27,43 +27,7 @@ export default function ResultsPage() {
     );
   }
 
-  if (error || !result) {
-    const handleRetry = async () => {
-      if (!resultId) return;
-      try {
-        setRetrying(true);
-        const jobIdFromQuery = searchParams?.get('jobId') || null;
-        let jobId: string | null = jobIdFromQuery;
-        const r: any = result as any;
-        if (!jobId) jobId = r?.job_id || r?.jobId || r?.job?.id || null;
-        if (!jobId) {
-          try {
-            // @ts-ignore - apiService is JS
-            jobId = await apiService.findJobIdByResultId(resultId);
-          } catch (_) {
-            jobId = null;
-          }
-        }
-        if (!jobId) {
-          alert('Job ID tidak ditemukan untuk hasil ini. Coba lagi nanti.');
-          return;
-        }
-        // @ts-ignore - apiService is JS
-        const resp = await apiService.retryAssessmentByJob(jobId);
-        if (resp?.success && (resp?.data?.jobId || resp?.data?.id)) {
-          alert('Assessment berhasil dikirim ulang! Anda akan diarahkan ke Dashboard.');
-          router.push('/dashboard');
-        } else {
-          const errorMsg = resp?.error?.message || resp?.error || 'Gagal mengirim ulang assessment.';
-          alert(errorMsg);
-        }
-      } catch (e: any) {
-        alert(e?.message || 'Gagal mengirim ulang assessment.');
-      } finally {
-        setRetrying(false);
-      }
-    };
-
+  if (error || !dummyResult) {
     return (
       <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center p-6">
         <div className="max-w-md mx-auto text-center">
@@ -82,13 +46,6 @@ export default function ResultsPage() {
               >
                 Back to Dashboard
               </button>
-              <button
-                onClick={handleRetry}
-                disabled={retrying}
-                className="border border-gray-200 px-4 py-2 rounded-lg hover:bg-gray-50"
-              >
-                {retrying ? 'Submitting…' : 'Submit ulang'}
-              </button>
             </div>
           </div>
         </div>
@@ -96,6 +53,6 @@ export default function ResultsPage() {
     );
   }
 
-  // Use the comprehensive ResultsPageClient component with shared data
-  return <ResultsPageClient initialResult={result} resultId={resultId} />;
+  // Use the comprehensive ResultsPageClient component with dummy data
+  return <ResultsPageClient initialResult={dummyResult} resultId={resultId} />;
 }

@@ -4,14 +4,17 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '../ui/chart';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts';
-import { AssessmentScores } from '../../types/assessment-results';
 import { Palette } from 'lucide-react';
+import { AssessmentScores, getDummyAssessmentScores } from '../../data/dummy-assessment-data';
 
 interface ViaRadarChartProps {
-  scores: AssessmentScores;
+  scores?: AssessmentScores;
 }
 
 function ViaRadarChartComponent({ scores }: ViaRadarChartProps) {
+  // Use dummy data if no scores provided
+  const assessmentScores = scores || getDummyAssessmentScores();
+
   // Group VIA-IS scores into 6 main categories
   const radarData = [
     {
@@ -19,11 +22,11 @@ function ViaRadarChartComponent({ scores }: ViaRadarChartProps) {
       fullName: 'Wisdom & Knowledge',
       description: 'Kebijaksanaan dan pengetahuan',
       score: Math.round((
-        scores.viaIs.creativity +
-        scores.viaIs.curiosity +
-        scores.viaIs.judgment +
-        scores.viaIs.loveOfLearning +
-        scores.viaIs.perspective
+        assessmentScores.viaIs.creativity +
+        assessmentScores.viaIs.curiosity +
+        assessmentScores.viaIs.judgment +
+        assessmentScores.viaIs.loveOfLearning +
+        assessmentScores.viaIs.perspective
       ) / 5),
       fullMark: 100,
       strengths: ['Creativity', 'Curiosity', 'Judgment', 'Love of Learning', 'Perspective']
@@ -33,10 +36,10 @@ function ViaRadarChartComponent({ scores }: ViaRadarChartProps) {
       fullName: 'Courage',
       description: 'Keberanian dan ketahanan',
       score: Math.round((
-        scores.viaIs.bravery +
-        scores.viaIs.perseverance +
-        scores.viaIs.honesty +
-        scores.viaIs.zest
+        assessmentScores.viaIs.bravery +
+        assessmentScores.viaIs.perseverance +
+        assessmentScores.viaIs.honesty +
+        assessmentScores.viaIs.zest
       ) / 4),
       fullMark: 100,
       strengths: ['Bravery', 'Perseverance', 'Honesty', 'Zest']
@@ -46,9 +49,9 @@ function ViaRadarChartComponent({ scores }: ViaRadarChartProps) {
       fullName: 'Humanity',
       description: 'Kemanusiaan dan kasih sayang',
       score: Math.round((
-        scores.viaIs.love +
-        scores.viaIs.kindness +
-        scores.viaIs.socialIntelligence
+        assessmentScores.viaIs.love +
+        assessmentScores.viaIs.kindness +
+        assessmentScores.viaIs.socialIntelligence
       ) / 3),
       fullMark: 100,
       strengths: ['Love', 'Kindness', 'Social Intelligence']
@@ -58,9 +61,9 @@ function ViaRadarChartComponent({ scores }: ViaRadarChartProps) {
       fullName: 'Justice',
       description: 'Keadilan dan kepemimpinan',
       score: Math.round((
-        scores.viaIs.teamwork +
-        scores.viaIs.fairness +
-        scores.viaIs.leadership
+        assessmentScores.viaIs.teamwork +
+        assessmentScores.viaIs.fairness +
+        assessmentScores.viaIs.leadership
       ) / 3),
       fullMark: 100,
       strengths: ['Teamwork', 'Fairness', 'Leadership']
@@ -70,10 +73,10 @@ function ViaRadarChartComponent({ scores }: ViaRadarChartProps) {
       fullName: 'Temperance',
       description: 'Pengendalian diri dan kebijaksanaan',
       score: Math.round((
-        scores.viaIs.forgiveness +
-        scores.viaIs.humility +
-        scores.viaIs.prudence +
-        scores.viaIs.selfRegulation
+        assessmentScores.viaIs.forgiveness +
+        assessmentScores.viaIs.humility +
+        assessmentScores.viaIs.prudence +
+        assessmentScores.viaIs.selfRegulation
       ) / 4),
       fullMark: 100,
       strengths: ['Forgiveness', 'Humility', 'Prudence', 'Self-Regulation']
@@ -83,11 +86,11 @@ function ViaRadarChartComponent({ scores }: ViaRadarChartProps) {
       fullName: 'Transcendence',
       description: 'Transendensi dan makna hidup',
       score: Math.round((
-        scores.viaIs.appreciationOfBeauty +
-        scores.viaIs.gratitude +
-        scores.viaIs.hope +
-        scores.viaIs.humor +
-        scores.viaIs.spirituality
+        assessmentScores.viaIs.appreciationOfBeauty +
+        assessmentScores.viaIs.gratitude +
+        assessmentScores.viaIs.hope +
+        assessmentScores.viaIs.humor +
+        assessmentScores.viaIs.spirituality
       ) / 5),
       fullMark: 100,
       strengths: ['Appreciation of Beauty', 'Gratitude', 'Hope', 'Humor', 'Spirituality']
