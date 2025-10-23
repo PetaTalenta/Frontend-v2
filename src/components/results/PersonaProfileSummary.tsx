@@ -2,8 +2,8 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Button } from '../ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from './ui-card';
+import { Button } from './ui-button';
 import { User, Star, ArrowRight, Briefcase } from 'lucide-react';
 import {
   PersonaProfile,

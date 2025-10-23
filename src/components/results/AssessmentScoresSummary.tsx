@@ -2,10 +2,9 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Button } from '../ui/button';
-import { Badge } from '../ui/badge';
-import { Progress } from '../ui/progress';
+import { Card, CardContent, CardHeader, CardTitle } from './ui-card';
+import { Button } from './ui-button';
+import { Badge } from './ui-badge';
 import { BarChart3, Brain, Palette, ArrowRight } from 'lucide-react';
 import {
   AssessmentScores,

@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from './ui-card';
 import { TrendingUp, BarChart3, Palette } from 'lucide-react';
 import {
   AssessmentScores,

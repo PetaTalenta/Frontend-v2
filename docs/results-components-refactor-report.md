@@ -1,172 +1,127 @@
-# Laporan Refactor Komponen Results
+# Results Components Refactor Report
 
-## Ringkasan
+## Overview
+Refactor komponen UI di folder `src/components/results` untuk menghilangkan ketergantungan pada `components/ui` yang modular. Komponen UI yang sering digunakan telah disalin ke dalam folder `results` dan diimpor secara lokal.
 
-Dokumen ini melaporkan proses refactor komponen-komponen di folder `src/components/results/` dan `src/app/results/` untuk menghapus logika bisnis dan menggantinya dengan data dummy. Tujuan dari refactor ini adalah untuk memisahkan komponen UI dari logika bisnis dan dependensi eksternal, sehingga komponen dapat digunakan secara independen.
+## Tujuan
+- Menghilangkan import modular ke `components/ui`
+- Membuat komponen lebih self-contained dan mudah dikelola
+- Mengikuti preferensi untuk tidak menggunakan struktur `components/ui` yang terlalu modular
+- Menyederhanakan struktur import di folder results
 
-## File yang Direfactor
+## Komponen UI yang Dipindahkan
 
-### 1. Data Dummy
+### 1. Card (ui-card.tsx)
+- **Penggunaan**: 13 file
+- **Komponen**: Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter
+- **Alasan**: Komponen yang paling sering digunakan di folder results
 
-**File:** `src/data/dummy-assessment-data.ts`
+### 2. Badge (ui-badge.tsx)
+- **Penggunaan**: 5 file
+- **Komponen**: Badge, badgeVariants
+- **Alasan**: Digunakan untuk menampilkan status dan label
 
-- Membuat file baru yang berisi data dummy untuk menggantikan data dinamis
-- Mendefinisikan interface lengkap untuk AssessmentScores, AssessmentResult, PersonaProfile, dll.
-- Menyediakan fungsi helper untuk interpretasi skor dan perhitungan sederhana
-- Menyediakan instance dummy untuk setiap tipe data
+### 3. Button (ui-button.tsx)
+- **Penggunaan**: 3 file
+- **Komponen**: Button, buttonVariants
+- **Alasan**: Digunakan untuk interaksi pengguna
 
-### 2. Komponen Results
+### 4. Progress (ui-progress.tsx)
+- **Penggunaan**: 2 file
+- **Komponen**: Progress
+- **Alasan**: Digunakan untuk menampilkan progress bar
 
-**File yang direfactor:**
+### 5. Chart Components (ui-chart.tsx)
+- **Penggunaan**: 4 file
+- **Komponen**: ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent, ChartStyle
+- **Alasan**: Digunakan untuk visualisasi data chart
 
-1. **AssessmentRadarChart.tsx**
-   - Menghapus import dari `../../types/assessment-results`
-   - Mengganti dengan import dari `../../data/dummy-assessment-data`
-   - Mengubah props menjadi opsional dengan default ke dummy data
+### 6. ChartErrorBoundary (ui-chart-error-boundary.tsx)
+- **Penggunaan**: 1 file
+- **Komponen**: ChartErrorBoundary, withChartErrorBoundary, DefaultChartErrorFallback, RadarChartErrorFallback
+- **Alasan**: Digunakan untuk handling error pada chart
 
-2. **AssessmentScoresSummary.tsx**
-   - Menghapus import dari `../../types/assessment-results` dan `../../utils/assessment-calculations`
-   - Mengganti dengan import dari `../../data/dummy-assessment-data`
-   - Menghapus dependensi pada `usePrefetch` hook
+### 7. DropdownMenu (ui-dropdown-menu.tsx)
+- **Penggunaan**: 1 file
+- **Komponen**: DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, dll.
+- **Alasan**: Digunakan untuk menu dropdown di ResultsPageClient
 
-3. **CareerStatsCard.tsx**
-   - Menghapus import dari `../../types/assessment-results`
-   - Mengganti dengan import dari `../../data/dummy-assessment-data`
-   - Mengubah props menjadi opsional dengan default ke dummy data
+### 8. useToast (ui-use-toast.ts)
+- **Penggunaan**: 1 file
+- **Komponen**: useToast, toast
+- **Alasan**: Digunakan untuk notifikasi toast
 
-4. **CombinedAssessmentGrid.tsx**
-   - Menghapus import dari `../../types/assessment-results` dan `../../utils/assessment-calculations`
-   - Mengganti dengan import dari `../../data/dummy-assessment-data`
-   - Mengubah props menjadi opsional dengan default ke dummy data
+## Perubahan yang Dilakukan
 
-5. **IndustryCompatibilityCard.tsx**
-   - Menghapus import dari `../../types/assessment-results` dan `../../utils/industry-scoring`
-   - Mengganti dengan import dari `../../data/dummy-assessment-data`
-   - Mengubah props menjadi opsional dengan default ke dummy data
+### 1. Membuat File UI Lokal
+Setiap komponen UI disalin ke file baru di folder `src/components/results` dengan prefiks `ui-`:
+- `ui-card.tsx`
+- `ui-badge.tsx`
+- `ui-button.tsx`
+- `ui-progress.tsx`
+- `ui-chart.tsx`
+- `ui-chart-error-boundary.tsx`
+- `ui-dropdown-menu.tsx`
+- `ui-use-toast.tsx`
 
-6. **OceanRadarChart.tsx**
-   - Menghapus import dari `../../types/assessment-results`
-   - Mengganti dengan import dari `../../data/dummy-assessment-data`
-   - Mengubah props menjadi opsional dengan default ke dummy data
+### 2. Menambahkan Utilitas Lokal
+Setiap file UI包含了必要的工具函数，如 `cn()` 函数用于合并类名。
 
-7. **PersonaProfileFull.tsx**
-   - Menghapus import dari `../../types/assessment-results`
-   - Mengganti dengan import dari `../../data/dummy-assessment-data`
-   - Menghapus dependensi pada `calculateIndustryScores`
-   - Mengubah props menjadi opsional dengan default ke dummy data
+### 3. Mengupdate Import Statements
+Semua file di folder `src/components/results` telah diupdate untuk mengimpor komponen UI dari file lokal:
+- Dari `from '../ui/card'` menjadi `from './ui-card'`
+- Dari `from '../ui/button'` menjadi `from './ui-button'`
+- Dan seterusnya untuk semua komponen UI
 
-8. **PersonaProfileSummary.tsx**
-   - Menghapus import dari `../../types/assessment-results`
-   - Mengganti dengan import dari `../../data/dummy-assessment-data`
-   - Mengubah props menjadi opsional dengan default ke dummy data
+## File yang Diupdate
 
-9. **ResultSummaryStats.tsx**
-   - Menghapus import dari `../../types/assessment-results` dan `../../utils/assessment-calculations`
-   - Mengganti dengan import dari `../../data/dummy-assessment-data`
-   - Mengubah props menjadi opsional dengan default ke dummy data
+Berikut adalah daftar file yang telah diupdate import statementsnya:
 
-10. **RiasecRadarChart.tsx**
-    - Menghapus import dari `../../types/assessment-results`
-    - Mengganti dengan import dari `../../data/dummy-assessment-data`
-    - Mengubah props menjadi opsional dengan default ke dummy data
+1. `AssessmentRadarChart.tsx`
+2. `AssessmentScoresSummary.tsx`
+3. `CareerStatsCard.tsx`
+4. `CombinedAssessmentGrid.tsx`
+5. `IndustryCompatibilityCard.tsx`
+6. `OceanRadarChart.tsx`
+7. `PersonaProfileFull.tsx`
+8. `PersonaProfileSummary.tsx`
+9. `ResultsPageClient.tsx`
+10. `ResultSummaryStats.tsx`
+11. `RiasecRadarChart.tsx`
+12. `SimpleAssessmentChart.tsx`
+13. `ViaRadarChart.tsx`
+14. `VisualSummary.tsx`
 
-11. **SimpleAssessmentChart.tsx**
-    - Menghapus import dari `../../types/assessment-results`
-    - Mengganti dengan import dari `../../data/dummy-assessment-data`
-    - Mengubah props menjadi opsional dengan default ke dummy data
+## Manfaat
 
-12. **ViaRadarChart.tsx**
-    - Menghapus import dari `../../types/assessment-results`
-    - Mengganti dengan import dari `../../data/dummy-assessment-data`
-    - Mengubah props menjadi opsional dengan default ke dummy data
-
-13. **VisualSummary.tsx**
-    - Menghapus import dari `../../types/assessment-results` dan `../../utils/assessment-calculations`
-    - Mengganti dengan import dari `../../data/dummy-assessment-data`
-    - Mengubah props menjadi opsional dengan default ke dummy data
-
-14. **ResultsPageClient.tsx**
-    - Menghapus import dari `../../types/assessment-results` dan `../../services/apiService`
-    - Mengganti dengan import dari `../../data/dummy-assessment-data`
-    - Menghapus import untuk screenshot dan PDF utils yang tidak tersedia
-    - Mengubah fungsi API menjadi demo mode dengan pesan toast
-    - Mengubah props menjadi opsional dengan default ke dummy data
-
-### 3. Halaman Results
-
-**File yang direfactor:**
-
-1. **src/app/results/[id]/page.tsx**
-   - Menghapus import dari `../../services/apiService` dan `../../contexts/ResultsContext`
-   - Mengganti dengan import dari `../../data/dummy-assessment-data`
-   - Menghapus logika API dan retry assessment
-   - Menggunakan dummy data langsung
-
-2. **src/app/results/[id]/layout.tsx**
-   - Menghapus import dari `../../contexts/ResultsContext` dan `../../hooks/usePrefetch`
-   - Menghapus ResultsProvider dan prefetch hooks
-   - Menyederhanakan layout menjadi wrapper sederhana
-
-3. **src/app/results/[id]/chat/page.tsx**
-   - Menghapus import dari `../../services/apiService` dan `../../types/assessment-results`
-   - Mengganti dengan import dari `../../data/dummy-assessment-data`
-   - Menghapus logika API dan sessionStorage
-   - Menggunakan dummy data langsung
-
-## Perubahan Utama
-
-### 1. Penghapusan Logika Bisnis
-
-- Menghapus semua panggilan API ke backend
-- Menghapus logika retry assessment
-- Menghapus logika toggle public/private
-- Menghapus logika export PDF dan screenshot
-- Menghapus logika prefetch dan caching
-
-### 2. Penggunaan Data Dummy
-
-- Membuat file `dummy-assessment-data.ts` dengan data lengkap
-- Mengubah semua props menjadi opsional dengan default ke dummy data
-- Menyediakan fungsi helper sederhana untuk interpretasi skor
-
-### 3. Penyederhanaan Komponen
-
-- Menghapus dependensi pada context dan hooks eksternal
-- Menyederhanakan layout dan wrapper
-- Mengubah fungsi API menjadi demo mode dengan pesan toast
-
-## Manfaat Refactor
-
-1. **Independensi Komponen**: Komponen sekarang dapat digunakan secara independen tanpa dependensi pada backend atau context eksternal.
-
-2. **Kemudahan Testing**: Dengan data dummy, komponen lebih mudah diuji karena tidak memerlukan mock API atau setup kompleks.
-
-3. **Performa**: Mengurangi jumlah panggilan API dan dependensi runtime dapat meningkatkan performa.
-
-4. **Kemudahan Pengembangan**: Developer dapat fokus pada UI tanpa perlu khawatir tentang logika bisnis atau integrasi backend.
-
-5. **Demo Mode**: Aplikasi sekarang dapat berjalan dalam mode demo tanpa memerlukan backend yang berfungsi.
+1. **Kemandirian**: Komponen di folder results sekarang lebih mandiri dan tidak bergantung pada struktur UI global
+2. **Pemeliharaan**: Lebih mudah memelihara dan memodifikasi komponen UI yang spesifik untuk results
+3. **Performa**: Mengurangi kompleksitas import path
+4. **Konsistensi**: Mengikuti preferensi arsitektur yang tidak terlalu modular
 
 ## Catatan Implementasi
 
-1. **Backward Compatibility**: Semua perubahan dilakukan dengan mempertahankan interface yang sama, sehingga tidak akan merusak kode yang ada.
+1. **Duplikasi Kode**: Ada duplikasi kode antara UI global dan UI lokal, tetapi ini disengaja untuk kemandirian
+2. **Dependencies**: Semua dependencies eksternal (seperti Radix UI, Recharts) tetap diimpor langsung
+3. **Styling**: Semua styling dan Tailwind classes tetap dipertahankan
+4. **Functionality**: Tidak ada perubahan functionality, hanya perubahan import path
 
-2. **Props Opsional**: Semua props diubah menjadi opsional dengan default ke dummy data untuk memudahkan penggunaan.
+## Langkah Selanjutnya
 
-3. **Error Handling**: Error handling disederhanakan dengan menampilkan pesan demo mode daripada error yang kompleks.
+1. **Testing**: Verifikasi semua komponen berfungsi dengan benar setelah perubahan
+2. **Cleanup**: Pertimbangkan untuk menghapus import yang tidak digunakan
+3. **Documentation**: Update documentation lain jika perlu
+4. **Monitoring**: Monitor performa dan masalah yang muncul setelah refactor
 
-4. **Type Safety**: Semua perubahan mempertahankan type safety dengan menggunakan interface yang sama.
+## Risiko dan Mitigasi
 
-## Rekomendasi Selanjutnya
-
-1. **Dokumentasi**: Perbarui dokumentasi komponen untuk mencerminkan perubahan yang telah dilakukan.
-
-2. **Testing**: Buat unit test untuk komponen yang telah direfactor menggunakan data dummy.
-
-3. **Storybook**: Tambahkan komponen ke Storybook dengan data dummy untuk dokumentasi visual.
-
-4. **Integration**: Jika diperlukan, buat layer integrasi terpisah untuk menghubungkan kembali komponen dengan backend.
+1. **Sinkronisasi**: Risiko UI global dan lokal tidak sinkron
+   - **Mitigasi**: Documentasikan perbedaan dan proses update
+2. **Duplikasi**: Risiko duplikasi kode meningkat
+   - **Mitigasi**: Gunakan pendekatan ini hanya untuk folder yang benar-benar memerlukan kemandirian
+3. **Maintainability**: Risiko kesulitan maintain jika ada banyak UI lokal
+   - **Mitigasi**: Batasi penggunaan hanya pada folder yang memang memerlukan
 
 ## Kesimpulan
 
-Proses refactor telah berhasil menghapus logika bisnis dari komponen results dan menggantinya dengan data dummy. Ini membuat komponen lebih independen, mudah diuji, dan dapat digunakan dalam mode demo. Semua perubahan dilakukan dengan mempertahankan interface yang sama untuk memastikan backward compatibility.
+Refactor ini berhasil menghilangkan ketergantungan pada `components/ui` yang modular di folder results dengan membuat salinan lokal komponen UI yang sering digunakan. Semua import statements telah diupdate dan komponen sekarang lebih self-contained.

@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Card, CardContent } from './card';
+import { Card, CardContent } from './ui-card';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 
 interface ChartErrorBoundaryState {

@@ -1,9 +1,9 @@
 'use client';
 
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Badge } from '../ui/badge';
-import { Progress } from '../ui/progress';
+import { Card, CardContent, CardHeader, CardTitle } from './ui-card';
+import { Badge } from './ui-badge';
+import { Progress } from './ui-progress';
 import { BarChart3, Brain, Palette, TrendingUp } from 'lucide-react';
 import RiasecRadarChart from './RiasecRadarChart';
 import OceanRadarChart from './OceanRadarChart';

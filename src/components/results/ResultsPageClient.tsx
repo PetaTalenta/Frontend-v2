@@ -2,9 +2,9 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Button } from '../ui/button';
-import { Card } from '../ui/card';
-import { toast } from '../ui/use-toast';
+import { Button } from './ui-button';
+import { Card } from './ui-card';
+import { toast } from './ui-use-toast';
 import {
   AssessmentResult,
   AssessmentScores,
@@ -37,7 +37,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '../ui/dropdown-menu';
+} from './ui-dropdown-menu';
 
 // Safe date parsing and formatting helper (handles various API shapes)
 const parseDateFlexible = (input: any): Date | null => {
