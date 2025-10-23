@@ -1,18 +1,33 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Login from './Login';
 import Register from './Register';
 import { Zap } from 'lucide-react';
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
+  const router = useRouter();
 
-  // Empty handlers for UI-only components
-  const handleAuth = () => {};
+  // Handle authentication and redirect to dashboard
+  const handleAuth = (data: any) => {
+    // Simulate authentication process
+    console.log('Auth data:', data);
+    
+    // Redirect to dashboard after successful login/register
+    router.push('/dashboard');
+  };
+
+  // Handle switch to register from login component
+  React.useEffect(() => {
+    const handleSwitchToRegister = () => setIsLogin(false);
+    window.addEventListener('switchToRegister', handleSwitchToRegister);
+    return () => window.removeEventListener('switchToRegister', handleSwitchToRegister);
+  }, []);
 
   return (
-    <div className="min-h-screen bg-white flex">
+    <div className="h-screen bg-white flex overflow-hidden">
       {/* Left Side - Graphics/Illustration */}
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 relative overflow-hidden">
         {/* Animated Background Pattern */}
@@ -111,8 +126,8 @@ export default function AuthPage() {
       </div>
 
       {/* Right Side - Auth Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8">
-        <div className="w-full max-w-md">
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 overflow-y-auto">
+        <div className="w-full max-w-md max-h-full">
           {/* Mobile Logo */}
           <div className="lg:hidden text-center mb-8">
             <div className="w-16 h-16 mx-auto bg-gradient-to-br from-[#6475e9] to-[#5a6bd8] rounded-2xl flex items-center justify-center mb-4">
@@ -132,7 +147,7 @@ export default function AuthPage() {
                   : "text-gray-600 hover:text-gray-800"
               }`}
             >
-              Sign In
+              Masuk
             </button>
             <button
               onClick={() => setIsLogin(false)}
@@ -142,7 +157,7 @@ export default function AuthPage() {
                   : "text-gray-600 hover:text-gray-800"
               }`}
             >
-              Sign Up
+              Daftar
             </button>
           </div>
 

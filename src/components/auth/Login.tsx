@@ -18,12 +18,18 @@ interface LoginFormData {
 
 const Login = ({ onLogin }: LoginProps) => {
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const { register, handleSubmit, formState: { errors } } = useForm<LoginFormData>();
 
   const onSubmit = (data: LoginFormData) => {
-    // UI-only: just call the handler without any business logic
-    onLogin(data);
+    setIsLoading(true);
+    
+    // Simulate authentication process with loading state
+    setTimeout(() => {
+      onLogin(data);
+      setIsLoading(false);
+    }, 300);
   };
 
   return (
@@ -133,15 +139,45 @@ const Login = ({ onLogin }: LoginProps) => {
 
         <button
           type="submit"
-          className="w-full py-3 px-4 bg-gradient-to-r from-slate-600 to-blue-600 text-white font-medium rounded-lg hover:from-slate-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 transform hover:scale-[1.01] active:scale-[0.99] shadow-md"
+          disabled={isLoading}
+          className="w-full py-3 px-4 bg-gradient-to-r from-slate-600 to-blue-600 text-white font-medium rounded-lg hover:from-slate-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 transform hover:scale-[1.01] active:scale-[0.99] shadow-md disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none"
         >
           <div className="flex items-center justify-center">
-            <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
-            </svg>
-            Sign in
+            {isLoading ? (
+              <>
+                <svg className="animate-spin h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Memproses...
+              </>
+            ) : (
+              <>
+                <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                </svg>
+                Masuk
+              </>
+            )}
           </div>
         </button>
+
+        <div className="mt-6 text-center">
+          <p className="text-sm text-gray-600">
+            Belum punya akun?{' '}
+            <button
+              type="button"
+              onClick={() => {
+                // This will be handled by the parent component
+                const event = new CustomEvent('switchToRegister');
+                window.dispatchEvent(event);
+              }}
+              className="font-medium text-blue-600 hover:text-blue-500 transition-colors"
+            >
+              Daftar sekarang
+            </button>
+          </p>
+        </div>
       </form>
     </div>
   );

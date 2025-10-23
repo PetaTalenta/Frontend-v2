@@ -15,28 +15,28 @@ const dummyStatsData = [
     label: 'Total Assessment',
     value: 12,
     color: '#6475e9',
-    icon: 'assessment',
+    icon: 'Cpu.svg',
   },
   {
     id: 'completion',
     label: 'Tingkat Penyelesaian',
     value: 85,
     color: '#a2acf2',
-    icon: 'completion',
+    icon: 'Check.svg',
   },
   {
     id: 'score',
     label: 'Rata-rata Skor',
     value: 78,
     color: '#6475e9',
-    icon: 'score',
+    icon: 'MagnifyingGlass.svg',
   },
   {
     id: 'growth',
     label: 'Pertumbuhan',
     value: 15,
     color: '#a2acf2',
-    icon: 'growth',
+    icon: 'Chevron right.svg',
   }
 ];
 

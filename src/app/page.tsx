@@ -1,5 +1,4 @@
 import { Metadata } from 'next';
-import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 
 export const metadata: Metadata = {
@@ -24,12 +23,5 @@ export const metadata: Metadata = {
 };
 
 export default async function Page() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get('token')?.value;
-
-  if (token) {
-    redirect('/dashboard');
-  }
-
   redirect('/auth');
 }
