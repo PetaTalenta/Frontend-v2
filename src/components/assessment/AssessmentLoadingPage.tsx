@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Button } from './Button';
 import {
   Clock,
@@ -191,13 +191,13 @@ export default function AssessmentLoadingPage({
     return () => clearTimeout(timer as any);
   };
 
-  const startTriviaRotation = () => {
+  const startTriviaRotation = useCallback(() => {
     if (triviaIntervalRef.current) return;
     updateTrivia();
     triviaIntervalRef.current = setInterval(() => {
       updateTrivia();
     }, 5000); // 5s per trivia
-  };
+  }, []);
 
   const stopTriviaRotation = () => {
     if (triviaIntervalRef.current) {
@@ -269,7 +269,7 @@ export default function AssessmentLoadingPage({
     return () => {
       stopTriviaRotation();
     };
-  }, [workflowState.status]);
+  }, [workflowState.status, startTriviaRotation]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
