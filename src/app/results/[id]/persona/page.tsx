@@ -1,50 +1,26 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Skeleton } from "@/components/ui/skeleton"
+import { Button } from "../../../../components/results/ui-button"
+import { Card, CardContent, CardHeader, CardTitle } from "../../../../components/results/ui-card"
+import { Badge } from "../../../../components/results/ui-badge"
+import { Skeleton } from "../../../../components/results/ui-skeleton"
 import { ArrowLeft, User, Shield, Star, Target, Brain, Heart, Users, Briefcase, TrendingUp, Zap, Building, AlertTriangle, Lightbulb, GraduationCap, BookOpen } from "lucide-react"
-import IndustryCompatibilityCard from "@/components/results/IndustryCompatibilityCard"
-import { toast } from "@/components/ui/use-toast"
-import apiService from "@/services/apiService"
+import IndustryCompatibilityCard from "../../../../components/results/IndustryCompatibilityCard"
+import { getDummyAssessmentResult } from "../../../../data/dummy-assessment-data"
 
 export default function PersonaDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const [result, setResult] = useState<any | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  
+  // Using dummy data instead of API call
+  const result = getDummyAssessmentResult();
+  const loading = false;
+  const error = null;
 
   const resultId = params.id as string;
-
-  useEffect(() => {
-    async function fetchResult() {
-      if (!resultId) return;
-
-      try {
-        setLoading(true);
-        const resp = await apiService.getResultById(resultId);
-        const data = resp?.success ? resp.data : null;
-        setResult(data);
-      } catch (err) {
-        console.error('Error fetching assessment result:', err);
-        setError('Failed to load assessment result');
-        toast({
-          title: "Error",
-          description: "Failed to load assessment result",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchResult();
-  }, [resultId]);
 
   if (loading) {
     return (
@@ -75,7 +51,7 @@ export default function PersonaDetailPage() {
     );
   }
 
-  const profile = result.persona_profile;
+  const profile = result.persona_profile as any || {};
 
   return (
     <div className="min-h-screen bg-[#f8fafc] p-6">

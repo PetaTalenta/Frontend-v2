@@ -3,16 +3,20 @@
 import React from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Button } from '../../../../components/ui/button';
-import { Skeleton } from '../../../../components/ui/skeleton';
+import { Button } from '../../../../components/results/ui-button';
+import { Skeleton } from '../../../../components/results/ui-skeleton';
 import { ArrowLeft, Grid3X3 } from 'lucide-react';
 import CombinedAssessmentGrid from '../../../../components/results/CombinedAssessmentGrid';
-import { useResultContext } from '../../../../contexts/ResultsContext';
+import { getDummyAssessmentResult } from '../../../../data/dummy-assessment-data';
 
 export default function CombinedDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const { result, isLoading, error } = useResultContext();
+  
+  // Using dummy data instead of context
+  const result = getDummyAssessmentResult();
+  const isLoading = false;
+  const error = null;
 
   const resultId = params.id as string;
 
@@ -110,7 +114,7 @@ export default function CombinedDetailPage() {
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-semibold text-gray-900">
-                  {result.persona_profile?.name || 'Assessment Result'}
+                  {result.persona_profile?.archetype || 'Assessment Result'}
                 </h2>
                 <p className="text-sm text-gray-600">
                   Completed on {(() => {

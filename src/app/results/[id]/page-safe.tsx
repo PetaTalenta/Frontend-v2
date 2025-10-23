@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { AssessmentResult } from '../../../types/assessment-results';
 import { apiService } from '../../../services/apiService';
-import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
-import { Button } from '../../../components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '../../../components/results/ui-card';
+import { Button } from '../../../components/results/ui-button';
 import { ArrowLeft, Download, AlertCircle } from 'lucide-react';
 
 // Safe results page that doesn't use any dynamic imports or complex chart libraries

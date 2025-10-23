@@ -3,21 +3,28 @@
 import React from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Button } from '../../../../components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '../../../../components/ui/card';
-import { Progress } from '../../../../components/ui/progress';
-import { Badge } from '../../../../components/ui/badge';
-import { Skeleton } from '../../../../components/ui/skeleton';
-import { getScoreInterpretation, VIA_CATEGORIES } from '../../../../types/assessment-results';
-import { getTopViaStrengths } from '../../../../utils/assessment-calculations';
+import { Button } from '../../../../components/results/ui-button';
+import { Card, CardContent, CardHeader, CardTitle } from '../../../../components/results/ui-card';
+import { Progress } from '../../../../components/results/ui-progress';
+import { Badge } from '../../../../components/results/ui-badge';
+import { Skeleton } from '../../../../components/results/ui-skeleton';
 import { ArrowLeft, Palette, Lightbulb, Search, Heart, Shield, Scale, Flower } from 'lucide-react';
 import ViaRadarChart from '../../../../components/results/ViaRadarChart';
-import { useResultContext } from '../../../../contexts/ResultsContext';
+import {
+  getDummyAssessmentResult,
+  getScoreInterpretation,
+  VIA_CATEGORIES,
+  getTopViaStrengths
+} from '../../../../data/dummy-assessment-data';
 
 export default function ViaDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const { result, isLoading, error } = useResultContext();
+  
+  // Using dummy data instead of context
+  const result = getDummyAssessmentResult();
+  const isLoading = false;
+  const error = null;
 
   const resultId = params.id as string;
 

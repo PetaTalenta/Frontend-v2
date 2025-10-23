@@ -3,21 +3,28 @@
 import React from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Button } from '../../../../components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '../../../../components/ui/card';
-import { Progress } from '../../../../components/ui/progress';
-import { Badge } from '../../../../components/ui/badge';
-import { Skeleton } from '../../../../components/ui/skeleton';
-import { toast } from '../../../../components/ui/use-toast';
-import { getScoreInterpretation } from '../../../../types/assessment-results';
+import { Button } from '../../../../components/results/ui-button';
+import { Card, CardContent, CardHeader, CardTitle } from '../../../../components/results/ui-card';
+import { Progress } from '../../../../components/results/ui-progress';
+import { Badge } from '../../../../components/results/ui-badge';
+import { Skeleton } from '../../../../components/results/ui-skeleton';
+import { toast } from '../../../../components/results/ui-use-toast';
+import { VIA_CATEGORIES } from '../../../../data/dummy-assessment-data';
 import { ArrowLeft, Brain, Eye, Heart, Zap, CheckCircle } from 'lucide-react';
 import OceanRadarChart from '../../../../components/results/OceanRadarChart';
-import { useResultContext } from '../../../../contexts/ResultsContext';
+import {
+  getDummyAssessmentResult,
+  getScoreInterpretation as getDummyScoreInterpretation
+} from '../../../../data/dummy-assessment-data';
 
 export default function OceanDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const { result, isLoading, error } = useResultContext();
+  
+  // Using dummy data instead of context
+  const result = getDummyAssessmentResult();
+  const isLoading = false;
+  const error = null;
 
   const resultId = params.id as string;
 
@@ -247,7 +254,7 @@ export default function OceanDetailPage() {
         {/* Detailed Big Five Traits */}
         <div className="space-y-6">
           {sortedTraits.map((trait, index) => {
-            const interpretation = getScoreInterpretation(trait.score);
+            const interpretation = getDummyScoreInterpretation(trait.score);
             const Icon = trait.icon;
             const isHigh = trait.score >= 60;
             const relevantTraits = isHigh ? trait.highTraits : trait.lowTraits;
