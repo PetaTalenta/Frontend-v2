@@ -230,7 +230,7 @@ export function useLazyChartData<T>(
 
   useEffect(() => {
     loadData();
-  }, [loadData, fetcher, ...dependencies]);
+  }, [loadData]);
 
   return { data, loading, error, retry: loadData };
 }

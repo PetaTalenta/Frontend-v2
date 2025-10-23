@@ -4,6 +4,7 @@ import { GeistMono } from 'geist/font/mono'
 import { Plus_Jakarta_Sans } from 'next/font/google'
 import { AppProvider } from '../providers/AppProvider'
 import AuthLayoutWrapper from '../components/auth/AuthLayoutWrapper'
+import { ServiceWorkerInitializer } from '../components/ServiceWorkerInitializer'
 
 // Optimized font loading dengan preload dan display swap
 const plusJakartaSans = Plus_Jakarta_Sans({
@@ -81,6 +82,7 @@ html {
             {children}
           </AuthLayoutWrapper>
         </AppProvider>
+        <ServiceWorkerInitializer />
       </body>
     </html>
   )

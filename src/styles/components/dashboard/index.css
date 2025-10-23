@@ -1,0 +1,9 @@
+/* Dashboard Components CSS Imports */
+
+/* Import individual dashboard component CSS files */
+@import './assessment-table.css';
+@import './chart-card.css';
+@import './ocean-card.css';
+@import './progress-card.css';
+@import './stats-card.css';
+@import './viais-card.css';

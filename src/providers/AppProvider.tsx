@@ -3,6 +3,7 @@
 import React, { ReactNode, useEffect } from 'react';
 import { useAuthStore } from '../stores/useAuthStore';
 import { useAssessmentStore } from '../stores/useAssessmentStore';
+import { SWRProvider } from './SWRProvider';
 
 interface AppProviderProps {
   children: ReactNode;
@@ -17,7 +18,11 @@ export function AppProvider({ children }: AppProviderProps) {
     initializeAuth();
   }, [initializeAuth]);
 
-  return <>{children}</>;
+  return (
+    <SWRProvider>
+      {children}
+    </SWRProvider>
+  );
 }
 
 // Hook untuk mengakses global state

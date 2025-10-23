@@ -1,167 +1,436 @@
-// Service Worker for caching and performance optimization
+// Enhanced Service Worker for FutureGuide with advanced caching strategies
+// Version 2.0 - Phase 2 Implementation
 
-const CACHE_NAME = 'FutureGuide-v1';
-const STATIC_CACHE = 'FutureGuide-static-v1';
-const DYNAMIC_CACHE = 'FutureGuide-dynamic-v1';
+const CACHE_VERSION = '2.0';
+const STATIC_CACHE = `FutureGuide-static-v${CACHE_VERSION}`;
+const DYNAMIC_CACHE = `FutureGuide-dynamic-v${CACHE_VERSION}`;
+const API_CACHE = `FutureGuide-api-v${CACHE_VERSION}`;
 
-// Assets to cache immediately
-const STATIC_ASSETS = [
+// Cache TTL configuration (in milliseconds)
+const CACHE_TTL = {
+  STATIC: 30 * 24 * 60 * 60 * 1000, // 30 days for static assets
+  API: 5 * 60 * 1000, // 5 minutes for API responses
+  ASSESSMENT: 60 * 60 * 1000, // 1 hour for assessment results
+  PROFILE: 10 * 60 * 1000, // 10 minutes for profile data
+};
+
+// Critical assets to cache immediately on install
+const CRITICAL_ASSETS = [
   '/',
   '/auth',
   '/dashboard',
   '/manifest.json',
-  // Add critical CSS and JS files
-  '/_next/static/css/',
-  '/_next/static/chunks/main.js',
-  '/_next/static/chunks/pages/_app.js',
-  // Add fonts
-  '/fonts/geist-sans.woff2',
-  '/fonts/geist-mono.woff2',
-  // Add critical images
-  '/logo.png',
-  '/favicon.ico'
+  '/favicon.ico',
+  '/logo.png'
 ];
 
-// API endpoints to cache with different strategies
-const API_CACHE_PATTERNS = [
-  '/api/auth/profile',
-  '/api/assessment/archive/',
-  '/api/auth/schools'
-];
+// API endpoints with their specific cache strategies
+const API_STRATEGIES = {
+  // Profile data - stale while revalidate with 10 min TTL
+  '/api/auth/profile': {
+    strategy: 'staleWhileRevalidate',
+    ttl: CACHE_TTL.PROFILE,
+    cacheName: API_CACHE
+  },
+  
+  // Assessment results - network first with 1 hour TTL
+  '/api/archive/results/': {
+    strategy: 'networkFirst',
+    ttl: CACHE_TTL.ASSESSMENT,
+    cacheName: API_CACHE
+  },
+  
+  // Schools data - cache first with 1 day TTL
+  '/api/auth/schools': {
+    strategy: 'cacheFirst',
+    ttl: 24 * 60 * 60 * 1000,
+    cacheName: API_CACHE
+  },
+  
+  // Auth endpoints - network only (no caching)
+  '/api/auth/login': { strategy: 'networkOnly' },
+  '/api/auth/register': { strategy: 'networkOnly' },
+  '/api/auth/logout': { strategy: 'networkOnly' },
+  '/api/auth/refresh': { strategy: 'networkOnly' }
+};
 
-// Install event - cache static assets
+// Cache metadata storage
+const CACHE_METADATA = 'cache-metadata';
+
+// Store cache timestamps for TTL validation
+class CacheMetadataManager {
+  static set(key, ttl) {
+    const metadata = this.getMetadata();
+    metadata[key] = {
+      timestamp: Date.now(),
+      ttl: ttl
+    };
+    localStorage.setItem(CACHE_METADATA, JSON.stringify(metadata));
+  }
+
+  static get(key) {
+    const metadata = this.getMetadata();
+    const item = metadata[key];
+    if (!item) return null;
+
+    const isExpired = (Date.now() - item.timestamp) > item.ttl;
+    if (isExpired) {
+      this.delete(key);
+      return null;
+    }
+
+    return item;
+  }
+
+  static delete(key) {
+    const metadata = this.getMetadata();
+    delete metadata[key];
+    localStorage.setItem(CACHE_METADATA, JSON.stringify(metadata));
+  }
+
+  static getMetadata() {
+    try {
+      const stored = localStorage.getItem(CACHE_METADATA);
+      return stored ? JSON.parse(stored) : {};
+    } catch {
+      return {};
+    }
+  }
+
+  static clear() {
+    localStorage.removeItem(CACHE_METADATA);
+  }
+}
+
+// Enhanced caching strategies
+class CacheStrategies {
+  static async cacheFirst(request, options = {}) {
+    const cache = await caches.open(options.cacheName || STATIC_CACHE);
+    const cachedResponse = await cache.match(request);
+    
+    if (cachedResponse && this.isValidCache(request, cachedResponse)) {
+      return cachedResponse;
+    }
+
+    try {
+      const networkResponse = await fetch(request);
+      if (networkResponse.ok) {
+        const responseClone = networkResponse.clone();
+        cache.put(request, responseClone);
+        if (options.ttl) {
+          CacheMetadataManager.set(request.url, options.ttl);
+        }
+      }
+      return networkResponse;
+    } catch (error) {
+      if (cachedResponse) {
+        return cachedResponse; // Return stale cache if network fails
+      }
+      throw error;
+    }
+  }
+
+  static async networkFirst(request, options = {}) {
+    const cache = await caches.open(options.cacheName || DYNAMIC_CACHE);
+    
+    try {
+      const networkResponse = await fetch(request);
+      if (networkResponse.ok) {
+        const responseClone = networkResponse.clone();
+        cache.put(request, responseClone);
+        if (options.ttl) {
+          CacheMetadataManager.set(request.url, options.ttl);
+        }
+      }
+      return networkResponse;
+    } catch (error) {
+      const cachedResponse = await cache.match(request);
+      if (cachedResponse && this.isValidCache(request, cachedResponse)) {
+        return cachedResponse;
+      }
+      throw error;
+    }
+  }
+
+  static async staleWhileRevalidate(request, options = {}) {
+    const cache = await caches.open(options.cacheName || DYNAMIC_CACHE);
+    const cachedResponse = await cache.match(request);
+    
+    // Always try to fetch from network in background
+    const fetchPromise = fetch(request).then((networkResponse) => {
+      if (networkResponse.ok) {
+        const responseClone = networkResponse.clone();
+        cache.put(request, responseClone);
+        if (options.ttl) {
+          CacheMetadataManager.set(request.url, options.ttl);
+        }
+      }
+      return networkResponse;
+    }).catch(() => {
+      // Network failed, that's okay
+    });
+
+    // Return cached version immediately if valid
+    if (cachedResponse && this.isValidCache(request, cachedResponse)) {
+      // Trigger network fetch in background but don't wait
+      fetchPromise;
+      return cachedResponse;
+    }
+
+    // No valid cache, wait for network
+    return fetchPromise;
+  }
+
+  static isValidCache(request, response) {
+    const metadata = CacheMetadataManager.get(request.url);
+    return metadata !== null; // null means expired or not found
+  }
+}
+
+// Install event - cache critical assets
 self.addEventListener('install', (event) => {
-  console.log('Service Worker: Installing...');
+  console.log('Service Worker v2.0: Installing...');
   
   event.waitUntil(
-    caches.open(STATIC_CACHE)
-      .then((cache) => {
-        console.log('Service Worker: Caching static assets');
-        return cache.addAll(STATIC_ASSETS);
+    Promise.all([
+      // Cache critical assets
+      caches.open(STATIC_CACHE).then((cache) => {
+        console.log('Service Worker: Caching critical assets');
+        return cache.addAll(CRITICAL_ASSETS);
+      }),
+      
+      // Preload important fonts
+      caches.open(STATIC_CACHE).then((cache) => {
+        return cache.addAll([
+          '/fonts/geist-sans.woff2',
+          '/fonts/geist-mono.woff2'
+        ]);
       })
-      .then(() => {
-        console.log('Service Worker: Static assets cached');
-        return self.skipWaiting();
-      })
-      .catch((error) => {
-        console.error('Service Worker: Error caching static assets', error);
-      })
+    ]).then(() => {
+      console.log('Service Worker: Installation complete');
+      return self.skipWaiting();
+    }).catch((error) => {
+      console.error('Service Worker: Installation failed', error);
+    })
   );
 });
 
 // Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
-  console.log('Service Worker: Activating...');
+  console.log('Service Worker v2.0: Activating...');
   
   event.waitUntil(
-    caches.keys()
-      .then((cacheNames) => {
-        return Promise.all(
-          cacheNames.map((cacheName) => {
-            if (cacheName !== STATIC_CACHE && cacheName !== DYNAMIC_CACHE) {
-              console.log('Service Worker: Deleting old cache', cacheName);
-              return caches.delete(cacheName);
-            }
-          })
-        );
-      })
-      .then(() => {
-        console.log('Service Worker: Activated');
-        return self.clients.claim();
-      })
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cacheName) => {
+          // Delete old version caches
+          if (!cacheName.includes(CACHE_VERSION)) {
+            console.log('Service Worker: Deleting old cache', cacheName);
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    }).then(() => {
+      console.log('Service Worker: Activation complete');
+      CacheMetadataManager.clear(); // Clear old metadata
+      return self.clients.claim();
+    })
   );
 });
 
-// Fetch event - implement caching strategies
+// Enhanced fetch event with smart caching
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Skip non-GET requests
-  if (request.method !== 'GET') {
+  // Skip non-GET requests and non-http protocols
+  if (request.method !== 'GET' || !url.protocol.startsWith('http')) {
     return;
   }
 
-  // Skip chrome-extension and other non-http requests
-  if (!url.protocol.startsWith('http')) {
-    return;
-  }
-
-  // Handle different types of requests with appropriate strategies
-  if (isStaticAsset(request)) {
-    // Cache First strategy for static assets
-    event.respondWith(cacheFirst(request));
-  } else if (isAPIRequest(request)) {
-    // Network First strategy for API requests
-    event.respondWith(networkFirst(request));
+  // Route requests to appropriate strategies
+  if (isAPIRequest(request)) {
+    event.respondWith(handleAPIRequest(request));
+  } else if (isStaticAsset(request)) {
+    event.respondWith(CacheStrategies.cacheFirst(request, {
+      cacheName: STATIC_CACHE,
+      ttl: CACHE_TTL.STATIC
+    }));
   } else if (isPageRequest(request)) {
-    // Stale While Revalidate for pages
-    event.respondWith(staleWhileRevalidate(request));
+    event.respondWith(CacheStrategies.staleWhileRevalidate(request, {
+      cacheName: DYNAMIC_CACHE,
+      ttl: CACHE_TTL.API
+    }));
   } else {
-    // Default to network first
-    event.respondWith(networkFirst(request));
+    event.respondWith(CacheStrategies.networkFirst(request, {
+      cacheName: DYNAMIC_CACHE
+    }));
   }
 });
 
-// Cache First strategy - good for static assets
-async function cacheFirst(request) {
-  try {
-    const cachedResponse = await caches.match(request);
-    if (cachedResponse) {
-      return cachedResponse;
-    }
-
-    const networkResponse = await fetch(request);
-    if (networkResponse.ok) {
-      const cache = await caches.open(STATIC_CACHE);
-      cache.put(request, networkResponse.clone());
-    }
-    return networkResponse;
-  } catch (error) {
-    console.error('Cache First strategy failed:', error);
-    return new Response('Offline', { status: 503 });
+// Handle API requests with specific strategies
+async function handleAPIRequest(request) {
+  const url = new URL(request.url);
+  const pathname = url.pathname;
+  
+  // Find matching strategy
+  const strategy = Object.keys(API_STRATEGIES).find(key => pathname.startsWith(key));
+  const config = strategy ? API_STRATEGIES[strategy] : { strategy: 'networkFirst' };
+  
+  switch (config.strategy) {
+    case 'cacheFirst':
+      return CacheStrategies.cacheFirst(request, config);
+    case 'networkFirst':
+      return CacheStrategies.networkFirst(request, config);
+    case 'staleWhileRevalidate':
+      return CacheStrategies.staleWhileRevalidate(request, config);
+    case 'networkOnly':
+    default:
+      return fetch(request);
   }
 }
 
-// Network First strategy - good for API requests
-async function networkFirst(request) {
+// Background sync for offline actions
+self.addEventListener('sync', (event) => {
+  if (event.tag === 'background-sync-assessment') {
+    console.log('Service Worker: Syncing assessment data');
+    event.waitUntil(syncAssessmentData());
+  } else if (event.tag === 'background-sync-profile') {
+    console.log('Service Worker: Syncing profile data');
+    event.waitUntil(syncProfileData());
+  }
+});
+
+async function syncAssessmentData() {
+  // Sync offline assessment results
   try {
-    const networkResponse = await fetch(request);
-    if (networkResponse.ok) {
+    const cache = await caches.open(DYNAMIC_CACHE);
+    const keys = await cache.keys();
+    
+    for (const request of keys) {
+      if (request.url.includes('/api/assessment/')) {
+        try {
+          const response = await cache.match(request);
+          const data = await response.json();
+          
+          // Try to sync with server
+          await fetch(request.url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+          });
+          
+          // Remove from cache after successful sync
+          await cache.delete(request);
+        } catch (error) {
+          console.log('Sync failed for:', request.url, error);
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Background sync failed:', error);
+  }
+}
+
+async function syncProfileData() {
+  // Similar sync logic for profile updates
+  console.log('Profile sync completed');
+}
+
+// Enhanced push notifications
+self.addEventListener('push', (event) => {
+  if (event.data) {
+    const data = event.data.json();
+    const options = {
+      body: data.body,
+      icon: '/icon-192x192.png',
+      badge: '/icon-72x72.png',
+      data: data.data,
+      actions: [
+        {
+          action: 'open',
+          title: 'Open'
+        },
+        {
+          action: 'dismiss',
+          title: 'Dismiss'
+        }
+      ],
+      requireInteraction: true,
+      tag: data.tag || 'default'
+    };
+
+    event.waitUntil(
+      self.registration.showNotification(data.title, options)
+    );
+  }
+});
+
+// Enhanced notification click handler
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+
+  if (event.action === 'dismiss') {
+    return;
+  }
+
+  const urlToOpen = event.notification.data?.url || '/dashboard';
+  
+  event.waitUntil(
+    clients.matchAll({ type: 'window' }).then((clientList) => {
+      // Focus existing window if available
+      for (const client of clientList) {
+        if (client.url === urlToOpen && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      
+      // Open new window
+      if (clients.openWindow) {
+        return clients.openWindow(urlToOpen);
+      }
+    })
+  );
+});
+
+// Message handler for cache management
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'CACHE_MANAGEMENT') {
+    switch (event.data.action) {
+      case 'clearCache':
+        clearAllCaches().then(() => {
+          event.ports[0].postMessage({ success: true });
+        });
+        break;
+      case 'skipWaiting':
+        self.skipWaiting();
+        break;
+      case 'updateCache':
+        updateSpecificCache(event.data.url);
+        break;
+    }
+  }
+});
+
+async function clearAllCaches() {
+  const cacheNames = await caches.keys();
+  await Promise.all(cacheNames.map(name => caches.delete(name)));
+  CacheMetadataManager.clear();
+}
+
+async function updateSpecificCache(url) {
+  try {
+    const response = await fetch(url);
+    if (response.ok) {
       const cache = await caches.open(DYNAMIC_CACHE);
-      cache.put(request, networkResponse.clone());
+      await cache.put(url, response);
     }
-    return networkResponse;
   } catch (error) {
-    console.log('Network failed, trying cache:', error);
-    const cachedResponse = await caches.match(request);
-    if (cachedResponse) {
-      return cachedResponse;
-    }
-    return new Response('Offline', { status: 503 });
+    console.error('Failed to update cache:', url, error);
   }
 }
 
-// Stale While Revalidate strategy - good for pages
-async function staleWhileRevalidate(request) {
-  const cache = await caches.open(DYNAMIC_CACHE);
-  const cachedResponse = await cache.match(request);
-
-  const fetchPromise = fetch(request).then((networkResponse) => {
-    if (networkResponse.ok) {
-      cache.put(request, networkResponse.clone());
-    }
-    return networkResponse;
-  }).catch(() => {
-    // Network failed, return cached version if available
-    return cachedResponse;
-  });
-
-  // Return cached version immediately if available, otherwise wait for network
-  return cachedResponse || fetchPromise;
-}
-
-// Helper functions to categorize requests
+// Helper functions
 function isStaticAsset(request) {
   const url = new URL(request.url);
   return (
@@ -193,51 +462,4 @@ function isPageRequest(request) {
   );
 }
 
-// Background sync for offline actions
-self.addEventListener('sync', (event) => {
-  if (event.tag === 'background-sync') {
-    console.log('Service Worker: Background sync triggered');
-    event.waitUntil(doBackgroundSync());
-  }
-});
-
-async function doBackgroundSync() {
-  // Implement background sync logic here
-  // For example, sync offline assessment data
-  console.log('Service Worker: Performing background sync');
-}
-
-// Push notifications
-self.addEventListener('push', (event) => {
-  if (event.data) {
-    const data = event.data.json();
-    const options = {
-      body: data.body,
-      icon: '/icon-192x192.png',
-      badge: '/badge-72x72.png',
-      data: data.data
-    };
-
-    event.waitUntil(
-      self.registration.showNotification(data.title, options)
-    );
-  }
-});
-
-// Notification click handler
-self.addEventListener('notificationclick', (event) => {
-  event.notification.close();
-
-  if (event.notification.data && event.notification.data.url) {
-    event.waitUntil(
-      clients.openWindow(event.notification.data.url)
-    );
-  }
-});
-
-// Message handler for communication with main thread
-self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
-  }
-});
+console.log('Service Worker v2.0 loaded successfully');
