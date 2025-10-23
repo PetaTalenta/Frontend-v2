@@ -1,5 +1,12 @@
 import { Metadata } from 'next';
-import AuthPage from '../../components/auth/AuthPage';
+import dynamicImport from 'next/dynamic';
+import { LoadingSkeleton } from '../../components/shared';
+
+// Dynamic import for AuthPage to improve bundle size with SSR enabled
+const AuthPage = dynamicImport(() => import('../../components/auth/AuthPage'), {
+  loading: () => <LoadingSkeleton />,
+  ssr: true // Enable SSR for auth page to improve SEO and initial load
+});
 
 export const metadata: Metadata = {
   title: 'Masuk atau Daftar - FutureGuide',
@@ -9,6 +16,9 @@ export const metadata: Metadata = {
     follow: true,
   },
 };
+
+// Enable static generation for auth page to improve performance
+export const dynamic = 'force-static';
 
 export default function Page() {
   return <AuthPage />;

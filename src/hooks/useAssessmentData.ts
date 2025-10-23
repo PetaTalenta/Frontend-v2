@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { AssessmentResult } from '../data/dummy-assessment-data';
+import { useAssessmentResults } from '../lib/swrConfig';
 
 // Interface untuk API response
 interface ApiResponse {
@@ -13,8 +14,9 @@ interface ApiResponse {
 // Fallback to dummy data if API fails
 import { getDummyAssessmentResult } from '../data/dummy-assessment-data';
 
-// Custom hook untuk assessment data fetching
+// Enhanced custom hook untuk assessment data fetching with SWR
 export const useAssessmentData = (id: string) => {
+<<<<<<< HEAD
   const [data, setData] = useState<AssessmentResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -141,12 +143,46 @@ export const useAssessmentData = (id: string) => {
       isMounted = false;
     };
   }, [id]);
+=======
+  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.futureguide.id';
+  const apiUrl = id ? `${baseUrl}/api/archive/results/${id}` : null;
+  
+  // Use SWR for data fetching
+  const { data, error, isLoading, mutate } = useAssessmentResults(id, {
+    // Custom error handling to fallback to dummy data
+    onError: (err) => {
+      console.warn('API fetch failed, using dummy data:', err);
+    }
+  });
 
-  return { 
-    data, 
-    loading, 
-    error, 
-    refetch 
+  // Fallback to dummy data if SWR fails
+  const [fallbackData, setFallbackData] = useState<AssessmentResult | null>(null);
+  
+  useEffect(() => {
+    if (error && !fallbackData) {
+      const dummyResult = getDummyAssessmentResult();
+      setFallbackData(dummyResult);
+      console.log('Using dummy assessment data for result ID:', id);
+    }
+  }, [error, fallbackData, id]);
+
+  const finalData = data || fallbackData;
+  const finalError = error && !fallbackData ? error : null;
+
+  const refetch = useCallback(async () => {
+    try {
+      await mutate();
+    } catch (err) {
+      console.error('Error refetching assessment data:', err);
+    }
+  }, [mutate]);
+>>>>>>> 539a6f6b0cea62264673a0c9c25a6deb8013257c
+
+  return {
+    data: finalData,
+    loading: isLoading && !finalData,
+    error: finalError,
+    refetch
   };
 };
 
@@ -156,23 +192,23 @@ export const useStaticData = <T>(fetcher: () => Promise<T>, dependencies: any[] 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const result = await fetcher();
-        setData(result);
-      } catch (err) {
-        console.error('Error fetching static data:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load data');
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const result = await fetcher();
+      setData(result);
+    } catch (err) {
+      console.error('Error fetching static data:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load data');
+    } finally {
+      setLoading(false);
+    }
+  }, [fetcher]);
 
+  useEffect(() => {
     fetchData();
-  }, dependencies);
+  }, [fetchData]);
 
   return { data, loading, error };
 };

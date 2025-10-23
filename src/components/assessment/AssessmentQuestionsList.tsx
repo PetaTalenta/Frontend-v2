@@ -1,8 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { scaleConfigurations, assessmentTypes, AssessmentType, Question } from '../../data/assessmentQuestions';
-import AssessmentQuestionCard from './AssessmentQuestionCard';
+import { LoadingSkeleton } from '../shared';
+
+// Lazy load AssessmentQuestionCard for better performance
+const AssessmentQuestionCard = lazy(() => import('./AssessmentQuestionCard'));
 
 export default function AssessmentQuestionsList() {
   // Dummy state for assessment progress
@@ -163,50 +166,52 @@ export default function AssessmentQuestionsList() {
             const isLast = idx === questions.length - 1;
             return (
               <div key={question.id} data-question-id={question.id}>
-                <AssessmentQuestionCard
-                  question={question}
-                  scaleConfig={scaleConfig}
-                  scaleLabels={currentAssessment.scaleLabels}
-                  selectedAnswer={answers[question.id] ?? null}
-                  onAnswer={value => handleAnswer(question.id, value)}
-                  isLastQuestion={isLast}
-                  navigationButtons={isLast ? (
-                    <div className={`flex flex-col sm:flex-row items-center mt-2 px-2 gap-3 sm:gap-0 ${
-                      currentAssessmentIndex === 0 && currentSectionIndex === 0
-                        ? 'sm:justify-end'
-                        : 'sm:justify-between'
-                    }`}>
-                      {/* Hide Previous button at the very beginning (Phase 1, Openness to Experience) */}
-                      {!(currentAssessmentIndex === 0 && currentSectionIndex === 0) && (
-                        <button
-                          onClick={isPhaseBeginning ? handlePrevPhase : handlePrevSection}
-                          className="px-4 sm:px-6 py-2 rounded-lg border font-medium flex items-center gap-2 border-[#6475e9] text-[#6475e9] bg-white hover:bg-[#f2f4ff] w-full sm:w-auto justify-center sm:justify-start"
-                        >
-                          <span className="text-lg">&larr;</span>
-                          <span className="text-sm sm:text-base">{isPhaseBeginning ? 'Phase Sebelumnya' : 'Sebelumnya'}</span>
-                        </button>
-                      )}
-                      <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto justify-center sm:justify-end">
-                        {/* "Lewati" button removed from last question card */}
-                        {/* "Akhiri Test" button removed - only show navigation buttons */}
-                        {!(isLastPhase && isLastSection) && (
+                <Suspense fallback={<LoadingSkeleton />}>
+                  <AssessmentQuestionCard
+                    question={question}
+                    scaleConfig={scaleConfig}
+                    scaleLabels={currentAssessment.scaleLabels}
+                    selectedAnswer={answers[question.id] ?? null}
+                    onAnswer={value => handleAnswer(question.id, value)}
+                    isLastQuestion={isLast}
+                    navigationButtons={isLast ? (
+                      <div className={`flex flex-col sm:flex-row items-center mt-2 px-2 gap-3 sm:gap-0 ${
+                        currentAssessmentIndex === 0 && currentSectionIndex === 0
+                          ? 'sm:justify-end'
+                          : 'sm:justify-between'
+                      }`}>
+                        {/* Hide Previous button at the very beginning (Phase 1, Openness to Experience) */}
+                        {!(currentAssessmentIndex === 0 && currentSectionIndex === 0) && (
                           <button
-                            onClick={handleNextSection}
-                            className="px-4 sm:px-6 py-2 rounded-lg border font-semibold flex items-center gap-2 w-full sm:w-auto justify-center text-sm sm:text-base border-[#6475e9] text-white bg-[#6475e9] hover:bg-[#5a6fd8]"
+                            onClick={isPhaseBeginning ? handlePrevPhase : handlePrevSection}
+                            className="px-4 sm:px-6 py-2 rounded-lg border font-medium flex items-center gap-2 border-[#6475e9] text-[#6475e9] bg-white hover:bg-[#f2f4ff] w-full sm:w-auto justify-center sm:justify-start"
                           >
-                            <span>
-                              {isPhaseTransition
-                                ? 'Phase Selanjutnya'
-                                : 'Selanjutnya'
-                              }
-                            </span>
-                            <span className="ml-1 text-lg">&rarr;</span>
+                            <span className="text-lg">&larr;</span>
+                            <span className="text-sm sm:text-base">{isPhaseBeginning ? 'Phase Sebelumnya' : 'Sebelumnya'}</span>
                           </button>
                         )}
+                        <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto justify-center sm:justify-end">
+                          {/* "Lewati" button removed from last question card */}
+                          {/* "Akhiri Test" button removed - only show navigation buttons */}
+                          {!(isLastPhase && isLastSection) && (
+                            <button
+                              onClick={handleNextSection}
+                              className="px-4 sm:px-6 py-2 rounded-lg border font-semibold flex items-center gap-2 w-full sm:w-auto justify-center text-sm sm:text-base border-[#6475e9] text-white bg-[#6475e9] hover:bg-[#5a6fd8]"
+                            >
+                              <span>
+                                {isPhaseTransition
+                                  ? 'Phase Selanjutnya'
+                                  : 'Selanjutnya'
+                                }
+                              </span>
+                              <span className="ml-1 text-lg">&rarr;</span>
+                            </button>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ) : undefined}
-                />
+                    ) : undefined}
+                  />
+                </Suspense>
               </div>
             );
           })}

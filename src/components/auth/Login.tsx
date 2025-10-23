@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuthStore } from '../../stores/useAuthStore';
 
 /**
  * Login Component - Real Implementation
@@ -20,7 +20,7 @@ interface LoginFormData {
 
 const Login = ({ onLogin }: LoginProps) => {
   const router = useRouter();
-  const { login, isLoading, error, clearError } = useAuth();
+  const { login, isLoading, error, clearError } = useAuthStore();
   const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState('');
 

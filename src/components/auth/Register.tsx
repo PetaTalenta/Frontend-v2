@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuthStore } from '../../stores/useAuthStore';
 import PasswordStrengthIndicator from './PasswordStrengthIndicator';
 
 /**
@@ -22,7 +22,7 @@ interface RegisterFormData {
 
 const Register = ({ onRegister }: RegisterProps) => {
   const router = useRouter();
-  const { register: registerUser, isLoading, error, clearError } = useAuth();
+  const { register: registerUser, isLoading, error, clearError } = useAuthStore();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [registerError, setRegisterError] = useState('');
