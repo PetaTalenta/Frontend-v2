@@ -39,9 +39,13 @@ const nextConfig = {
   },
 
   // Performance optimizations
-  // Disabled optimizePackageImports to avoid Webpack runtime issues in dev
   experimental: {
-    // optimizeCss: true,
+    // optimizeCss: true, // Disabled due to critters dependency issue
+    optimizePackageImports: [
+      'lucide-react',
+      '@radix-ui/react-icons',
+      'recharts'
+    ]
   },
 
   // Compiler optimizations
@@ -220,6 +224,12 @@ const nextConfig = {
   //     },
   //   ];
   // },
+  
+  // Caching strategy for better development performance
+  onDemandEntries: {
+    maxInactiveAge: 25 * 1000,
+    pagesBufferLength: 2,
+  },
 }
 
 export default withBundleAnalyzer(nextConfig)

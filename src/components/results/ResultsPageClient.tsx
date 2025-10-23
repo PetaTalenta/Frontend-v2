@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Button } from './ui-button';
-import { Card } from './ui-card';
+import dynamic from 'next/dynamic';
+import { Button } from '../ui/button';
+import { Card } from '../ui/card';
 import { toast } from './ui-use-toast';
 import {
   AssessmentResult,
@@ -16,10 +17,49 @@ import PersonaProfileSummary from './PersonaProfileSummary';
 import AssessmentScoresSummary from './AssessmentScoresSummary';
 import ResultSummaryStats from './ResultSummaryStats';
 import VisualSummary from './VisualSummary';
-// Static imports to avoid webpack dynamic import issues
-import AssessmentRadarChart from './AssessmentRadarChart';
-import CareerStatsCard from './CareerStatsCard';
-import SimpleAssessmentChart from './SimpleAssessmentChart';
+
+// Dynamic imports for chart components to improve compilation performance
+const AssessmentRadarChart = dynamic(() => import('./AssessmentRadarChart'), {
+  loading: () => (
+    <Card className="bg-white border-gray-200/60 shadow-sm">
+      <div className="p-6">
+        <div className="animate-pulse">
+          <div className="h-4 bg-gray-200 rounded w-1/3 mb-4"></div>
+          <div className="h-64 bg-gray-200 rounded"></div>
+        </div>
+      </div>
+    </Card>
+  ),
+  ssr: false
+});
+
+const CareerStatsCard = dynamic(() => import('./CareerStatsCard'), {
+  loading: () => (
+    <Card className="bg-white border-gray-200/60 shadow-sm">
+      <div className="p-6">
+        <div className="animate-pulse">
+          <div className="h-4 bg-gray-200 rounded w-1/3 mb-4"></div>
+          <div className="h-32 bg-gray-200 rounded"></div>
+        </div>
+      </div>
+    </Card>
+  ),
+  ssr: true
+});
+
+const SimpleAssessmentChart = dynamic(() => import('./SimpleAssessmentChart'), {
+  loading: () => (
+    <Card className="bg-white border-gray-200/60 shadow-sm">
+      <div className="p-6">
+        <div className="animate-pulse">
+          <div className="h-4 bg-gray-200 rounded w-1/3 mb-4"></div>
+          <div className="h-64 bg-gray-200 rounded"></div>
+        </div>
+      </div>
+    </Card>
+  ),
+  ssr: false
+});
 
 import {
   ArrowLeft,
@@ -103,61 +143,26 @@ const ChartFallback = ({ title = 'Chart Unavailable' }: { title?: string }) => (
 
 // Safe chart wrapper component with multiple fallback levels
 const SafeAssessmentRadarChart = ({ scores }: { scores: AssessmentScores }) => {
-  const [isClient, setIsClient] = React.useState(false);
   const [hasError, setHasError] = React.useState(false);
   const [useSimpleChart, setUseSimpleChart] = React.useState(false);
-
-  React.useEffect(() => {
-    setIsClient(true);
-  }, []);
-
-  if (!isClient) {
-    return (
-      <Card className="bg-white border-gray-200/60 shadow-sm">
-        <div className="p-6">
-          <div className="animate-pulse">
-            <div className="h-4 bg-gray-200 rounded w-1/3 mb-4"></div>
-            <div className="h-64 bg-gray-200 rounded"></div>
-          </div>
-        </div>
-      </Card>
-    );
-  }
 
   if (hasError || useSimpleChart) {
     return <SimpleAssessmentChart scores={scores} />;
   }
 
-  try {
-    return (
-      <React.Suspense fallback={
-        <Card className="bg-white border-gray-200/60 shadow-sm">
-          <div className="p-6">
-            <div className="animate-pulse">
-              <div className="h-4 bg-gray-200 rounded w-1/3 mb-4"></div>
-              <div className="h-64 bg-gray-200 rounded"></div>
-            </div>
-          </div>
-        </Card>
-      }>
-        <AssessmentRadarChart scores={scores} />
-      </React.Suspense>
-    );
-  } catch (error) {
-    console.error('Error rendering AssessmentRadarChart, falling back to SimpleChart:', error);
-    setHasError(true);
-    return <SimpleAssessmentChart scores={scores} />;
-  }
+  return (
+    <div onError={() => {
+      console.error('Error rendering AssessmentRadarChart, falling back to SimpleChart');
+      setHasError(true);
+    }}>
+      <AssessmentRadarChart scores={scores} />
+    </div>
+  );
 };
 
 // Safe career stats wrapper component
 const SafeCareerStatsCard = ({ scores }: { scores: AssessmentScores }) => {
-  try {
-    return <CareerStatsCard scores={scores} />;
-  } catch (error) {
-    console.error('Error rendering CareerStatsCard:', error);
-    return <ChartFallback title="Career Stats Unavailable" />;
-  }
+  return <CareerStatsCard scores={scores} />;
 };
 
 interface ResultsPageClientProps {

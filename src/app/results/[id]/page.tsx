@@ -1,9 +1,15 @@
 'use client';
 
 import { useParams } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { useAssessmentData } from '../../../hooks/useAssessmentData';
-import ResultsPageClient from '../../../components/results/ResultsPageClient';
 import { LoadingSkeleton, ErrorState } from '../../../components/shared';
+
+// Dynamic import for ResultsPageClient to improve compilation performance
+const ResultsPageClient = dynamic(() => import('../../../components/results/ResultsPageClient'), {
+  loading: () => <LoadingSkeleton />,
+  ssr: true
+});
 
 // Client-Side Rendering Pattern for Dynamic Data
 // Used for pages that require user-specific data like assessment results
