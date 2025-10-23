@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { UserProfile, ProfileFormData, PasswordFormData } from '../../types/profile';
-import { getDummyUserProfile, getDummyProfileFormData, getDummyPasswordFormData } from '../../data/dummy-profile-data';
+import { useAuth } from '../../contexts/AuthContext';
 import ProfileLoading from './ProfileLoading';
 import ProfileCard from './ProfileCard';
 import SecurityCard from './SecurityCard';
@@ -10,9 +10,17 @@ import DeleteAccountSection from './DeleteAccountSection';
 import AlertSection from './AlertSection';
 
 export default function ProfilePage() {
+  // Auth context
+  const {
+    profile,
+    isLoading: authLoading,
+    updateProfile,
+    deleteAccount,
+    error: authError,
+    clearError
+  } = useAuth();
+
   // State management
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
@@ -39,33 +47,25 @@ export default function ProfilePage() {
     confirmPassword: ''
   });
 
-  // Load profile data on mount
+  // Initialize form data when profile is loaded
   useEffect(() => {
-    loadProfile();
-  }, []);
-
-  const loadProfile = async () => {
-    setIsLoading(true);
-    setError('');
-
-    try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const profileData = getDummyUserProfile();
-      const formDataFromProfile = getDummyProfileFormData();
-      
-      setProfile(profileData);
-      setFormData(formDataFromProfile);
-      
-      console.log('Profile loaded successfully:', profileData);
-    } catch (err) {
-      console.error('Error loading profile:', err);
-      setError('Failed to load profile data');
-    } finally {
-      setIsLoading(false);
+    if (profile && profile.data && profile.data.user) {
+      const user = profile.data.user;
+      setFormData({
+        username: user.username || '',
+        full_name: user.profile?.full_name || '',
+        date_of_birth: user.profile?.date_of_birth || '',
+        gender: user.profile?.gender || ''
+      });
     }
-  };
+  }, [profile]);
+
+  // Clear auth errors when component unmounts
+  useEffect(() => {
+    return () => {
+      clearError();
+    };
+  }, [clearError]);
 
   const handleInputChange = (field: keyof ProfileFormData, value: string) => {
     setFormData(prev => ({
@@ -88,43 +88,27 @@ export default function ProfilePage() {
     setPartialUpdateWarning('');
 
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Simulate validation
+      // Validation
       if (formData.username && formData.username.length < 3) {
         setError('Username must be at least 3 characters long');
         return;
       }
 
-      // Simulate successful update
-      console.log('Profile updated with data:', formData);
+      // Prepare update data
+      const updateData: any = {};
+      if (formData.full_name) updateData.full_name = formData.full_name;
+      if (formData.gender) updateData.gender = formData.gender;
+      if (formData.date_of_birth) updateData.date_of_birth = formData.date_of_birth;
+
+      // Call update profile API
+      await updateProfile(updateData);
+      
       setSuccess('Profile updated successfully');
       setIsEditing(false);
       
-      // Update local profile state
-      if (profile && profile.user.profile) {
-        const updatedProfile: UserProfile = {
-          ...profile,
-          user: {
-            ...profile.user,
-            username: formData.username || profile.user.username,
-            profile: {
-              user_id: profile.user.profile.user_id,
-              full_name: formData.full_name || profile.user.profile.full_name,
-              date_of_birth: formData.date_of_birth || profile.user.profile.date_of_birth,
-              gender: formData.gender || profile.user.profile.gender,
-              created_at: profile.user.profile.created_at,
-              updated_at: profile.user.profile.updated_at
-            }
-          }
-        };
-        setProfile(updatedProfile);
-      }
-      
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error updating profile:', err);
-      setError('Failed to update profile');
+      setError(err.message || 'Failed to update profile');
     } finally {
       setIsUpdating(false);
     }
@@ -153,7 +137,11 @@ export default function ProfilePage() {
       console.log('Password changed successfully');
       setSuccess('Password changed successfully');
       setShowPasswordForm(false);
-      setPasswordData(getDummyPasswordFormData());
+      setPasswordData({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      });
       
     } catch (err) {
       console.error('Error changing password:', err);
@@ -174,32 +162,42 @@ export default function ProfilePage() {
     setSuccess('');
 
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await deleteAccount();
       
-      // Simulate successful account deletion
-      console.log('Account deleted successfully');
       setSuccess('Account deleted successfully. Redirecting...');
       setShowDeleteModal(false);
       
-      // Simulate redirect after deletion
+      // Redirect after deletion
       setTimeout(() => {
-        console.log('Redirecting to login page...');
-        // In real app, this would redirect to login page
         window.location.href = '/auth';
       }, 2000);
 
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error deleting account:', err);
-      setError('Failed to delete account');
+      setError(err.message || 'Failed to delete account');
       setIsDeleting(false);
     }
   };
 
   // Show loading state
-  if (isLoading) {
+  if (authLoading) {
     return <ProfileLoading />;
   }
+
+  // Convert profile data to expected format for ProfileCard
+  const userProfile: UserProfile | null = profile ? {
+    user: {
+      ...profile.data.user,
+      updated_at: profile.data.user.profile?.updated_at || profile.data.user.created_at,
+      last_login: profile.data.user.last_login || undefined,
+      profile: profile.data.user.profile ? {
+        ...profile.data.user.profile,
+        full_name: profile.data.user.profile.full_name || '',
+        date_of_birth: profile.data.user.profile.date_of_birth || '',
+        gender: profile.data.user.profile.gender || ''
+      } : undefined
+    }
+  } : null;
 
   return (
     <div className="min-h-screen bg-gray-50 px-6 py-10 sm:px-10 md:py-16">
@@ -227,7 +225,7 @@ export default function ProfilePage() {
 
         {/* Profile Information Card */}
         <ProfileCard
-          profile={profile}
+          profile={userProfile}
           isEditing={isEditing}
           isUpdating={isUpdating}
           formData={formData}
@@ -258,7 +256,7 @@ export default function ProfilePage() {
           onToggleDeleteModal={() => setShowDeleteModal(!showDeleteModal)}
           onDeleteAccount={handleDeleteAccount}
           isDeleting={isDeleting}
-          authVersion="v1" // Simulate auth version
+          authVersion="v2" // Using auth v2 as per API documentation
         />
       </div>
     </div>

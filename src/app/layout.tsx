@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { GeistSans } from 'geist/font/sans'
 import { GeistMono } from 'geist/font/mono'
 import { Plus_Jakarta_Sans } from 'next/font/google'
+import { AuthProvider } from '../contexts/AuthContext'
 
 // Optimized font loading dengan preload dan display swap
 const plusJakartaSans = Plus_Jakarta_Sans({
@@ -71,7 +72,9 @@ html {
         `}</style>
       </head>
       <body className={`${GeistSans.variable} ${GeistMono.variable} ${plusJakartaSans.variable}`}>
-        {children}
+        <AuthProvider>
+          {children}
+        </AuthProvider>
       </body>
     </html>
   )

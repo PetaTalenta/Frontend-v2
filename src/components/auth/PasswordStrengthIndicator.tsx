@@ -1,184 +1,194 @@
-import { useMemo } from 'react';
+'use client';
 
-/**
- * PasswordStrengthIndicator Component
- * 
- * Komponen untuk menampilkan validasi password secara real-time dengan visual feedback
- * Menampilkan checklist untuk setiap kriteria password yang harus dipenuhi
- */
+import React from 'react';
+
 interface PasswordStrengthIndicatorProps {
-  password?: string;
+  password: string;
+  showRequirements?: boolean;
 }
 
-const PasswordStrengthIndicator = ({ password = '' }: PasswordStrengthIndicatorProps) => {
-  // Kriteria validasi password sesuai backend requirements
-  const criteria = useMemo(() => {
-    const hasMinLength = password.length >= 8;
-    const hasLetter = /[a-zA-Z]/.test(password);
-    const hasNumber = /\d/.test(password);
-    // Check for allowed special characters: @$!%*#?&
-    const hasAllowedSpecialChar = /[@$!%*#?&]/.test(password);
+interface PasswordRequirement {
+  regex: RegExp;
+  text: string;
+  met: boolean;
+}
 
-    return [
-      {
-        id: 'minLength',
-        label: 'Minimal 8 karakter',
-        met: hasMinLength,
-        required: true
-      },
-      {
-        id: 'hasLetter',
-        label: 'Mengandung minimal satu huruf',
-        met: hasLetter,
-        required: true
-      },
-      {
-        id: 'hasNumber',
-        label: 'Mengandung minimal satu angka',
-        met: hasNumber,
-        required: true
-      },
-      {
-        id: 'hasSpecialChar',
-        label: 'Mengandung karakter spesial (@$!%*#?&)',
-        met: hasAllowedSpecialChar,
-        required: false // Optional untuk keamanan ekstra
-      }
-    ];
-  }, [password]);
+const PasswordStrengthIndicator: React.FC<PasswordStrengthIndicatorProps> = ({ 
+  password, 
+  showRequirements = true 
+}) => {
+  // Calculate password strength
+  const calculateStrength = (pwd: string): number => {
+    let strength = 0;
+    
+    // Length check
+    if (pwd.length >= 8) strength++;
+    if (pwd.length >= 12) strength++;
+    
+    // Character variety checks
+    if (/[a-z]/.test(pwd)) strength++; // Lowercase
+    if (/[A-Z]/.test(pwd)) strength++; // Uppercase
+    if (/\d/.test(pwd)) strength++;    // Number
+    if (/[^a-zA-Z\d]/.test(pwd)) strength++; // Special character
+    
+    return Math.min(strength, 5); // Max strength is 5
+  };
 
-  // Hitung persentase kekuatan password
-  const strength = useMemo(() => {
-    // Hitung only required criteria untuk base strength
-    const requiredCriteria = criteria.filter(c => c.required);
-    const requiredMet = requiredCriteria.filter(c => c.met).length;
-    const requiredTotal = requiredCriteria.length;
-    
-    // Hitung semua criteria termasuk optional
-    const allMet = criteria.filter(c => c.met).length;
-    const allTotal = criteria.length;
-    
-    // Base percentage dari required criteria
-    const basePercentage = (requiredMet / requiredTotal) * 100;
-    
-    // Bonus 20% jika ada special character (optional criteria met)
-    const hasOptionalMet = criteria.some(c => !c.required && c.met);
-    const bonusPercentage = hasOptionalMet ? 20 : 0;
-    
-    // Total percentage (max 100%)
-    const percentage = Math.min(basePercentage + bonusPercentage, 100);
-    
-    let level = 'weak';
-    let color = 'bg-red-500';
-    let textColor = 'text-red-600';
-    
-    if (percentage >= 100) {
-      level = 'strong';
-      color = 'bg-green-500';
-      textColor = 'text-green-600';
-    } else if (percentage >= 80) {
-      level = 'medium';
-      color = 'bg-yellow-500';
-      textColor = 'text-yellow-600';
+  const strength = calculateStrength(password);
+  
+  // Determine strength label and color
+  const getStrengthInfo = (level: number) => {
+    switch (level) {
+      case 0:
+      case 1:
+        return {
+          label: 'Sangat Lemah',
+          color: 'bg-red-500',
+          textColor: 'text-red-600',
+          percentage: '20%'
+        };
+      case 2:
+        return {
+          label: 'Lemah',
+          color: 'bg-orange-500',
+          textColor: 'text-orange-600',
+          percentage: '40%'
+        };
+      case 3:
+        return {
+          label: 'Sedang',
+          color: 'bg-yellow-500',
+          textColor: 'text-yellow-600',
+          percentage: '60%'
+        };
+      case 4:
+        return {
+          label: 'Kuat',
+          color: 'bg-blue-500',
+          textColor: 'text-blue-600',
+          percentage: '80%'
+        };
+      case 5:
+        return {
+          label: 'Sangat Kuat',
+          color: 'bg-green-500',
+          textColor: 'text-green-600',
+          percentage: '100%'
+        };
+      default:
+        return {
+          label: 'Sangat Lemah',
+          color: 'bg-red-500',
+          textColor: 'text-red-600',
+          percentage: '20%'
+        };
     }
-    
-    return { percentage, level, color, textColor, metCount: allMet, totalCount: allTotal };
-  }, [criteria]);
+  };
 
-  // Jangan tampilkan jika password kosong
+  const strengthInfo = getStrengthInfo(strength);
+
+  // Password requirements
+  const requirements: PasswordRequirement[] = [
+    {
+      regex: /.{8,}/,
+      text: 'Minimal 8 karakter',
+      met: password.length >= 8
+    },
+    {
+      regex: /.{12,}/,
+      text: 'Minimal 12 karakter (bonus)',
+      met: password.length >= 12
+    },
+    {
+      regex: /[a-z]/,
+      text: 'Mengandung huruf kecil',
+      met: /[a-z]/.test(password)
+    },
+    {
+      regex: /[A-Z]/,
+      text: 'Mengandung huruf besar',
+      met: /[A-Z]/.test(password)
+    },
+    {
+      regex: /\d/,
+      text: 'Mengandung angka',
+      met: /\d/.test(password)
+    },
+    {
+      regex: /[^a-zA-Z\d]/,
+      text: 'Mengandung karakter khusus (!@#$%^&*)',
+      met: /[^a-zA-Z\d]/.test(password)
+    }
+  ];
+
+  // If no password, don't show anything
   if (!password) {
-    return (
-      <div className="mt-3 p-3 bg-gray-50 border border-gray-200 rounded-lg">
-        <p className="text-xs text-gray-600 mb-2 font-medium">Syarat Password:</p>
-        <ul className="space-y-1.5">
-          {criteria.map((criterion) => (
-            <li key={criterion.id} className="flex items-center text-xs text-gray-500">
-              <svg className="h-4 w-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <circle cx="12" cy="12" r="10" strokeWidth="2" />
-              </svg>
-              <span>
-                {criterion.label}
-                {!criterion.required && <span className="text-gray-400 ml-1">(Opsional)</span>}
-              </span>
-            </li>
-          ))}
-        </ul>
-      </div>
-    );
+    return null;
   }
 
   return (
-    <div className="mt-3 space-y-3">
-      {/* Progress bar kekuatan password */}
-      <div>
-        <div className="flex justify-between items-center mb-1.5">
+    <div className="space-y-3">
+      {/* Strength Bar */}
+      <div className="space-y-2">
+        <div className="flex justify-between items-center">
           <span className="text-xs font-medium text-gray-700">Kekuatan Password</span>
-          <span className={`text-xs font-semibold ${strength.textColor} capitalize`}>
-            {strength.level === 'weak' && 'Lemah'}
-            {strength.level === 'medium' && 'Sedang'}
-            {strength.level === 'strong' && 'Kuat'}
+          <span className={`text-xs font-medium ${strengthInfo.textColor}`}>
+            {strengthInfo.label}
           </span>
         </div>
-        <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
-          <div 
-            className={`h-full ${strength.color} transition-all duration-300 ease-out`}
-            style={{ width: `${strength.percentage}%` }}
+        <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+          <div
+            className={`h-full transition-all duration-300 ease-out ${strengthInfo.color}`}
+            style={{ width: strengthInfo.percentage }}
           />
         </div>
-        <p className="text-xs text-gray-500 mt-1">
-          {strength.metCount} dari {strength.totalCount} kriteria terpenuhi
-        </p>
       </div>
 
-      {/* Checklist kriteria password */}
-      <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg">
-        <p className="text-xs text-gray-600 mb-2 font-medium">Detail Validasi:</p>
-        <ul className="space-y-1.5">
-          {criteria.map((criterion) => (
-            <li 
-              key={criterion.id} 
-              className={`flex items-center text-xs transition-colors duration-200 ${
-                criterion.met ? 'text-green-600' : 'text-gray-500'
-              }`}
-            >
-              {criterion.met ? (
-                // Checklist hijau untuk kriteria yang terpenuhi
-                <svg className="h-4 w-4 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                </svg>
-              ) : (
-                // Circle abu-abu untuk kriteria yang belum terpenuhi
-                <svg className="h-4 w-4 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <circle cx="12" cy="12" r="10" strokeWidth="2" />
-                </svg>
-              )}
-              <span className={criterion.met ? 'font-medium' : ''}>
-                {criterion.label}
-                {!criterion.required && (
-                  <span className={criterion.met ? 'text-green-500 ml-1' : 'text-gray-400 ml-1'}>(Opsional)</span>
-                )}
-              </span>
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      {/* Pesan tambahan */}
-      {strength.level === 'strong' && (
-        <div className="flex items-start p-2 bg-green-50 border border-green-200 rounded-lg">
-          <svg className="h-4 w-4 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-          </svg>
-          <p className="text-xs text-green-700">Password Anda sudah kuat dan aman!</p>
+      {/* Requirements List */}
+      {showRequirements && (
+        <div className="space-y-2">
+          <p className="text-xs font-medium text-gray-700">Persyaratan Password:</p>
+          <div className="grid grid-cols-1 gap-2">
+            {requirements.map((req, index) => (
+              <div
+                key={index}
+                className={`flex items-center text-xs ${
+                  req.met ? 'text-green-600' : 'text-gray-500'
+                }`}
+              >
+                <div className="mr-2">
+                  {req.met ? (
+                    <svg className="h-4 w-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                  ) : (
+                    <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <circle cx="12" cy="12" r="10" strokeWidth="2" />
+                    </svg>
+                  )}
+                </div>
+                <span>{req.text}</span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
-      
-      {strength.level === 'weak' && password.length > 0 && (
-        <div className="flex items-start p-2 bg-red-50 border border-red-200 rounded-lg">
-          <svg className="h-4 w-4 text-red-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-          </svg>
-          <p className="text-xs text-red-700">Password masih lemah. Penuhi lebih banyak kriteria untuk keamanan yang lebih baik.</p>
+
+      {/* Password Tips */}
+      {strength < 3 && password.length > 0 && (
+        <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-4 w-4 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-xs text-amber-800">
+                <strong>Tip:</strong> Gunakan kombinasi huruf besar, huruf kecil, angka, dan karakter khusus untuk password yang lebih kuat.
+              </p>
+            </div>
+          </div>
         </div>
       )}
     </div>

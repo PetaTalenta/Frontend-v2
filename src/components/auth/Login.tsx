@@ -1,14 +1,16 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '../../contexts/AuthContext';
 
 /**
- * Login Component - Dummy Version
+ * Login Component - Real Implementation
  *
- * Simple login form without authentication logic
+ * Login form with actual authentication logic using API
  */
 interface LoginProps {
-  onLogin: (data: any) => void;
+  onLogin?: (data: any) => void;
 }
 
 interface LoginFormData {
@@ -17,19 +19,51 @@ interface LoginFormData {
 }
 
 const Login = ({ onLogin }: LoginProps) => {
+  const router = useRouter();
+  const { login, isLoading, error, clearError } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [loginError, setLoginError] = useState('');
 
   const { register, handleSubmit, formState: { errors } } = useForm<LoginFormData>();
 
-  const onSubmit = (data: LoginFormData) => {
-    setIsLoading(true);
+  const onSubmit = async (data: LoginFormData) => {
+    setLoginError('');
+    clearError();
     
-    // Simulate authentication process with loading state
-    setTimeout(() => {
-      onLogin(data);
-      setIsLoading(false);
-    }, 300);
+    try {
+      await login(data);
+      
+      // Call optional onLogin callback
+      if (onLogin) {
+        onLogin(data);
+      }
+      
+      // Redirect to dashboard after successful login
+      router.push('/dashboard');
+    } catch (err: any) {
+      // Handle specific error cases
+      let errorMessage = 'Login failed. Please check your credentials.';
+      
+      if (err.status === 401) {
+        if (err.code === 'INVALID_CREDENTIALS') {
+          errorMessage = 'Email atau password salah. Silakan periksa kembali.';
+        } else if (err.code === 'USER_NOT_FOUND') {
+          errorMessage = 'Email tidak terdaftar. Silakan daftar terlebih dahulu.';
+        } else if (err.code === 'INVALID_PASSWORD') {
+          errorMessage = 'Password salah. Silakan coba lagi.';
+        } else {
+          errorMessage = 'Email atau password tidak valid. Silakan periksa kembali.';
+        }
+      } else if (err.status === 429) {
+        errorMessage = 'Terlalu banyak percobaan login. Silakan coba lagi dalam beberapa menit.';
+      } else if (err.status === 500) {
+        errorMessage = 'Terjadi kesalahan server. Silakan coba lagi nanti.';
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      setLoginError(errorMessage);
+    }
   };
 
   return (
@@ -38,6 +72,32 @@ const Login = ({ onLogin }: LoginProps) => {
         <h2 className="text-2xl font-bold text-gray-900 mb-2">Selamat Datang Kembali</h2>
         <p className="text-gray-600">Masuk kedalam akun anda</p>
       </div>
+
+      {/* Error Display */}
+      {(loginError || error) && (
+        <div className="bg-red-50 border border-red-200 rounded-md p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-red-800">
+                {loginError || error}
+              </p>
+              {/* Additional help for common errors */}
+              {(loginError?.includes('salah') || loginError?.includes('tidak valid')) && (
+                <div className="mt-2 text-xs text-red-700">
+                  <p>• Periksa kembali email dan password Anda</p>
+                  <p>• Pastikan caps lock tidak aktif</p>
+                  <p>• <button type="button" className="text-red-600 underline hover:text-red-800" onClick={() => window.location.href = '/forgot-password'}>Lupa password?</button></p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
         <div className="space-y-4">

@@ -1,40 +1,81 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '../../contexts/AuthContext';
+import PasswordStrengthIndicator from './PasswordStrengthIndicator';
 
 /**
- * Register Component - Dummy Version
+ * Register Component - Real Implementation
  *
- * Simple registration form without authentication logic
+ * Registration form with authentication logic and password strength indicator
  */
 interface RegisterProps {
-  onRegister: (data: any) => void;
+  onRegister?: (data: any) => void;
 }
 
 interface RegisterFormData {
-  username?: string;
-  schoolName?: string;
+  displayName?: string;
   email: string;
   password: string;
   confirmPassword: string;
 }
 
 const Register = ({ onRegister }: RegisterProps) => {
+  const router = useRouter();
+  const { register: registerUser, isLoading, error, clearError } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [registerError, setRegisterError] = useState('');
   
   const { register, handleSubmit, watch, formState: { errors } } = useForm<RegisterFormData>();
   const password = watch('password');
   const confirmPassword = watch('confirmPassword');
 
-  const onSubmit = (data: RegisterFormData) => {
-    setIsLoading(true);
+  const onSubmit = async (data: RegisterFormData) => {
+    setRegisterError('');
+    clearError();
     
-    // Simulate registration process with loading state
-    setTimeout(() => {
-      onRegister(data);
-      setIsLoading(false);
-    }, 300);
+    try {
+      // Prepare registration data
+      const registerData = {
+        email: data.email,
+        password: data.password,
+        displayName: data.displayName || data.email.split('@')[0] // Use email prefix as default display name
+      };
+      
+      await registerUser(registerData);
+      
+      // Call optional onRegister callback
+      if (onRegister) {
+        onRegister(data);
+      }
+      
+      // Redirect to dashboard after successful registration
+      router.push('/dashboard');
+    } catch (err: any) {
+      // Handle specific error cases
+      let errorMessage = 'Registration failed. Please try again.';
+      
+      if (err.status === 400) {
+        if (err.code === 'EMAIL_ALREADY_EXISTS') {
+          errorMessage = 'Email sudah terdaftar. Silakan gunakan email lain atau <button type="button" class="text-blue-600 underline hover:text-blue-800" onclick="window.location.href=\'/auth\'">login di sini</button>.';
+        } else if (err.code === 'WEAK_PASSWORD') {
+          errorMessage = 'Password terlalu lemah. Gunakan password yang lebih kuat.';
+        } else if (err.code === 'INVALID_EMAIL') {
+          errorMessage = 'Format email tidak valid.';
+        } else {
+          errorMessage = 'Data tidak valid. Silakan periksa kembali.';
+        }
+      } else if (err.status === 429) {
+        errorMessage = 'Terlalu banyak percobaan pendaftaran. Silakan coba lagi dalam beberapa menit.';
+      } else if (err.status === 500) {
+        errorMessage = 'Terjadi kesalahan server. Silakan coba lagi nanti.';
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      setRegisterError(errorMessage);
+    }
   };
 
   return (
@@ -44,72 +85,54 @@ const Register = ({ onRegister }: RegisterProps) => {
         <p className="text-gray-600">Bergabung dengan Future Guide</p>
       </div>
 
+      {/* Error Display */}
+      {(registerError || error) && (
+        <div className="bg-red-50 border border-red-200 rounded-md p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-red-800" dangerouslySetInnerHTML={{ __html: registerError || error || '' }} />
+            </div>
+          </div>
+        </div>
+      )}
+
       <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
         <div className="space-y-4">
           <div>
-            <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
-              Username <span className="text-gray-500 text-xs">(Optional)</span>
+            <label htmlFor="displayName" className="block text-sm font-medium text-gray-700 mb-2">
+              Nama Lengkap <span className="text-gray-500 text-xs">(Opsional)</span>
             </label>
             <div className="relative">
               <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
               <input
-                {...register('username', {
-                  minLength: {
-                    value: 3,
-                    message: 'Username minimal 3 karakter'
-                  },
-                  pattern: {
-                    value: /^[a-zA-Z0-9_ ]+$/,
-                    message: 'Username hanya boleh mengandung huruf, angka, spasi, dan underscore'
-                  }
-                })}
-                type="text"
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
-                placeholder="Masukkan nama tampilan Anda (opsional)"
-              />
-            </div>
-            {errors.username && (
-              <p className="mt-1 text-sm text-red-600 flex items-center">
-                <svg className="h-4 w-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                </svg>
-                {errors.username.message}
-              </p>
-            )}
-          </div>
-
-          <div>
-            <label htmlFor="schoolName" className="block text-sm font-medium text-gray-700 mb-2">
-              Nama Sekolah <span className="text-gray-500 text-xs">(Optional)</span>
-            </label>
-            <div className="relative">
-              <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-              </svg>
-              <input
-                {...register('schoolName', {
+                {...register('displayName', {
                   minLength: {
                     value: 2,
-                    message: 'Nama sekolah minimal 2 karakter'
+                    message: 'Nama lengkap minimal 2 karakter'
                   },
                   pattern: {
-                    value: /^[a-zA-Z0-9\s\-.,'&()]+$/,
-                    message: 'Nama sekolah hanya boleh mengandung huruf, angka, spasi, dan simbol -.,\'&()'
+                    value: /^[a-zA-Z\s]+$/,
+                    message: 'Nama hanya boleh mengandung huruf dan spasi'
                   }
                 })}
                 type="text"
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
-                placeholder="Masukkan nama sekolah Anda (opsional)"
+                placeholder="Masukkan nama lengkap Anda (opsional)"
               />
             </div>
-            {errors.schoolName && (
+            {errors.displayName && (
               <p className="mt-1 text-sm text-red-600 flex items-center">
                 <svg className="h-4 w-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                 </svg>
-                {errors.schoolName.message}
+                {errors.displayName.message}
               </p>
             )}
           </div>
@@ -198,24 +221,8 @@ const Register = ({ onRegister }: RegisterProps) => {
               </p>
             )}
              
-            {/* Simple Password Requirements */}
-            <div className="mt-3 p-3 bg-gray-50 border border-gray-200 rounded-lg">
-              <p className="text-xs text-gray-600 mb-2 font-medium">Syarat Password:</p>
-              <ul className="space-y-1">
-                <li className="flex items-center text-xs text-gray-500">
-                  <svg className="h-4 w-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <circle cx="12" cy="12" r="10" strokeWidth="2" />
-                  </svg>
-                  Minimal 8 karakter
-                </li>
-                <li className="flex items-center text-xs text-gray-500">
-                  <svg className="h-4 w-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <circle cx="12" cy="12" r="10" strokeWidth="2" />
-                  </svg>
-                  Mengandung huruf dan angka
-                </li>
-              </ul>
-            </div>
+            {/* Password Strength Indicator */}
+            <PasswordStrengthIndicator password={password} showRequirements={true} />
           </div>
 
           <div>
