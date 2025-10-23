@@ -2,7 +2,8 @@ import type { Metadata, Viewport } from 'next'
 import { GeistSans } from 'geist/font/sans'
 import { GeistMono } from 'geist/font/mono'
 import { Plus_Jakarta_Sans } from 'next/font/google'
-import { AuthProvider } from '../contexts/AuthContext'
+import { AppProvider } from '../providers/AppProvider'
+import AuthLayoutWrapper from '../components/auth/AuthLayoutWrapper'
 
 // Optimized font loading dengan preload dan display swap
 const plusJakartaSans = Plus_Jakarta_Sans({
@@ -11,6 +12,9 @@ const plusJakartaSans = Plus_Jakarta_Sans({
   preload: true,
   variable: '--font-plus-jakarta',
   weight: ['300', '400', '500', '600', '700'],
+  // Font optimization: reduce font weight variations for better performance
+  fallback: ['system-ui', 'arial', 'sans-serif'],
+  adjustFontFallback: true,
 })
 import './globals.css'
 
@@ -72,9 +76,11 @@ html {
         `}</style>
       </head>
       <body className={`${GeistSans.variable} ${GeistMono.variable} ${plusJakartaSans.variable}`}>
-        <AuthProvider>
-          {children}
-        </AuthProvider>
+        <AppProvider>
+          <AuthLayoutWrapper>
+            {children}
+          </AuthLayoutWrapper>
+        </AppProvider>
       </body>
     </html>
   )

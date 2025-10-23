@@ -1,5 +1,12 @@
 import { Metadata } from 'next';
-import DashboardClient from '../../components/dashboard/DashboardClient';
+import dynamicImport from 'next/dynamic';
+import { LoadingSkeleton } from '../../components/shared';
+
+// Dynamic import for DashboardClient to improve bundle size
+const DashboardClient = dynamicImport(() => import('../../components/dashboard/DashboardClient'), {
+  loading: () => <LoadingSkeleton />,
+  ssr: true // Enable SSR for dashboard to improve initial load
+});
 
 // Static data that can be pre-generated
 interface DashboardStaticData {

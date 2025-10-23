@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { UserProfile, ProfileFormData, PasswordFormData } from '../../types/profile';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuthStore } from '../../stores/useAuthStore';
 import ProfileLoading from './ProfileLoading';
 import ProfileCard from './ProfileCard';
 import SecurityCard from './SecurityCard';
@@ -18,7 +18,7 @@ export default function ProfilePage() {
     deleteAccount,
     error: authError,
     clearError
-  } = useAuth();
+  } = useAuthStore();
 
   // State management
   const [isEditing, setIsEditing] = useState(false);

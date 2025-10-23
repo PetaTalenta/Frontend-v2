@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState, useRef, useEffect, Suspense } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { Button } from '../ui/button';
 import { Card } from '../ui/card';
 import { toast } from './ui-use-toast';
+import OptimizedChart from '../ui/OptimizedChart';
 import {
   AssessmentResult,
   AssessmentScores,
@@ -512,13 +513,21 @@ function ResultsPageClientComponent({ initialResult, resultId }: ResultsPageClie
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Radar Chart - Left */}
               <div ref={radarChartRef}>
-                <SafeAssessmentRadarChart scores={scores} />
+                <OptimizedChart
+                  type="radar"
+                  data={scores}
+                  className="w-full"
+                  lazy={true}
+                />
               </div>
 
               {/* Assessment Scores Summary - Right */}
-              <AssessmentScoresSummary
-                scores={scores}
-                resultId={dummyResultId}
+              <OptimizedChart
+                type="simple-assessment"
+                data={scores}
+                config={{ resultId: dummyResultId }}
+                className="w-full"
+                lazy={true}
               />
             </div>
           )}

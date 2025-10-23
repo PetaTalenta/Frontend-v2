@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuthStore } from '../../stores/useAuthStore';
 import { useRouter } from 'next/navigation';
 
 interface LogoutButtonProps {
@@ -17,7 +17,7 @@ const LogoutButton: React.FC<LogoutButtonProps> = ({
   variant = 'button',
   onClick 
 }) => {
-  const { logout, isLoading } = useAuth();
+  const { logout, isLoading } = useAuthStore();
   const router = useRouter();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 

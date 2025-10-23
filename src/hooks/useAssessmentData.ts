@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { AssessmentResult } from '../data/dummy-assessment-data';
 
 // Interface untuk API response
@@ -124,23 +124,23 @@ export const useStaticData = <T>(fetcher: () => Promise<T>, dependencies: any[] 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const result = await fetcher();
-        setData(result);
-      } catch (err) {
-        console.error('Error fetching static data:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load data');
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const result = await fetcher();
+      setData(result);
+    } catch (err) {
+      console.error('Error fetching static data:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load data');
+    } finally {
+      setLoading(false);
+    }
+  }, [fetcher]);
 
+  useEffect(() => {
     fetchData();
-  }, dependencies);
+  }, [fetchData]);
 
   return { data, loading, error };
 };
