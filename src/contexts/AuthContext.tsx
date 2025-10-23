@@ -1,12 +1,12 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import authService, { 
-  LoginData, 
-  RegisterData, 
-  UpdateProfileData, 
+import React, { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
+import authService, {
+  LoginData,
+  RegisterData,
+  UpdateProfileData,
   ProfileResponse,
-  ApiError 
+  ApiError
 } from '../services/authService';
 
 // Types untuk user data
@@ -64,28 +64,38 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // Check authentication status on mount
   useEffect(() => {
+    let isMounted = true;
+    
     const initAuth = async () => {
       try {
         if (authService.isAuthenticated()) {
           const userData = authService.getCurrentUser();
-          if (userData) {
+          if (userData && isMounted) {
             setUser(userData);
             await loadProfile();
           }
         }
       } catch (err) {
-        console.error('Error initializing auth:', err);
-        setError('Failed to initialize authentication');
+        if (isMounted) {
+          console.error('Error initializing auth:', err);
+          setError('Failed to initialize authentication');
+        }
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
 
     initAuth();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // Load profile data
-  const loadProfile = async () => {
+  const loadProfile = useCallback(async () => {
     try {
       const profileData = await authService.getProfile();
       setProfile(profileData);
@@ -93,7 +103,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.error('Error loading profile:', err);
       // Don't set error for profile loading failure, as it's not critical
     }
-  };
+  }, []);
 
   // Login function
   const login = async (data: LoginData) => {
@@ -223,9 +233,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   // Clear error function
-  const clearError = () => {
+  const clearError = useCallback(() => {
     setError(null);
-  };
+  }, []);
 
   // Context value
   const value: AuthContextType = {

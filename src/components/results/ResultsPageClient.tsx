@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect, Suspense } from 'react';
+import React, { useState, useRef, useEffect, Suspense, useMemo, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { Button } from '../ui/button';
@@ -17,6 +17,7 @@ import PersonaProfileSummary from './PersonaProfileSummary';
 import AssessmentScoresSummary from './AssessmentScoresSummary';
 import ResultSummaryStats from './ResultSummaryStats';
 import VisualSummary from './VisualSummary';
+import { removeDebounced, flushDebounced } from '../../utils/localStorageUtils';
 
 // Dynamic imports for chart components to improve compilation performance
 const AssessmentRadarChart = dynamic(() => import('./AssessmentRadarChart'), {
@@ -175,9 +176,9 @@ function ResultsPageClientComponent({ initialResult, resultId }: ResultsPageClie
   const searchParams = useSearchParams();
   
   // Use dummy data if no result provided
-  const dummyResult = getDummyAssessmentResult();
+  const dummyResult = useMemo(() => getDummyAssessmentResult(), []);
   const assessmentResult = initialResult || dummyResult;
-  const dummyResultId = resultId || dummyResult.id;
+  const dummyResultId = useMemo(() => resultId || dummyResult.id, [resultId, dummyResult.id]);
   
   const [result, setResult] = useState<AssessmentResult>(assessmentResult);
   const [exporting, setExporting] = useState(false);
@@ -196,15 +197,18 @@ function ResultsPageClientComponent({ initialResult, resultId }: ResultsPageClie
   // Clear assessment data when results are displayed (run once on mount)
   // Safe approach: Clear directly without depending on AssessmentProvider
   useEffect(() => {
-    // Clear assessment data directly from localStorage
+    // Clear assessment data using debounced localStorage utility
     if (typeof window !== 'undefined') {
       try {
-        window.localStorage.removeItem('assessment-answers');
-        window.localStorage.removeItem('assessment-current-section-index');
-        window.localStorage.removeItem('assessment-name');
-        window.localStorage.removeItem('assessment-submission-time');
-        window.localStorage.removeItem('flagged-questions-encrypted');
-        window.localStorage.removeItem('flagged-questions');
+        removeDebounced('assessment-answers');
+        removeDebounced('assessment-current-section-index');
+        removeDebounced('assessment-name');
+        removeDebounced('assessment-submission-time');
+        removeDebounced('flagged-questions-encrypted');
+        removeDebounced('flagged-questions');
+        
+        // Flush immediately to ensure data is cleared
+        flushDebounced();
       } catch (e) {
         console.error('Failed to clear assessment data:', e);
       }
@@ -212,7 +216,7 @@ function ResultsPageClientComponent({ initialResult, resultId }: ResultsPageClie
   }, []); // Empty dependency array = run only once on mount
 
   // Helper function to extract scores from assessment_data
-  const extractScores = (assessmentData: any): AssessmentScores | null => {
+  const extractScores = useCallback((assessmentData: any): AssessmentScores | null => {
     if (!assessmentData) {
       return null;
     }
@@ -228,18 +232,18 @@ function ResultsPageClientComponent({ initialResult, resultId }: ResultsPageClie
     }
 
     return null;
-  };
+  }, []);
 
   // Extract scores once to avoid multiple calls
-  const scores = extractScores(result.assessment_data);
+  const scores = useMemo(() => extractScores(result.assessment_data), [extractScores, result.assessment_data]);
 
-  const handleBack = () => {
+  const handleBack = useCallback(() => {
     router.push('/dashboard');
-  };
+  }, [router]);
 
 
   // Toggle public/private status (removed API calls)
-  const handleTogglePublic = async () => {
+  const handleTogglePublic = useCallback(async () => {
     setIsTogglingPublic(true);
     try {
       const nextPublic = !isPublic;
@@ -259,10 +263,10 @@ function ResultsPageClientComponent({ initialResult, resultId }: ResultsPageClie
     } finally {
       setIsTogglingPublic(false);
     }
-  };
+  }, [isPublic]);
 
   // Share link (copy/share)
-  const handleShare = async () => {
+  const handleShare = useCallback(async () => {
     const url = window.location.href;
     if (navigator.share) {
       try {
@@ -278,9 +282,9 @@ function ResultsPageClientComponent({ initialResult, resultId }: ResultsPageClie
     } else {
       copyToClipboard(url);
     }
-  };
+  }, [result.persona_profile?.archetype]);
 
-  const copyToClipboard = (text: string) => {
+  const copyToClipboard = useCallback((text: string) => {
     navigator.clipboard.writeText(text).then(() => {
       toast({
         title: "Link disalin!",
@@ -293,9 +297,9 @@ function ResultsPageClientComponent({ initialResult, resultId }: ResultsPageClie
         variant: "destructive",
       });
     });
-  };
+  }, []);
 
-  const handleExportPDF = async () => {
+  const handleExportPDF = useCallback(async () => {
     try {
       setExporting(true);
       setExportType('pdf');
@@ -317,9 +321,9 @@ function ResultsPageClientComponent({ initialResult, resultId }: ResultsPageClie
       setExporting(false);
       setExportType('');
     }
-  };
+  }, []);
 
-  const handleScreenshot = async () => {
+  const handleScreenshot = useCallback(async () => {
     try {
       setScreenshotting(true);
 
@@ -339,21 +343,21 @@ function ResultsPageClientComponent({ initialResult, resultId }: ResultsPageClie
     } finally {
       setScreenshotting(false);
     }
-  };
+  }, []);
 
-  const handleChatbot = () => {
+  const handleChatbot = useCallback(() => {
     try {
       if (typeof window !== 'undefined' && result) {
         // Cache assessment result so Chat AI page can read it without refetching
-        sessionStorage.setItem(`assessmentResult:${resultId}`, JSON.stringify(result));
+        sessionStorage.setItem(`assessmentResult:${dummyResultId}`, JSON.stringify(result));
       }
     } catch (e) {
       console.warn('Failed to cache assessment result for chat:', e);
     }
-    router.push(`/results/${resultId}/chat`);
-  };
+    router.push(`/results/${dummyResultId}/chat`);
+  }, [result, dummyResultId, router]);
 
-  const handleRetrySubmit = async () => {
+  const handleRetrySubmit = useCallback(async () => {
     try {
       setRetrying(true);
 
@@ -372,7 +376,7 @@ function ResultsPageClientComponent({ initialResult, resultId }: ResultsPageClie
     } finally {
       setRetrying(false);
     }
-  };
+  }, []);
 
   if (!result) {
     return (

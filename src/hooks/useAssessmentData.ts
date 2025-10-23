@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { AssessmentResult } from '../data/dummy-assessment-data';
 
 // Interface untuk API response
@@ -20,6 +20,9 @@ export const useAssessmentData = (id: string) => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let isMounted = true;
+    let abortController: AbortController | null = null;
+
     const fetchData = async () => {
       try {
         setLoading(true);
@@ -28,6 +31,9 @@ export const useAssessmentData = (id: string) => {
         if (!id) {
           throw new Error('Assessment ID is required');
         }
+
+        // Create abort controller for cleanup
+        abortController = new AbortController();
 
         // Try to fetch from API first
         let result: AssessmentResult | null = null;
@@ -38,49 +44,67 @@ export const useAssessmentData = (id: string) => {
             headers: {
               'Content-Type': 'application/json',
             },
+            signal: abortController.signal,
             // Add cache control for better performance
-            next: { 
+            next: {
               revalidate: 3600, // Revalidate every hour
               tags: [`assessment-result-${id}`]
             }
           });
 
-          if (response.ok) {
+          if (response.ok && isMounted) {
             const json: ApiResponse = await response.json();
             if (json.success && json.data) {
               result = json.data;
             }
           }
-        } catch (apiError) {
-          console.warn('API fetch failed, using dummy data:', apiError);
+        } catch (apiError: any) {
+          if (apiError.name !== 'AbortError') {
+            console.warn('API fetch failed, using dummy data:', apiError);
+          }
         }
 
         // Fallback to dummy data if API fails
-        if (!result) {
+        if (!result && isMounted) {
           result = getDummyAssessmentResult();
           console.log('Using dummy assessment data for result ID:', id);
         }
 
-        setData(result);
-      } catch (err) {
-        console.error('Error fetching assessment data:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load assessment result');
-        
-        // Still set dummy data as fallback
-        const dummyResult = getDummyAssessmentResult();
-        setData(dummyResult);
+        if (isMounted) {
+          setData(result);
+        }
+      } catch (err: any) {
+        if (err.name !== 'AbortError' && isMounted) {
+          console.error('Error fetching assessment data:', err);
+          setError(err instanceof Error ? err.message : 'Failed to load assessment result');
+          
+          // Still set dummy data as fallback
+          const dummyResult = getDummyAssessmentResult();
+          setData(dummyResult);
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
     if (id) {
       fetchData();
     }
+
+    return () => {
+      isMounted = false;
+      if (abortController) {
+        abortController.abort();
+      }
+    };
   }, [id]);
 
-  const refetch = async () => {
+  const refetch = useCallback(async () => {
     if (!id) return;
+    
+    let isMounted = true;
     
     try {
       setLoading(true);
@@ -94,7 +118,7 @@ export const useAssessmentData = (id: string) => {
         cache: 'no-store', // Bypass cache for refetch
       });
 
-      if (response.ok) {
+      if (response.ok && isMounted) {
         const json: ApiResponse = await response.json();
         if (json.success && json.data) {
           setData(json.data);
@@ -103,12 +127,20 @@ export const useAssessmentData = (id: string) => {
         throw new Error(`Failed to fetch: ${response.status}`);
       }
     } catch (err) {
-      console.error('Error refetching assessment data:', err);
-      setError(err instanceof Error ? err.message : 'Failed to refetch assessment result');
+      if (isMounted) {
+        console.error('Error refetching assessment data:', err);
+        setError(err instanceof Error ? err.message : 'Failed to refetch assessment result');
+      }
     } finally {
-      setLoading(false);
+      if (isMounted) {
+        setLoading(false);
+      }
     }
-  };
+
+    return () => {
+      isMounted = false;
+    };
+  }, [id]);
 
   return { 
     data, 

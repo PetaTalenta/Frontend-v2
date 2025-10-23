@@ -1,4 +1,5 @@
-import { useState, createContext, useContext, ReactNode } from 'react';
+import { useState, createContext, useContext, ReactNode, useEffect, useCallback } from 'react';
+import { setDebounced, getDebounced, removeDebounced } from '../utils/localStorageUtils';
 
 interface FlaggedQuestionsContextType {
   flaggedQuestions: Set<number>;
@@ -25,7 +26,25 @@ interface FlaggedQuestionsProviderProps {
 export function FlaggedQuestionsProvider({ children }: FlaggedQuestionsProviderProps) {
   const [flaggedQuestions, setFlaggedQuestions] = useState<Set<number>>(new Set());
 
-  const toggleFlag = (questionId: number) => {
+  // Load flagged questions from localStorage on mount
+  useEffect(() => {
+    try {
+      const saved = getDebounced('flagged-questions');
+      if (saved && Array.isArray(saved)) {
+        setFlaggedQuestions(new Set(saved));
+      }
+    } catch (error) {
+      console.error('Error loading flagged questions from localStorage:', error);
+    }
+  }, []);
+
+  // Save flagged questions to localStorage whenever they change
+  useEffect(() => {
+    const flaggedArray = Array.from(flaggedQuestions);
+    setDebounced('flagged-questions', flaggedArray);
+  }, [flaggedQuestions]);
+
+  const toggleFlag = useCallback((questionId: number) => {
     setFlaggedQuestions(prev => {
       const newSet = new Set(prev);
       if (newSet.has(questionId)) {
@@ -35,19 +54,19 @@ export function FlaggedQuestionsProvider({ children }: FlaggedQuestionsProviderP
       }
       return newSet;
     });
-  };
+  }, []);
 
-  const isFlagged = (questionId: number) => {
+  const isFlagged = useCallback((questionId: number) => {
     return flaggedQuestions.has(questionId);
-  };
+  }, [flaggedQuestions]);
 
-  const getFlaggedQuestions = () => {
+  const getFlaggedQuestions = useCallback(() => {
     return Array.from(flaggedQuestions);
-  };
+  }, [flaggedQuestions]);
 
-  const clearAllFlags = () => {
+  const clearAllFlags = useCallback(() => {
     setFlaggedQuestions(new Set());
-  };
+  }, []);
 
   const value = {
     flaggedQuestions,

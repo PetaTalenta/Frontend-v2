@@ -23,12 +23,16 @@ interface Props {
   fallback?: ReactNode;
   onError?: (error: Error, errorInfo: ErrorInfo) => void;
   resetKeys?: Array<string | number>;
+  maxRetries?: number;
+  retryDelay?: number;
 }
 
 interface State {
   hasError: boolean;
   error?: Error;
   errorInfo?: ErrorInfo;
+  retryCount: number;
+  isRetrying: boolean;
 }
 
 /**
@@ -36,16 +40,23 @@ interface State {
  * Catches errors in child components and displays fallback UI
  */
 export class ErrorBoundary extends Component<Props, State> {
+  private retryTimeoutId: NodeJS.Timeout | null = null;
+
   constructor(props: Props) {
     super(props);
-    this.state = { hasError: false };
+    this.state = {
+      hasError: false,
+      retryCount: 0,
+      isRetrying: false
+    };
   }
 
-  static getDerivedStateFromError(error: Error): State {
+  static getDerivedStateFromError(error: Error): Partial<State> {
     // Update state so the next render will show the fallback UI
     return {
       hasError: true,
-      error
+      error,
+      isRetrying: false
     };
   }
 
@@ -57,7 +68,8 @@ export class ErrorBoundary extends Component<Props, State> {
     // Store error info in state
     this.setState({
       error,
-      errorInfo
+      errorInfo,
+      isRetrying: false
     });
 
     // Call custom error handler if provided
@@ -91,9 +103,47 @@ export class ErrorBoundary extends Component<Props, State> {
     this.setState({
       hasError: false,
       error: undefined,
-      errorInfo: undefined
+      errorInfo: undefined,
+      retryCount: 0,
+      isRetrying: false
     });
   };
+
+  retryWithBackoff = () => {
+    const { maxRetries = 3, retryDelay = 1000 } = this.props;
+    const { retryCount } = this.state;
+
+    if (retryCount >= maxRetries) {
+      console.log('Max retries reached, giving up');
+      this.setState({ isRetrying: false });
+      return;
+    }
+
+    // Calculate exponential backoff delay
+    const delay = retryDelay * Math.pow(2, retryCount);
+    const maxDelay = 30000; // Cap at 30 seconds
+    const finalDelay = Math.min(delay, maxDelay);
+
+    console.log(`Retrying in ${finalDelay}ms (attempt ${retryCount + 1}/${maxRetries})`);
+    
+    this.setState({ isRetrying: true });
+
+    this.retryTimeoutId = setTimeout(() => {
+      this.setState(prevState => ({
+        hasError: false,
+        error: undefined,
+        errorInfo: undefined,
+        retryCount: prevState.retryCount + 1,
+        isRetrying: false
+      }));
+    }, finalDelay);
+  };
+
+  componentWillUnmount() {
+    if (this.retryTimeoutId) {
+      clearTimeout(this.retryTimeoutId);
+    }
+  }
 
   render() {
     if (this.state.hasError) {
@@ -151,10 +201,19 @@ export class ErrorBoundary extends Component<Props, State> {
 
             <div className="flex gap-3">
               <button
-                onClick={this.reset}
-                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium"
+                onClick={() => this.retryWithBackoff()}
+                disabled={this.state.isRetrying || this.state.retryCount >= (this.props.maxRetries || 3)}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium"
               >
-                Try again
+                {this.state.isRetrying ? 'Retrying...' :
+                 this.state.retryCount >= (this.props.maxRetries || 3) ? 'Max retries reached' :
+                 `Try again (${this.state.retryCount + 1}/${this.props.maxRetries || 3})`}
+              </button>
+              <button
+                onClick={this.reset}
+                className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors font-medium"
+              >
+                Reset
               </button>
               <button
                 onClick={() => window.location.href = '/'}

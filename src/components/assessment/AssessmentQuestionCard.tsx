@@ -1,9 +1,9 @@
 "use client";
 
-import React from "react";
+import React, { useCallback, memo } from "react";
 import { useFlaggedQuestions } from "../../hooks/useFlaggedQuestions";
 
-export default function AssessmentQuestionCard({
+const AssessmentQuestionCard = memo(function AssessmentQuestionCard({
   question,
   scaleConfig,
   scaleLabels,
@@ -24,9 +24,13 @@ export default function AssessmentQuestionCard({
   const { toggleFlag, isFlagged } = useFlaggedQuestions();
   const isQuestionFlagged = isFlagged(question.id);
 
-  const handleFlagToggle = () => {
+  const handleFlagToggle = useCallback(() => {
     toggleFlag(question.id);
-  };
+  }, [toggleFlag, question.id]);
+
+  const handleAnswerSelect = useCallback((value: number) => {
+    onAnswer && onAnswer(value);
+  }, [onAnswer]);
   return (
     <div className={`bg-white rounded-xl shadow p-4 sm:p-6 lg:p-10 w-full max-w-[1400px] mx-auto flex flex-col gap-4 sm:gap-6 lg:gap-8 mb-4 sm:mb-6 lg:mb-8 ${
       navigationButtons ? 'min-h-[400px] sm:min-h-[460px] lg:min-h-[520px]' : 'min-h-[300px] sm:min-h-[340px] lg:min-h-[390px]'
@@ -70,7 +74,7 @@ export default function AssessmentQuestionCard({
             <div className="flex sm:hidden">
               <button
                 type="button"
-                onClick={() => onAnswer && onAnswer(value)}
+                onClick={() => handleAnswerSelect(value)}
                 className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-200 flex-shrink-0 ${
                   selectedAnswer === value
                     ? 'border-[#6475e9] bg-[#6475e9]'
@@ -88,7 +92,7 @@ export default function AssessmentQuestionCard({
                 name={`answer-${question.id}`}
                 value={value}
                 checked={selectedAnswer === value}
-                onChange={() => onAnswer && onAnswer(value)}
+                onChange={() => handleAnswerSelect(value)}
                 className="sr-only"
               />
             </div>
@@ -111,7 +115,7 @@ export default function AssessmentQuestionCard({
             <div className="hidden sm:flex sm:items-center sm:justify-center mt-2">
               <button
                 type="button"
-                onClick={() => onAnswer && onAnswer(value)}
+                onClick={() => handleAnswerSelect(value)}
                 className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-200 flex-shrink-0 ${
                   selectedAnswer === value
                     ? 'border-[#6475e9] bg-[#6475e9]'
@@ -129,7 +133,7 @@ export default function AssessmentQuestionCard({
                 name={`answer-${question.id}`}
                 value={value}
                 checked={selectedAnswer === value}
-                onChange={() => onAnswer && onAnswer(value)}
+                onChange={() => handleAnswerSelect(value)}
                 className="sr-only"
                 tabIndex={-1}
                 aria-hidden="true"
@@ -151,4 +155,6 @@ export default function AssessmentQuestionCard({
       )}
     </div>
   );
-}
+});
+
+export default AssessmentQuestionCard;

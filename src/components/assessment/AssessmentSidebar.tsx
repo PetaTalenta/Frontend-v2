@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useMemo, memo } from 'react';
 import { useRouter } from 'next/navigation';
 import { assessmentTypes } from '../../data/assessmentQuestions';
 import { Send } from 'lucide-react';
@@ -11,7 +11,7 @@ interface AssessmentSidebarProps {
   onToggle?: () => void;
 }
 
-export default function AssessmentSidebar({ isOpen = false, onToggle }: AssessmentSidebarProps) {
+const AssessmentSidebar = memo(function AssessmentSidebar({ isOpen = false, onToggle }: AssessmentSidebarProps) {
   const router = useRouter();
   
   // Dummy state for assessment progress
@@ -49,38 +49,50 @@ export default function AssessmentSidebar({ isOpen = false, onToggle }: Assessme
     }
   };
 
-  // Get Big Five categories for Phase 1 display
-  const bigFiveAssessment = assessmentTypes[0];
-  const bigFiveGrouped = bigFiveAssessment.questions.reduce((acc: any, q: any) => {
-    acc[q.category] = acc[q.category] || [];
-    acc[q.category].push(q);
-    return acc;
-  }, {});
-  const bigFiveCategories = ['Openness to Experience', 'Conscientiousness', 'Extraversion', 'Agreeableness', 'Neuroticism'];
+  // Memoize assessment data grouping
+  const assessmentData = useMemo(() => {
+    // Get Big Five categories for Phase 1 display
+    const bigFiveAssessment = assessmentTypes[0];
+    const bigFiveGrouped = bigFiveAssessment.questions.reduce((acc: any, q: any) => {
+      acc[q.category] = acc[q.category] || [];
+      acc[q.category].push(q);
+      return acc;
+    }, {});
+    const bigFiveCategories = ['Openness to Experience', 'Conscientiousness', 'Extraversion', 'Agreeableness', 'Neuroticism'];
 
-  // Get RIASEC categories for Phase 2 display
-  const riasecAssessment = assessmentTypes[1];
-  const riasecGrouped = riasecAssessment.questions.reduce((acc: any, q: any) => {
-    acc[q.category] = acc[q.category] || [];
-    acc[q.category].push(q);
-    return acc;
-  }, {});
-  const riasecCategories = ['Realistic', 'Investigative', 'Artistic', 'Social', 'Enterprising', 'Conventional'];
+    // Get RIASEC categories for Phase 2 display
+    const riasecAssessment = assessmentTypes[1];
+    const riasecGrouped = riasecAssessment.questions.reduce((acc: any, q: any) => {
+      acc[q.category] = acc[q.category] || [];
+      acc[q.category].push(q);
+      return acc;
+    }, {});
+    const riasecCategories = ['Realistic', 'Investigative', 'Artistic', 'Social', 'Enterprising', 'Conventional'];
 
-  // Get VIA categories for Phase 3 display
-  const viaAssessment = assessmentTypes[2];
-  const viaGrouped = viaAssessment.questions.reduce((acc: any, q: any) => {
-    acc[q.category] = acc[q.category] || [];
-    acc[q.category].push(q);
-    return acc;
-  }, {});
-  const viaCategories = ['Wisdom', 'Courage', 'Humanity', 'Justice', 'Temperance', 'Transcendence'];
+    // Get VIA categories for Phase 3 display
+    const viaAssessment = assessmentTypes[2];
+    const viaGrouped = viaAssessment.questions.reduce((acc: any, q: any) => {
+      acc[q.category] = acc[q.category] || [];
+      acc[q.category].push(q);
+      return acc;
+    }, {});
+    const viaCategories = ['Wisdom', 'Courage', 'Humanity', 'Justice', 'Temperance', 'Transcendence'];
 
-  const handlePhaseClick = (assessmentIndex: number) => {
+    return {
+      bigFiveGrouped,
+      bigFiveCategories,
+      riasecGrouped,
+      riasecCategories,
+      viaGrouped,
+      viaCategories
+    };
+  }, []);
+
+  const handlePhaseClick = useCallback((assessmentIndex: number) => {
     console.log(`Navigate to phase ${assessmentIndex + 1}`);
     setCurrentAssessmentIndex(assessmentIndex);
     setCurrentSectionIndex(0);
-  };
+  }, []);
 
   // Dummy helper functions
   const isPhaseAccessible = (assessmentIndex: number) => {
@@ -88,7 +100,7 @@ export default function AssessmentSidebar({ isOpen = false, onToggle }: Assessme
     return true;
   };
 
-  const getSectionStatus = (assessmentIndex: number, sectionIndex: number) => {
+  const getSectionStatus = useCallback((assessmentIndex: number, sectionIndex: number) => {
     const isComplete = Math.random() > 0.5; // Random completion status for demo
     const isActive = currentAssessmentIndex === assessmentIndex && currentSectionIndex === sectionIndex;
 
@@ -99,23 +111,23 @@ export default function AssessmentSidebar({ isOpen = false, onToggle }: Assessme
       isNext: !isActive && !isComplete,
       reason: ''
     };
-  };
+  }, [currentAssessmentIndex, currentSectionIndex]);
 
-  const getQuestionsInSection = (assessmentIndex: number, sectionIndex: number) => {
+  const getQuestionsInSection = useCallback((assessmentIndex: number, sectionIndex: number) => {
     let questionsInSection = [];
     
     if (assessmentIndex === 0) {
       // Big Five
-      const category = bigFiveCategories[sectionIndex];
-      questionsInSection = bigFiveGrouped[category] || [];
+      const category = assessmentData.bigFiveCategories[sectionIndex];
+      questionsInSection = assessmentData.bigFiveGrouped[category] || [];
     } else if (assessmentIndex === 1) {
       // RIASEC
-      const category = riasecCategories[sectionIndex];
-      questionsInSection = riasecGrouped[category] || [];
+      const category = assessmentData.riasecCategories[sectionIndex];
+      questionsInSection = assessmentData.riasecGrouped[category] || [];
     } else if (assessmentIndex === 2) {
       // VIA Character Strengths
-      const category = viaCategories[sectionIndex];
-      questionsInSection = viaGrouped[category] || [];
+      const category = assessmentData.viaCategories[sectionIndex];
+      questionsInSection = assessmentData.viaGrouped[category] || [];
     }
     
     return questionsInSection.map((q: any, index: number) => ({
@@ -123,18 +135,18 @@ export default function AssessmentSidebar({ isOpen = false, onToggle }: Assessme
       questionNumber: index + 1,
       isAnswered: answers[q.id] != null || Math.random() > 0.6 // Random answer status for demo
     }));
-  };
+  }, [assessmentData, answers]);
 
-  const scrollToQuestion = (questionId: number) => {
+  const scrollToQuestion = useCallback((questionId: number) => {
     console.log(`Scroll to question ${questionId}`);
     // Dummy scroll function
-  };
+  }, []);
 
-  const handleQuestionClick = (questionId: number) => {
+  const handleQuestionClick = useCallback((questionId: number) => {
     scrollToQuestion(questionId);
-  };
+  }, [scrollToQuestion]);
 
-  const getFlaggedQuestionsDetails = () => {
+  const getFlaggedQuestionsDetails = useCallback(() => {
     // Dummy flagged questions
     return [
       {
@@ -148,22 +160,22 @@ export default function AssessmentSidebar({ isOpen = false, onToggle }: Assessme
         isAnswered: true
       }
     ];
-  };
+  }, []);
 
-  const handleFlaggedQuestionClick = (questionDetail: any) => {
+  const handleFlaggedQuestionClick = useCallback((questionDetail: any) => {
     console.log('Navigate to flagged question:', questionDetail);
     setCurrentAssessmentIndex(questionDetail.assessmentIndex);
     setCurrentSectionIndex(questionDetail.sectionIndex);
     setShowFlaggedPopup(false);
-  };
+  }, []);
 
-  const handleSectionClick = (assessmentIndex: number, sectionIndex: number) => {
+  const handleSectionClick = useCallback((assessmentIndex: number, sectionIndex: number) => {
     console.log(`Navigate to section ${sectionIndex} in assessment ${assessmentIndex}`);
     setCurrentAssessmentIndex(assessmentIndex);
     setCurrentSectionIndex(sectionIndex);
-  };
+  }, []);
 
-  const getSectionProgress = (assessmentIndex: number, sectionIndex?: number) => {
+  const getSectionProgress = useCallback((assessmentIndex: number, sectionIndex?: number) => {
     const assessment = assessmentTypes[assessmentIndex];
     if (sectionIndex !== undefined) {
       // Dummy section progress
@@ -176,7 +188,7 @@ export default function AssessmentSidebar({ isOpen = false, onToggle }: Assessme
       const answeredInAssessment = Math.floor(questionsInAssessment.length * 0.6);
       return { answered: answeredInAssessment, total: questionsInAssessment.length };
     }
-  };
+  }, []);
 
   // Use shared flagged questions state
   const { getFlaggedQuestions } = useFlaggedQuestions();
@@ -186,18 +198,18 @@ export default function AssessmentSidebar({ isOpen = false, onToggle }: Assessme
     return { allComplete: true, message: '' };
   };
 
-  const handleDebugFillCurrent = () => {
+  const handleDebugFillCurrent = useCallback(() => {
     console.log('Debug: Fill current assessment');
     alert('Debug: Semua soal assessment saat ini telah diisi otomatis!');
-  };
+  }, []);
 
-  const handleDebugFillAll = () => {
+  const handleDebugFillAll = useCallback(() => {
     const confirmed = confirm('Debug: Apakah Anda yakin ingin mengisi SEMUA assessment dengan jawaban acak?');
     if (confirmed) {
       console.log('Debug: Fill all assessments');
       alert('Debug: Semua assessment telah diisi otomatis dengan jawaban acak!');
     }
-  };
+  }, []);
 
   const toast = {
     warning: (title: string, options?: any) => {
@@ -301,7 +313,7 @@ export default function AssessmentSidebar({ isOpen = false, onToggle }: Assessme
         {/* Sub-phases for Big Five */}
         {currentAssessmentIndex === 0 && (
           <div className="flex flex-col gap-2" onClick={(e) => e.stopPropagation()}>
-            {bigFiveCategories.map((category, index) => {
+            {assessmentData.bigFiveCategories.map((category: string, index: number) => {
               const sectionProgress = getSectionProgress(0, index);
               const categoryNames: Record<string, string> = {
                 'Openness to Experience': 'Openness to Experience',
@@ -446,7 +458,7 @@ export default function AssessmentSidebar({ isOpen = false, onToggle }: Assessme
         {/* Sub-phases for RIASEC */}
         {currentAssessmentIndex === 1 && (
           <div className="flex flex-col gap-2" onClick={(e) => e.stopPropagation()}>
-            {riasecCategories.map((category, index) => {
+            {assessmentData.riasecCategories.map((category: string, index: number) => {
               const sectionProgress = getSectionProgress(1, index);
               const categoryNames: Record<string, string> = {
                 'Realistic': 'Realistic',
@@ -593,7 +605,7 @@ export default function AssessmentSidebar({ isOpen = false, onToggle }: Assessme
         {/* Sub-phases for VIA Character Strengths */}
         {currentAssessmentIndex === 2 && (
           <div className="flex flex-col gap-2" onClick={(e) => e.stopPropagation()}>
-            {viaCategories.map((category, index) => {
+            {assessmentData.viaCategories.map((category: string, index: number) => {
               const sectionProgress = getSectionProgress(2, index);
               const categoryNames: Record<string, string> = {
                 'Wisdom': 'Wisdom',
@@ -890,4 +902,6 @@ export default function AssessmentSidebar({ isOpen = false, onToggle }: Assessme
       )}
     </>
   );
-}
+});
+
+export default AssessmentSidebar;

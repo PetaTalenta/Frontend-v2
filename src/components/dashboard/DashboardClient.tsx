@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import Header from './header';
 import { StatsCard } from './stats-card';
 import { AssessmentTable } from './assessment-table';
@@ -146,12 +146,142 @@ interface DashboardClientProps {
 function DashboardClientComponent({ staticData }: DashboardClientProps) {
   const [isLoading, setIsLoading] = useState(false);
 
+  // Memoize dummy data to prevent unnecessary re-creation
+  const dummyStatsData = useMemo(() => [
+    {
+      id: 'assessments',
+      label: 'Total Assessment',
+      value: 12,
+      color: '#6475e9',
+      icon: 'Cpu.svg',
+    },
+    {
+      id: 'completion',
+      label: 'Tingkat Penyelesaian',
+      value: 85,
+      color: '#a2acf2',
+      icon: 'Check.svg',
+    },
+    {
+      id: 'score',
+      label: 'Rata-rata Skor',
+      value: 78,
+      color: '#6475e9',
+      icon: 'MagnifyingGlass.svg',
+    },
+    {
+      id: 'growth',
+      label: 'Pertumbuhan',
+      value: 15,
+      color: '#a2acf2',
+      icon: 'Chevron right.svg',
+    }
+  ], []);
+
+  const dummyAssessmentData = useMemo(() => [
+    {
+      id: 1,
+      archetype: 'The Innovator',
+      created_at: '2024-01-15T10:30:00Z',
+      status: 'completed',
+      result_id: 'result-1',
+      job_id: 'job-1'
+    },
+    {
+      id: 2,
+      archetype: 'The Analyst',
+      created_at: '2024-01-10T14:20:00Z',
+      status: 'completed',
+      result_id: 'result-2',
+      job_id: 'job-2'
+    },
+    {
+      id: 3,
+      archetype: 'The Leader',
+      created_at: '2024-01-05T09:15:00Z',
+      status: 'processing',
+      result_id: null,
+      job_id: 'job-3'
+    },
+    {
+      id: 4,
+      archetype: 'The Creator',
+      created_at: '2023-12-28T16:45:00Z',
+      status: 'completed',
+      result_id: 'result-4',
+      job_id: 'job-4'
+    },
+    {
+      id: 5,
+      archetype: 'The Strategist',
+      created_at: '2023-12-20T11:30:00Z',
+      status: 'failed',
+      result_id: null,
+      job_id: 'job-5'
+    }
+  ], []);
+
+  const dummyProgressData = useMemo(() => [
+    { label: 'Realistic', value: 75 },
+    { label: 'Investigative', value: 85 },
+    { label: 'Artistic', value: 60 },
+    { label: 'Social', value: 90 },
+    { label: 'Enterprising', value: 70 },
+    { label: 'Conventional', value: 55 }
+  ], []);
+
+  const dummyOceanScores = useMemo(() => ({
+    openness: 75,
+    conscientiousness: 60,
+    extraversion: 45,
+    agreeableness: 80,
+    neuroticism: 25
+  }), []);
+
+  const dummyViaScores = useMemo(() => ({
+    creativity: 92,
+    curiosity: 89,
+    judgment: 78,
+    loveOfLearning: 85,
+    perspective: 74,
+    bravery: 65,
+    perseverance: 82,
+    honesty: 88,
+    zest: 58,
+    love: 76,
+    kindness: 84,
+    socialIntelligence: 69,
+    teamwork: 71,
+    fairness: 86,
+    leadership: 63,
+    forgiveness: 79,
+    humility: 72,
+    prudence: 68,
+    selfRegulation: 75,
+    appreciationOfBeauty: 91,
+    gratitude: 83,
+    hope: 77,
+    humor: 64,
+    spirituality: 52
+  }), []);
+
+  // Memoize handlers
+  const handleRefresh = useCallback(async () => {
+    setIsLoading(true);
+    setTimeout(() => setIsLoading(false), 1000);
+  }, []);
+
+  const handleLogout = useCallback(() => {
+    // Dummy logout function
+    console.log('Logout clicked');
+  }, []);
+
   // Loading state simulation
   if (isLoading) {
     return (
       <div className="dashboard-full-height">
         <div className="dashboard-container">
-          <Header logout={() => {}} />
+          <Header logout={handleLogout} />
           <div className="dashboard-main-grid">
             <div className="space-y-6">
               {/* Stats Cards Loading */}
@@ -191,7 +321,7 @@ function DashboardClientComponent({ staticData }: DashboardClientProps) {
   return (
     <div className="dashboard-full-height">
       <div className="dashboard-container">
-        <Header logout={() => {}} />
+        <Header logout={handleLogout} />
 
         <div className="dashboard-main-grid">
           {/* Main Content */}
@@ -209,11 +339,7 @@ function DashboardClientComponent({ staticData }: DashboardClientProps) {
             <div className="dashboard-table-scroll">
               <AssessmentTable
                 data={dummyAssessmentData}
-                onRefresh={async () => {
-                  // Dummy refresh function
-                  setIsLoading(true);
-                  setTimeout(() => setIsLoading(false), 1000);
-                }}
+                onRefresh={handleRefresh}
                 swrKey="dummy-key"
                 isLoading={false}
                 isValidating={false}
