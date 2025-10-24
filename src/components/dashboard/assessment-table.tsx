@@ -5,8 +5,6 @@ import { useRouter } from 'next/navigation'
 import { AssessmentTableHeader } from './assessment-table-header'
 import { AssessmentTableBody } from './assessment-table-body'
 import { AssessmentTablePagination } from './assessment-table-pagination'
-import { tableStyles, getResponsiveStyles } from './assessment-table-styles'
-import { useWindowWidth } from '../../hooks/useWindowWidth'
 import type { AssessmentData } from '../../types/dashboard'
 
 interface AssessmentTableProps {
@@ -17,15 +15,14 @@ interface AssessmentTableProps {
   isValidating?: boolean
 }
 
-const AssessmentTableComponent = ({ 
-  data, 
-  onRefresh, 
-  swrKey, 
-  isLoading = false, 
-  isValidating = false 
+const AssessmentTableComponent = ({
+  data,
+  onRefresh,
+  swrKey,
+  isLoading = false,
+  isValidating = false
 }: AssessmentTableProps) => {
   const router = useRouter()
-  const windowWidth = useWindowWidth()
   
   // State management
   const [currentPage, setCurrentPage] = useState(1)
@@ -132,19 +129,35 @@ const AssessmentTableComponent = ({
     setCurrentPage(1) // Reset to first page when changing items per page
   }, [])
 
-  const responsiveStyles = useMemo(() => getResponsiveStyles(windowWidth), [windowWidth])
-
   return (
-    <div style={tableStyles.container}>
+    <div style={{
+      backgroundColor: 'white',
+      display: 'flex',
+      flexDirection: 'column',
+      borderRadius: '0.5rem',
+      border: '1px solid #eaecf0',
+      boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+      height: 'auto'
+    }}>
       <AssessmentTableHeader
-        windowWidth={windowWidth}
         onNewAssessment={handleNewAssessment}
       />
       
-      <div style={responsiveStyles.tableContainer}>
-        <div style={tableStyles.tableWrapper}>
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        flex: 1,
+        minHeight: '0',
+        padding: '1rem'
+      }}>
+        <div style={{
+          flex: 1,
+          overflowX: 'auto',
+          overflowY: 'visible',
+          WebkitOverflowScrolling: 'touch',
+          scrollbarWidth: 'thin'
+        }}>
           <AssessmentTableBody
-            windowWidth={windowWidth}
             isLoading={isLoading || isValidating}
             currentData={paginationData.currentData}
             startIndex={paginationData.startIndex}
@@ -157,7 +170,6 @@ const AssessmentTableComponent = ({
         
         {paginationData.totalPages > 0 && (
           <AssessmentTablePagination
-            windowWidth={windowWidth}
             currentPage={currentPage}
             totalPages={paginationData.totalPages}
             itemsPerPage={itemsPerPage}

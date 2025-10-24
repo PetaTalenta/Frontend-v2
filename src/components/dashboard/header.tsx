@@ -1,6 +1,6 @@
 "use client"
 
-import React from "react"
+import React, { useEffect, useRef } from "react"
 import { Button } from "./button"
 import {
   DropdownMenu,
@@ -12,6 +12,34 @@ import {
 } from "./dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "./avatar"
 import { TrendingUp, LogOut } from "lucide-react"
+
+// Performance logging untuk validasi asumsi
+const useHeaderPerformanceLogging = () => {
+  const renderCount = useRef(0);
+  const renderStartTime = useRef<number>(0);
+  
+  useEffect(() => {
+    renderCount.current += 1;
+    renderStartTime.current = performance.now();
+    
+    console.log(`[Header Performance] Render #${renderCount.current} started at ${renderStartTime.current}`);
+    
+    // Log responsive breakpoint
+    const width = window.innerWidth;
+    let breakpoint = 'mobile';
+    if (width >= 1024) breakpoint = 'desktop';
+    else if (width >= 640) breakpoint = 'tablet';
+    
+    console.log(`[Header Performance] Current breakpoint: ${breakpoint} (${width}px)`);
+    
+    return () => {
+      const renderTime = performance.now() - renderStartTime.current;
+      console.log(`[Header Performance] Render #${renderCount.current} completed in ${renderTime.toFixed(2)}ms`);
+    };
+  });
+  
+  return { renderCount: renderCount.current };
+};
 
 // Utility to get user initials
 function getUserInitials(username?: string, name?: string, email?: string) {
@@ -28,40 +56,130 @@ function getUserInitials(username?: string, name?: string, email?: string) {
 }
 
 // Utility to get user display name
-function getUserDisplayName(user?: { name?: string; username?: string; email?: string }) {
+function getUserDisplayName(user?: {
+  name?: string;
+  username?: string;
+  email?: string;
+  displayName?: string;
+  profile?: { full_name?: string };
+}) {
   if (!user) return 'User';
-  if (user.name && user.name.trim().length > 0) return user.name;
-  if (user.username && user.username.trim().length > 0) return user.username;
-  if (user.email && user.email.trim().length > 0) return user.email.split('@')[0];
+  
+  // Prioritize profile full_name
+  if (user.profile?.full_name && user.profile.full_name.trim().length > 0) {
+    return user.profile.full_name;
+  }
+  
+  // Then displayName
+  if (user.displayName && user.displayName.trim().length > 0) {
+    return user.displayName;
+  }
+  
+  // Then name
+  if (user.name && user.name.trim().length > 0) {
+    return user.name;
+  }
+  
+  // Then username
+  if (user.username && user.username.trim().length > 0) {
+    return user.username;
+  }
+  
+  // Finally email prefix
+  if (user.email && user.email.trim().length > 0) {
+    return user.email.split('@')[0];
+  }
+  
   return 'User';
 }
 
-// Dummy user data
-const dummyUser = {
-  name: 'John Doe',
-  username: 'johndoe',
-  email: 'john.doe@example.com',
-  avatar: ''
-};
+// Utility functions for personalized messages
+function getWelcomeMessage(userName?: string) {
+  const hour = new Date().getHours();
+  const timeOfDay = hour < 12 ? 'Pagi' : hour < 15 ? 'Siang' : hour < 18 ? 'Sore' : 'Malam';
+  const displayName = userName || 'User';
+  return `Selamat ${timeOfDay}, ${displayName}!`;
+}
+
+function getProgressDescription(stats?: { completed?: number; processing?: number; tokenBalance?: number }) {
+  if (!stats) return "Lacak progress Anda di sini.";
+  
+  const { completed = 0, processing = 0, tokenBalance = 0 } = stats;
+  
+  if (completed === 0) {
+    return "Mulai assessment pertama Anda untuk mengetahui potensi diri.";
+  } else if (processing > 0) {
+    return `Anda memiliki ${processing} assessment sedang diproses.`;
+  } else if (tokenBalance < 10) {
+    return "Token Anda hampir habis, segera isi ulang untuk melanjutkan.";
+  } else {
+    return `Anda telah menyelesaikan ${completed} assessment!`;
+  }
+}
 
 interface HeaderProps {
   title?: string;
   description?: string;
   logout: () => void;
+  user?: {
+    name?: string;
+    username?: string;
+    email?: string;
+    displayName?: string;
+    profile?: {
+      full_name?: string;
+    };
+  };
+  isLoading?: boolean;
+  dashboardStats?: {
+    completed?: number;
+    processing?: number;
+    tokenBalance?: number;
+  };
 }
 
-function HeaderComponent({ title, description, logout }: HeaderProps) {
-  const user = dummyUser;
+function HeaderComponent({
+  title,
+  description,
+  logout,
+  user,
+  isLoading = false,
+  dashboardStats
+}: HeaderProps) {
+  // Performance logging untuk validasi asumsi
+  const { renderCount } = useHeaderPerformanceLogging();
+  
+  // Log untuk duplikasi kode analysis
+  useEffect(() => {
+    console.log(`[Header Analysis] User data present: ${!!user}`);
+    console.log(`[Header Analysis] Dashboard stats present: ${!!dashboardStats}`);
+    console.log(`[Header Analysis] Loading state: ${isLoading}`);
+    
+    // Log untuk menghitung jumlah dropdown yang akan dirender
+    const dropdownCount = 2; // Mobile + Desktop
+    console.log(`[Header Analysis] Dropdown components rendered: ${dropdownCount} (DUPLICATION ISSUE)`);
+  }, [user, dashboardStats, isLoading]);
 
   // Generate title and description if not provided
-  const headerTitle = title || `Welcome, ${getUserDisplayName(user)}!`;
-  const headerDescription = description || "Track your progress here, You almost reach your goal.";
+  const displayName = getUserDisplayName(user);
+  const headerTitle = title || getWelcomeMessage(displayName);
+  const headerDescription = description || getProgressDescription(dashboardStats);
+
+  // Log untuk analisis struktur layout
+  useEffect(() => {
+    const containerClasses = "flex items-start justify-between w-full mb-3 sm:mb-4 lg:mb-6 sm:flex-row sm:items-start sm:justify-between flex-col items-start gap-3";
+    const classCount = containerClasses.split(' ').length;
+    console.log(`[Header Layout Analysis] Main container has ${classCount} CSS classes (COMPLEXITY ISSUE)`);
+    console.log(`[Header Layout Analysis] Nested divs count: 5+ (STRUCTURE ISSUE)`);
+  }, []);
 
   return (
-    <div className="flex items-start justify-between w-full mb-3 sm:mb-4 lg:mb-6 sm:flex-row sm:items-start sm:justify-between flex-col items-start gap-3">
+    <div className="flex items-center justify-between w-full mb-3 sm:mb-4 lg:mb-6 sm:flex-row sm:items-center sm:justify-between flex-col items-start gap-3">
       <div className="flex items-center gap-4">
-        <div className="rounded-full flex items-center justify-center bg-gradient-to-r from-dashboard-primary to-purple-500 shadow-lg w-12 h-12 sm:w-14 sm:h-14 lg:w-16 lg:h-16 hidden sm:block">
-          <TrendingUp className="text-white w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8" />
+        <div className="rounded-full flex items-center justify-center bg-gradient-to-r from-dashboard-primary-blue to-purple-500 shadow-lg w-12 h-12 sm:w-14 sm:h-14 lg:w-16 lg:h-16 hidden sm:flex">
+          <div className="flex items-center justify-center">
+            <TrendingUp className="text-white w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 flex-shrink-0" />
+          </div>
         </div>
         <div className="flex items-center gap-2 flex-1">
           {/* Avatar for mobile only */}
@@ -70,8 +188,8 @@ function HeaderComponent({ title, description, logout }: HeaderProps) {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-10 w-10 rounded-full bg-white/10 border border-white/20 hover:bg-white/20 transition-all duration-200 p-2">
                   <Avatar className="h-10 w-10">
-                    <AvatarImage src={user?.avatar} alt={getUserDisplayName(user ?? undefined)} />
-                    <AvatarFallback className="text-white bg-dashboard-primary">
+                    <AvatarImage src='' alt={getUserDisplayName(user)} />
+                    <AvatarFallback className="text-white bg-dashboard-primary-blue">
                       {getUserInitials(user?.username, user?.name, user?.email)}
                     </AvatarFallback>
                   </Avatar>
@@ -108,8 +226,8 @@ function HeaderComponent({ title, description, logout }: HeaderProps) {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-10 w-10 rounded-full bg-white/10 border border-white/20 hover:bg-white/20 transition-all duration-200 p-2">
               <Avatar className="h-10 w-10">
-                <AvatarImage src={user?.avatar} alt={getUserDisplayName(user ?? undefined)} />
-                <AvatarFallback className="text-white bg-dashboard-primary">
+                <AvatarImage src='' alt={getUserDisplayName(user)} />
+                <AvatarFallback className="text-white bg-dashboard-primary-blue">
                   {getUserInitials(user?.username, user?.name, user?.email)}
                 </AvatarFallback>
               </Avatar>

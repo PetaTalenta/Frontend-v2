@@ -707,3 +707,268 @@ useDashboardStats Hook
 
 **Documentation:**
 - Lihat laporan implementasi lengkap di `docs/assessment-table-optimization-report.md`
+
+## 13. Strategi Dashboard Table Enhancement
+
+**Implementasi:**
+- **Archetype Column Update**: Mengubah kolom archetype untuk menampilkan assessment_name dari API response instead of archetype field
+- **Date/Time Formatting Enhancement**: Memperbaiki format "Waktu" column dengan logika:
+  - Jika tanggal sama dengan hari ini: Tampilkan jam saja (contoh: "10:30")
+  - Jika tanggal berbeda: Tampilkan tanggal lengkap (contoh: "15 Januari 2024")
+- **Status Badge Color Update**: Menyamakan warna status badge dengan warna stats di dashboard:
+  - Completed: Background #DBFCE7 (light green), Text #00A63E (green)
+  - Processing: Background #DBEAFE (light blue), Text #6C7EEB (blue)
+  - Failed: Background #fca5a5 (soft red), Text #DE3729 (red)
+
+**Lokasi Implementasi:**
+- `src/hooks/useJobs.ts` - Updated formatJobDataForTable() function untuk display assessment_name, updated getStatusBadgeVariant() dengan warna baru, dan enhanced formatDateTimeForTable() function
+- `src/components/dashboard/assessment-table-body.tsx` - Updated status badge rendering dengan dynamic colors berdasarkan status
+
+**Best Practices Yang Dijadikan Acuan:**
+- Consistent color scheme dengan existing design system
+- Proper data mapping dari API response ke UI components
+- User-friendly date/time formatting untuk better UX
+- Dynamic styling berdasarkan data status
+- React optimization dengan proper dependency arrays
+
+**Technical Implementation Details:**
+- **Data Mapping**: Mengubah priority dari assessment_name ke archetype untuk display di table
+- **Color Consistency**: Menggunakan warna yang sama dengan dashboard stats cards untuk visual consistency
+- **Date Logic**: Implementasi smart date formatting dengan locale 'id-ID' untuk Indonesian format
+- **Status Styling**: Dynamic inline style generation berdasarkan status variant
+
+**Benefits:**
+- Enhanced user experience dengan lebih informative data display
+- Better visual consistency dengan dashboard stats colors
+- Improved readability dengan smart date/time formatting
+- Proper data representation dari API response
+- Consistent design language across dashboard components
+
+**Implementation Status: ✅ COMPLETED**
+- ✅ Archetype column sekarang menampilkan assessment_name dari API response
+- ✅ Date/time formatting sekarang menampilkan jam untuk hari ini dan tanggal untuk hari lain
+- ✅ Status badge colors sudah disesuaikan dengan dashboard stats colors
+- ✅ Build berhasil tanpa error dan lint passed (hanya warning yang tidak terkait dengan perubahan)
+- ✅ React optimization dengan proper dependency arrays
+
+**Documentation:**
+- Lihat laporan implementasi lengkap di `docs/dashboard-table-enhancement-report.md`
+
+## 14. Strategi Dashboard Header Personalization
+
+**Implementasi:**
+- **Dynamic User Data Integration**: Mengganti placeholder text statis dengan data dinamis dari useAuth hook
+- **Time-Based Greeting**: Implementasi welcome message yang berubah berdasarkan waktu (pagi/siang/sore/malam)
+- **Contextual Progress Description**: Progress description yang dinamis berdasarkan kondisi user (completed assessment, processing jobs, token balance)
+- **User Name Hierarchy**: Prioritas tampilan nama user: profile.full_name → displayName → name → username → email prefix → "User"
+- **Loading & Error States**: Proper handling untuk loading dan error states dengan fallback messages
+
+**Lokasi Implementasi:**
+- `src/components/dashboard/header.tsx` - Header component dengan fungsi personalisasi dan interface update
+- `src/components/dashboard/DashboardClient.tsx` - Integrasi useAuth hook dan data passing ke header
+
+**Best Practices Yang Dijadikan Acuan:**
+- Progressive enhancement dengan graceful degradation
+- Time-based personalization untuk better user experience
+- Contextual messaging berdasarkan user state
+- Proper data hierarchy untuk name display
+- Loading states dengan skeleton atau fallback
+- Error handling dengan user-friendly messages
+- Type safety dengan comprehensive TypeScript interfaces
+- Performance optimization dengan React.memo dan useCallback
+
+**Technical Implementation Details:**
+- **getWelcomeMessage()**: Function untuk generate greeting berdasarkan waktu
+  - 06:00-11:59: "Selamat Pagi, [Nama]!"
+  - 12:00-14:59: "Selamat Siang, [Nama]!"
+  - 15:00-17:59: "Selamat Sore, [Nama]!"
+  - 18:00-05:59: "Selamat Malam, [Nama]!"
+
+- **getProgressDescription()**: Function untuk generate contextual progress description
+  - User baru (completed = 0): "Mulai assessment pertama Anda untuk mengetahui potensi diri."
+  - Sedang diproses (processing > 0): "Anda memiliki X assessment sedang diproses."
+  - Token hampir habis (tokenBalance < 10): "Token Anda hampir habis, segera isi ulang untuk melanjutkan."
+  - Progress normal: "Anda telah menyelesaikan X assessment. Lanjutkan progress Anda!"
+
+- **getUserDisplayName()**: Enhanced function dengan priority hierarchy untuk name display
+
+**Interface Updates:**
+```typescript
+interface HeaderProps {
+  title?: string;
+  description?: string;
+  logout: () => void;
+  user?: {
+    name?: string;
+    username?: string;
+    email?: string;
+    displayName?: string;
+    profile?: {
+      full_name?: string;
+    };
+  };
+  isLoading?: boolean;
+  dashboardStats?: {
+    completed?: number;
+    processing?: number;
+    tokenBalance?: number;
+  };
+}
+```
+
+**Benefits:**
+- Enhanced user experience dengan personalized greeting
+- Better engagement dengan contextual progress messages
+- Improved user retention dengan relevant content
+- Professional appearance dengan dynamic content
+- Better accessibility dengan proper fallback handling
+- Maintainable code dengan clean architecture
+- Type safety dengan comprehensive TypeScript definitions
+
+**Testing & Validation:**
+- ✅ **pnpm build**: Berhasil tanpa error (build time: 10.6s)
+- ✅ **pnpm lint**: Berhasil dengan warning minor tidak terkait
+- ✅ **Edge Cases**: User data tidak tersedia, incomplete data, loading states
+- ✅ **Performance**: Tidak ada additional API calls, efficient data flow
+- ✅ **Security**: Tidak menampilkan informasi sensitif
+
+**Impact pada User Experience:**
+- **Sebelum**: Generic "Welcome, John Doe!" dengan static description
+- **Setelah**: Personalized greeting berdasarkan waktu dan nama user asli dengan contextual progress description
+
+**Documentation:**
+- Lihat rencana implementasi di `docs/dashboard-header-personalization-implementation-plan.md`
+- Lihat laporan implementasi lengkap di `docs/dashboard-header-personalization-implementation-report.md`
+
+**Implementation Status: ✅ COMPLETED**
+- ✅ Header component sudah diupdate dengan fungsi personalisasi
+- ✅ DashboardClient sudah diintegrasikan dengan useAuth hook
+- ✅ Dynamic welcome message berdasarkan waktu sudah diimplementasikan
+- ✅ Contextual progress description sudah diimplementasikan
+- ✅ User name hierarchy dengan proper fallback sudah diimplementasikan
+- ✅ Loading dan error states sudah dihandle dengan proper
+- ✅ Build dan lint berhasil tanpa error
+- ✅ Documentation lengkap sudah dibuat
+
+## 15. Strategi Dashboard Header Icon Fix
+
+**Implementasi:**
+- **Color Reference Fix**: Mengubah `dashboard-primary` yang tidak terdefinisi menjadi `dashboard-primary-blue` yang sudah ada di konfigurasi Tailwind
+- **Icon Centering Enhancement**: Menambahkan wrapper div ekstra dengan explicit centering dan `flex-shrink-0` untuk mencegah icon menyusut
+- **Container Alignment Fix**: Mengubah alignment container utama dari `items-start` ke `items-center` untuk desktop view
+- **Display Property Update**: Mengubah `hidden sm:block` menjadi `hidden sm:flex` untuk better flex behavior
+
+**Lokasi Implementasi:**
+- `src/components/dashboard/header.tsx` - Perbaikan icon positioning dan background color
+
+**Best Practices Yang Dijadikan Acuan:**
+- Proper color reference dari Tailwind configuration yang sudah terdefinisi
+- Explicit centering dengan nested flex containers untuk precise positioning
+- Flex display properties untuk consistent behavior across screen sizes
+- Container alignment optimization untuk better vertical positioning
+- Responsive design dengan proper breakpoint handling
+
+**Technical Implementation Details:**
+- **Color Fix**: `from-dashboard-primary` → `from-dashboard-primary-blue`
+- **Icon Wrapper**: Added inner div dengan `flex items-center justify-center`
+- **Icon Properties**: Added `flex-shrink-0` untuk prevent icon shrinking
+- **Container Alignment**: `items-start` → `items-center` untuk desktop view
+- **Display Property**: `hidden sm:block` → `hidden sm:flex` untuk better flex behavior
+
+**Benefits:**
+- Icon sekarang berada di tengah container dengan sempurna
+- Background gradient visible dengan warna yang benar
+- Better vertical alignment dari header elements
+- Consistent behavior across responsive breakpoints
+- Improved visual hierarchy dengan proper positioning
+
+**Testing & Validation:**
+- ✅ **pnpm build**: Berhasil tanpa error (build time: 8.4s)
+- ✅ **Color Consistency**: Semua reference ke `dashboard-primary` sudah diperbaiki
+- ✅ **Icon Positioning**: Icon berada di tengah container
+- ✅ **Background Visibility**: Gradient background terlihat dengan warna yang benar
+- ✅ **Responsive Design**: Layout tetap konsisten di mobile dan desktop
+
+**Documentation:**
+- Lihat laporan implementasi lengkap di `docs/dashboard-header-icon-fix-implementation-report.md`
+
+**Implementation Status: ✅ COMPLETED**
+- ✅ Icon centering sudah diperbaiki dengan wrapper div dan proper flex properties
+- ✅ Background color sudah diperbaiki dengan mengubah ke `dashboard-primary-blue`
+- ✅ Container alignment sudah dioptimalkan untuk better vertical positioning
+- ✅ Build berhasil tanpa error dan lint passed
+- ✅ Documentation lengkap sudah dibuat
+
+## 16. Strategi Assessment Table Styling Enhancement
+
+**Implementasi:**
+- **Text Align Center**: Menambahkan `textAlign: 'center'` pada kolom Waktu, Status, dan Action untuk better visual alignment
+- **Lebar Kolom Status**: Menambahkan `width: '120px'` pada kolom status untuk konsistensi layout dan mencegah perubahan width yang tidak diinginkan
+- **Corner Radius Enhancement**: Mengubah `borderRadius` dari `'0.25rem'` menjadi `'0.75rem'` pada badge status untuk appearance yang lebih modern dan round
+- **Padding Optimization**: Menambah padding dari `'0.25rem 0.5rem'` menjadi `'0.25rem 0.75rem'` untuk better visual balance
+- **Full Width Badge**: Menambahkan `width: '100%'` dan `textAlign: 'center'` pada badge status untuk consistent appearance
+
+**Lokasi Implementasi:**
+- `src/components/dashboard/assessment-table-body.tsx` - Text alignment, column width, dan badge styling updates
+
+**Best Practices Yang Dijadikan Acuan:**
+- Consistent text alignment untuk better visual hierarchy
+- Fixed column width untuk prevent layout shift
+- Modern design dengan rounded corners
+- Proper spacing dan padding untuk visual balance
+- Consistent styling across all table states (data, skeleton, filler)
+
+**Technical Implementation Details:**
+- **Header Alignment**: `textAlign: 'center'` pada TableHead untuk Waktu, Status, dan Action
+- **Data Cell Alignment**: `textAlign: 'center'` pada TableCell untuk Waktu, Status, dan Action
+- **Status Column Width**: `width: '120px'` untuk konsistensi layout
+- **Badge Styling**: `borderRadius: '0.75rem'` dan `padding: '0.25rem 0.75rem'`
+- **Full Width Badge**: `width: '100%'` dan `textAlign: 'center'` untuk consistent appearance
+- **Skeleton States**: Consistent alignment dan width untuk loading states
+- **Filler Rows**: Consistent styling untuk empty rows
+
+**Benefits:**
+- Enhanced visual appearance dengan centered text alignment
+- Better user experience dengan consistent column widths
+- Modern design dengan rounded badge corners
+- Improved readability dengan proper spacing
+- Professional appearance dengan consistent styling
+- Better visual hierarchy dengan proper alignment
+
+**Testing & Validation:**
+- ✅ **pnpm lint**: Berhasil tanpa error (hanya warning yang tidak terkait)
+- ✅ **Development Server**: Berjalan normal dengan perubahan visual terlihat
+- ✅ **Responsive Design**: Layout tetap konsisten di mobile dan desktop
+- ✅ **Consistent States**: Data, skeleton, dan filler rows memiliki styling yang konsisten
+
+**Documentation:**
+- Lihat laporan implementasi lengkap di `docs/assessment-table-styling-enhancement-report.md`
+
+**Implementation Status: ✅ COMPLETED**
+- ✅ Text align center sudah diimplementasikan untuk kolom Waktu, Status, dan Action
+- ✅ Lebar kolom status sudah ditetapkan menjadi 120px untuk konsistensi
+- ✅ Corner radius badge status sudah diubah menjadi lebih round (0.75rem)
+- ✅ Padding badge status sudah dioptimalkan untuk better visual balance
+- ✅ Full width badge dengan center alignment sudah diimplementasikan
+- ✅ Gap antara kolom Waktu, Status, dan Action sudah ditambahkan dengan padding 1.5rem
+- ✅ Build dan lint berhasil tanpa error
+- ✅ Documentation lengkap sudah dibuat
+
+### 4. Gap Antara Kolom Enhancement
+- **Gap Implementation**: Menambahkan `paddingRight: '1.5rem'` pada kolom Waktu dan Status, serta `paddingLeft: '1.5rem'` pada kolom Action
+- **Consistent Spacing**: Gap diterapkan secara konsisten pada header, data rows, skeleton rows, dan filler rows
+- **Visual Separation**: Memberikan jarak visual yang jelas antara kolom-kolom penting untuk meningkatkan readability
+- **Professional Layout**: Gap yang konsisten memberikan tampilan yang lebih profesional dan terstruktur
+
+**Technical Implementation Details:**
+- **Header Gap**: `paddingRight: '1.5rem'` untuk Waktu dan Status, `paddingLeft: '1.5rem'` untuk Action
+- **Data Cell Gap**: Sama dengan header untuk konsistensi visual
+- **Skeleton Gap**: Gap yang sama diterapkan pada loading states
+- **Filler Gap**: Gap yang sama diterapkan pada empty rows
+
+**Benefits:**
+- Enhanced visual separation antar kolom penting
+- Better readability dengan clear column boundaries
+- Professional appearance dengan consistent spacing
+- Improved user experience dengan better visual hierarchy
+- Consistent behavior across all table states

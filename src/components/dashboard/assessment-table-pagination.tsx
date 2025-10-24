@@ -3,10 +3,8 @@
 import React from 'react'
 import { Button } from './button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './select'
-import { tableStyles, getResponsiveStyles } from './assessment-table-styles'
 
 interface AssessmentTablePaginationProps {
-  windowWidth: number
   currentPage: number
   totalPages: number
   itemsPerPage: number
@@ -15,26 +13,63 @@ interface AssessmentTablePaginationProps {
 }
 
 const AssessmentTablePagination = React.memo(({
-  windowWidth,
   currentPage,
   totalPages,
   itemsPerPage,
   onPageChange,
   onItemsPerPageChange
 }: AssessmentTablePaginationProps) => {
-  const responsiveStyles = getResponsiveStyles(windowWidth)
-
   const handleItemsPerPageChange = (value: string) => {
     onItemsPerPageChange(Number(value))
   }
 
+  const paginationStyle = {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: '1rem',
+    borderTop: '1px solid #e5e7eb',
+    marginTop: '1rem',
+    flexShrink: 0,
+    flexDirection: 'row' as const,
+    gap: '0'
+  }
+
+  const paginationTextStyle = {
+    fontSize: '0.875rem',
+    color: '#64707d'
+  }
+
+  const paginationSelectStyle = {
+    width: '4rem',
+    height: '2rem'
+  }
+
+  const paginationButtonStyle = {
+    width: '2rem',
+    height: '2rem',
+    borderRadius: '0.375rem',
+    backgroundColor: '#f3f3f3',
+    color: '#64707d',
+    fontSize: '0.875rem'
+  }
+
+  const paginationButtonActiveStyle = {
+    backgroundColor: '#6475E9',
+    color: 'white'
+  }
+
   return (
-    <div style={responsiveStyles.pagination}>
-      <div style={tableStyles.paginationControls}>
-        <span style={responsiveStyles.paginationText}>Show</span>
-        <div style={responsiveStyles.paginationSelect}>
+    <div style={paginationStyle}>
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.5rem'
+      }}>
+        <span style={paginationTextStyle}>Show</span>
+        <div style={paginationSelectStyle}>
           <Select value={itemsPerPage.toString()} onValueChange={handleItemsPerPageChange}>
-            <SelectTrigger className={windowWidth >= 640 ? "w-16 h-8" : "w-12 h-6"}>
+            <SelectTrigger className="w-16 h-8">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -44,17 +79,22 @@ const AssessmentTablePagination = React.memo(({
             </SelectContent>
           </Select>
         </div>
-        <span style={responsiveStyles.paginationText}>Data</span>
+        <span style={paginationTextStyle}>Data</span>
       </div>
-      <div style={tableStyles.paginationButtons}>
+      <div style={{
+        display: 'flex',
+        gap: '0.25rem',
+        backgroundColor: 'transparent',
+        justifyContent: 'center'
+      }}>
         {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
           <Button
             key={page}
             variant={currentPage === page ? "default" : "ghost"}
             size="sm"
             style={{
-              ...responsiveStyles.paginationButton,
-              ...(currentPage === page ? tableStyles.paginationButtonActive : {})
+              ...paginationButtonStyle,
+              ...(currentPage === page ? paginationButtonActiveStyle : {})
             }}
             className={currentPage === page ? "hover:bg-[#5a6bd8]" : ""}
             onClick={() => onPageChange(page)}

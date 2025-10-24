@@ -1,6 +1,7 @@
 export interface AssessmentData {
   id: number;
   archetype: string;
+  assessment_name?: string; // Added to store assessment name separately
   created_at: string;
   status: string;
   result_id?: string | null;

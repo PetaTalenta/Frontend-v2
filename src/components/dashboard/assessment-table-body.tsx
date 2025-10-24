@@ -1,15 +1,13 @@
-"use client"
+ "use client"
 
 import React, { useMemo } from 'react'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './table'
 import { Skeleton } from './skeleton'
 import { AssessmentActionButtons } from './assessment-table-action-buttons'
 import type { AssessmentData } from '../../types/dashboard'
-import { getStatusText, formatDateTimeForTable } from '../../hooks/useJobs'
-import { tableStyles, getResponsiveStyles } from './assessment-table-styles'
+import { getStatusText, formatDateTimeForTable, getStatusBadgeVariant } from '../../hooks/useJobs'
 
 interface AssessmentTableBodyProps {
-  windowWidth: number
   isLoading: boolean
   currentData: AssessmentData[]
   startIndex: number
@@ -20,7 +18,6 @@ interface AssessmentTableBodyProps {
 }
 
 const AssessmentTableBody = React.memo(({
-  windowWidth,
   isLoading,
   currentData,
   startIndex,
@@ -29,38 +26,96 @@ const AssessmentTableBody = React.memo(({
   onView,
   onDelete
 }: AssessmentTableBodyProps) => {
-  const responsiveStyles = useMemo(() => getResponsiveStyles(windowWidth), [windowWidth])
+  const tableCellStyle = useMemo(() => ({
+    color: '#1e1e1e',
+    paddingLeft: '0.5rem',
+    paddingRight: '0.5rem',
+    paddingTop: '0.5rem',
+    paddingBottom: '0.5rem',
+    fontSize: '0.875rem'
+  }), [])
 
-  const skeletonRows = useMemo(() => 
+  const getStatusBadgeStyle = useMemo(() => (status: string) => {
+    const variant = getStatusBadgeVariant(status)
+    // Parse the CSS classes to convert to inline styles
+    const styles: React.CSSProperties = {}
+    
+    // Extract background color
+    if (variant.includes('bg-[#DBFCE7]')) {
+      styles.backgroundColor = '#DBFCE7'
+      styles.color = '#00A63E'
+      styles.border = '1px solid #a6f4c5'
+    } else if (variant.includes('bg-[#DBEAFE]')) {
+      styles.backgroundColor = '#DBEAFE'
+      styles.color = '#6C7EEB'
+      styles.border = '1px solid #93c5fd'
+    } else if (variant.includes('bg-[#fca5a5]')) {
+      styles.backgroundColor = '#fca5a5'
+      styles.color = '#DE3729'
+      styles.border = '1px solid #fecaca'
+    } else if (variant.includes('bg-[#f2f2f2]')) {
+      styles.backgroundColor = '#f2f2f2'
+      styles.color = '#666666'
+      styles.border = '1px solid #e0e0e0'
+    }
+    
+    return styles
+  }, [])
+
+  const tableHeaderStyle = useMemo(() => ({
+    fontWeight: 500,
+    color: '#64707d',
+    paddingLeft: '0.5rem',
+    paddingRight: '0.5rem',
+    paddingTop: '0.5rem',
+    paddingBottom: '0.5rem',
+    fontSize: '0.875rem'
+  }), [])
+
+  const skeletonRows = useMemo(() =>
     [...Array(3)].map((_, idx) => (
       <TableRow key={`skeleton-${idx}`}>
-        <TableCell style={responsiveStyles.tableCell}>
+        <TableCell style={tableCellStyle}>
           <Skeleton className="h-4 w-6" />
         </TableCell>
-        <TableCell style={responsiveStyles.tableCell}>
+        <TableCell style={tableCellStyle}>
           <Skeleton className="h-4 w-48" />
         </TableCell>
-        <TableCell 
+        <TableCell
           style={{
-            ...responsiveStyles.tableCell,
-            ...tableStyles.tableCellSecondary,
-            display: windowWidth >= 1024 ? 'table-cell' : 'none'
+            ...tableCellStyle,
+            color: '#64707d',
+            textAlign: 'center',
+            paddingRight: '1.5rem'
           }}
         >
           <Skeleton className="h-4 w-32" />
         </TableCell>
-        <TableCell style={responsiveStyles.tableCell}>
+        <TableCell style={{
+          ...tableCellStyle,
+          textAlign: 'center',
+          width: '120px',
+          paddingRight: '1.5rem'
+        }}>
           <Skeleton className="h-6 w-24" />
         </TableCell>
-        <TableCell style={responsiveStyles.tableCell}>
-          <div style={tableStyles.actionButtons}>
+        <TableCell style={{
+          ...tableCellStyle,
+          textAlign: 'center',
+          paddingLeft: '1.5rem'
+        }}>
+          <div style={{
+            display: 'flex',
+            gap: '0.5rem',
+            justifyContent: 'center'
+          }}>
             <Skeleton className="h-8 w-8 rounded" />
             <Skeleton className="h-8 w-8 rounded" />
           </div>
         </TableCell>
       </TableRow>
     )),
-    [responsiveStyles, windowWidth]
+    [tableCellStyle]
   )
 
   const dataRows = useMemo(() =>
@@ -71,40 +126,63 @@ const AssessmentTableBody = React.memo(({
         <TableRow
           key={item.id}
           style={{
-            ...tableStyles.tableRow,
+            borderColor: '#eaecf0',
             opacity: isPending ? 0.6 : 1,
             transition: 'all 0.3s ease-in-out'
           }}
         >
-          <TableCell style={responsiveStyles.tableCell}>
+          <TableCell style={tableCellStyle}>
             {startIndex + index + 1}
           </TableCell>
-          <TableCell style={responsiveStyles.tableCell}>
+          <TableCell style={tableCellStyle}>
             {item.archetype}
             {isPending && (
-              <span style={tableStyles.pendingText}>
+              <span style={{
+                marginLeft: '0.5rem',
+                fontSize: '0.75rem',
+                color: '#6b7280',
+                fontStyle: 'italic'
+              }}>
                 (Syncing...)
               </span>
             )}
           </TableCell>
-          <TableCell 
+          <TableCell
             style={{
-              ...responsiveStyles.tableCell,
-              ...tableStyles.tableCellSecondary,
-              display: windowWidth >= 1024 ? 'table-cell' : 'none'
+              ...tableCellStyle,
+              color: '#64707d',
+              textAlign: 'center',
+              paddingRight: '1.5rem'
             }}
           >
             {formatDateTimeForTable(item.created_at)}
           </TableCell>
-          <TableCell style={responsiveStyles.tableCell}>
-            <div style={tableStyles.statusBadge}>
+          <TableCell style={{
+            ...tableCellStyle,
+            textAlign: 'center',
+            width: '120px',
+            paddingRight: '1.5rem'
+          }}>
+            <div style={{
+              ...getStatusBadgeStyle(item.status),
+              padding: '0.25rem 0.75rem',
+              borderRadius: '0.75rem',
+              fontSize: '0.75rem',
+              fontWeight: 500,
+              display: 'inline-block',
+              width: '100%',
+              textAlign: 'center'
+            }}>
               {getStatusText(item.status)}
             </div>
           </TableCell>
-          <TableCell style={responsiveStyles.tableCell}>
+          <TableCell style={{
+            ...tableCellStyle,
+            textAlign: 'center',
+            paddingLeft: '1.5rem'
+          }}>
             <AssessmentActionButtons
               item={item}
-              windowWidth={windowWidth}
               isDeleting={isDeleting}
               onView={onView}
               onDelete={onDelete}
@@ -113,46 +191,75 @@ const AssessmentTableBody = React.memo(({
         </TableRow>
       )
     }),
-    [currentData, startIndex, responsiveStyles, windowWidth, isDeleting, onView, onDelete]
+    [currentData, startIndex, tableCellStyle, isDeleting, onView, onDelete, getStatusBadgeStyle]
   )
 
   const fillerRows = useMemo(() =>
     currentData.length < itemsPerPage && Array.from({ length: itemsPerPage - currentData.length }).map((_, idx) => (
-      <TableRow key={`empty-${idx}`} style={tableStyles.emptyRow}>
-        <TableCell style={responsiveStyles.tableCell}>&nbsp;</TableCell>
-        <TableCell style={responsiveStyles.tableCell}>&nbsp;</TableCell>
-        <TableCell 
+      <TableRow key={`empty-${idx}`} style={{
+        borderColor: '#eaecf0',
+        opacity: 0.5
+      }}>
+        <TableCell style={tableCellStyle}>&nbsp;</TableCell>
+        <TableCell style={tableCellStyle}>&nbsp;</TableCell>
+        <TableCell
           style={{
-            ...responsiveStyles.tableCell,
-            ...tableStyles.tableCellSecondary,
-            display: windowWidth >= 1024 ? 'table-cell' : 'none'
+            ...tableCellStyle,
+            color: '#64707d',
+            textAlign: 'center',
+            paddingRight: '1.5rem'
           }}
         >&nbsp;</TableCell>
-        <TableCell style={responsiveStyles.tableCell}>&nbsp;</TableCell>
-        <TableCell style={responsiveStyles.tableCell}>
-          <div style={tableStyles.actionButtons} />
+        <TableCell style={{
+          ...tableCellStyle,
+          textAlign: 'center',
+          width: '120px',
+          paddingRight: '1.5rem'
+        }}>&nbsp;</TableCell>
+        <TableCell style={{
+          ...tableCellStyle,
+          textAlign: 'center',
+          paddingLeft: '1.5rem'
+        }}>
+          <div style={{
+            display: 'flex',
+            gap: '0.5rem',
+            justifyContent: 'center'
+          }} />
         </TableCell>
       </TableRow>
     )),
-    [currentData.length, itemsPerPage, responsiveStyles, windowWidth]
+    [currentData.length, itemsPerPage, tableCellStyle]
   )
 
   return (
-    <Table style={responsiveStyles.table}>
+    <Table style={{
+      minWidth: '100%'
+    }}>
       <TableHeader>
-        <TableRow style={tableStyles.tableRow}>
-          <TableHead style={responsiveStyles.tableHeader}>No</TableHead>
-          <TableHead style={responsiveStyles.tableHeader}>Archetype</TableHead>
-          <TableHead 
-            style={{
-              ...responsiveStyles.tableHeader,
-              display: windowWidth >= 1024 ? 'table-cell' : 'none'
-            }}
-          >
+        <TableRow style={{
+          borderColor: '#eaecf0'
+        }}>
+          <TableHead style={tableHeaderStyle}>No</TableHead>
+          <TableHead style={tableHeaderStyle}>Archetype</TableHead>
+          <TableHead style={{
+            ...tableHeaderStyle,
+            textAlign: 'center',
+            paddingRight: '1.5rem'
+          }}>
             Waktu
           </TableHead>
-          <TableHead style={responsiveStyles.tableHeader}>Status</TableHead>
-          <TableHead style={responsiveStyles.tableHeader}>Action</TableHead>
+          <TableHead style={{
+            ...tableHeaderStyle,
+            textAlign: 'center',
+            width: '120px',
+            paddingRight: '1.5rem'
+          }}>Status</TableHead>
+          <TableHead style={{
+            ...tableHeaderStyle,
+            textAlign: 'center',
+            paddingLeft: '1.5rem'
+          }}>Action</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>

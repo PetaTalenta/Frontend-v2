@@ -99,7 +99,8 @@ export const useRefreshJobs = () => {
 export const formatJobDataForTable = (jobs: JobData[]) => {
   return jobs.map(job => ({
     id: parseInt(job.id, 10) || Math.random(), // Convert string ID to number for compatibility
-    archetype: job.archetype || job.assessment_name || 'Unknown',
+    archetype: job.archetype || 'Menunggu Hasil', // Display archetype, not assessment_name
+    assessment_name: job.assessment_name || 'Unknown Assessment', // Keep assessment_name as separate field if needed
     created_at: job.created_at,
     status: job.status,
     result_id: job.result_id,
@@ -110,9 +111,9 @@ export const formatJobDataForTable = (jobs: JobData[]) => {
 // Utility function to get status badge variant
 export const getStatusBadgeVariant = (status: string) => {
   const s = String(status).toLowerCase();
-  if (s === 'completed') return 'bg-[#d1fadf] text-[#027a48] border border-[#a6f4c5]';
-  if (s === 'processing' || s === 'queued' || s === 'pending' || s === 'in_progress') return 'bg-[#f2f2f2] text-[#666666] border border-[#e0e0e0]';
-  if (s === 'failed' || s === 'error') return 'bg-[#fef2f2] text-[#dc2626] border border-[#fecaca]';
+  if (s === 'completed') return 'bg-[#DBFCE7] text-[#00A63E] border border-[#a6f4c5]'; // Match dashboard stats completed color
+  if (s === 'processing' || s === 'queued' || s === 'pending' || s === 'in_progress') return 'bg-[#DBEAFE] text-[#6C7EEB] border border-[#93c5fd]'; // Match dashboard stats processing color
+  if (s === 'failed' || s === 'error') return 'bg-[#fca5a5] text-[#DE3729] border border-[#fecaca]'; // Match dashboard stats failed color
   if (s === 'cancelled' || s === 'canceled') return 'bg-gray-100 text-gray-800 border-gray-200';
   return 'bg-[#f2f2f2] text-[#666666] border border-[#e0e0e0]';
 };
@@ -142,18 +143,18 @@ export const formatDateTimeForTable = (dateString: string) => {
   const isSameDay = date.toDateString() === now.toDateString();
   
   if (isSameDay) {
-    // Show time for same day
-    return date.toLocaleTimeString('id-ID', { 
-      hour: '2-digit', 
+    // Show time for same day (e.g., "10:30")
+    return date.toLocaleTimeString('id-ID', {
+      hour: '2-digit',
       minute: '2-digit',
-      hour12: false 
+      hour12: false
     });
   } else {
-    // Show date for different days
-    return date.toLocaleDateString('id-ID', { 
-      day: 'numeric', 
-      month: 'long', 
-      year: 'numeric' 
+    // Show date for different days (e.g., "15 Januari 2024")
+    return date.toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
     });
   }
 };

@@ -11,6 +11,7 @@ import { ProgressCard } from './progress-card';
 import DashboardErrorBoundary from './DashboardErrorBoundary';
 import { useJobs, formatJobDataForTable } from '../../hooks/useJobs';
 import { useDashboardStats } from '../../hooks/useDashboardStats';
+import { useAuth } from '../../hooks/useAuth';
 import { dashboardCacheStrategy } from '../../lib/tanStackConfig';
 import { handleComponentError } from '../../lib/errorHandling';
 
@@ -50,6 +51,7 @@ const dummyAssessmentData = [
   {
     id: 1,
     archetype: 'The Innovator',
+    assessment_name: 'AI-Driven Talent Mapping',
     created_at: '2024-01-15T10:30:00Z',
     status: 'completed',
     result_id: 'result-1',
@@ -58,6 +60,7 @@ const dummyAssessmentData = [
   {
     id: 2,
     archetype: 'The Analyst',
+    assessment_name: 'AI-Driven Talent Mapping',
     created_at: '2024-01-10T14:20:00Z',
     status: 'completed',
     result_id: 'result-2',
@@ -66,6 +69,7 @@ const dummyAssessmentData = [
   {
     id: 3,
     archetype: 'The Leader',
+    assessment_name: 'AI-Driven Talent Mapping',
     created_at: '2024-01-05T09:15:00Z',
     status: 'processing',
     result_id: null,
@@ -74,6 +78,7 @@ const dummyAssessmentData = [
   {
     id: 4,
     archetype: 'The Creator',
+    assessment_name: 'AI-Driven Talent Mapping',
     created_at: '2023-12-28T16:45:00Z',
     status: 'completed',
     result_id: 'result-4',
@@ -82,6 +87,7 @@ const dummyAssessmentData = [
   {
     id: 5,
     archetype: 'The Strategist',
+    assessment_name: 'AI-Driven Talent Mapping',
     created_at: '2023-12-20T11:30:00Z',
     status: 'failed',
     result_id: null,
@@ -151,6 +157,9 @@ interface DashboardClientProps {
 
 function DashboardClientComponent({ staticData }: DashboardClientProps) {
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Get user data from auth
+  const { user, isLoading: userLoading, logout } = useAuth();
   
   // Fetch jobs data from API
   const { data: jobsData, isLoading: isJobsLoading, isError: isJobsError, error: jobsError, refetch: refetchJobs } = useJobs({
@@ -257,6 +266,7 @@ function DashboardClientComponent({ staticData }: DashboardClientProps) {
     {
       id: 1,
       archetype: 'The Innovator',
+      assessment_name: 'AI-Driven Talent Mapping',
       created_at: '2024-01-15T10:30:00Z',
       status: 'completed',
       result_id: 'result-1',
@@ -265,6 +275,7 @@ function DashboardClientComponent({ staticData }: DashboardClientProps) {
     {
       id: 2,
       archetype: 'The Analyst',
+      assessment_name: 'AI-Driven Talent Mapping',
       created_at: '2024-01-10T14:20:00Z',
       status: 'completed',
       result_id: 'result-2',
@@ -273,6 +284,7 @@ function DashboardClientComponent({ staticData }: DashboardClientProps) {
     {
       id: 3,
       archetype: 'The Leader',
+      assessment_name: 'AI-Driven Talent Mapping',
       created_at: '2024-01-05T09:15:00Z',
       status: 'processing',
       result_id: null,
@@ -281,6 +293,7 @@ function DashboardClientComponent({ staticData }: DashboardClientProps) {
     {
       id: 4,
       archetype: 'The Creator',
+      assessment_name: 'AI-Driven Talent Mapping',
       created_at: '2023-12-28T16:45:00Z',
       status: 'completed',
       result_id: 'result-4',
@@ -289,6 +302,7 @@ function DashboardClientComponent({ staticData }: DashboardClientProps) {
     {
       id: 5,
       archetype: 'The Strategist',
+      assessment_name: 'AI-Driven Talent Mapping',
       created_at: '2023-12-20T11:30:00Z',
       status: 'failed',
       result_id: null,
@@ -366,10 +380,13 @@ function DashboardClientComponent({ staticData }: DashboardClientProps) {
     }
   }, [refreshAll]);
 
-  const handleLogout = useCallback(() => {
-    // Dummy logout function
-    console.log('Logout clicked');
-  }, []);
+  const handleLogout = useCallback(async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  }, [logout]);
 
   // Handle user activity for smart refetch
   const handleUserActivity = useCallback(() => {
@@ -398,7 +415,12 @@ function DashboardClientComponent({ staticData }: DashboardClientProps) {
     return (
       <div className="dashboard-full-height dashboard-responsive-wrapper">
         <div className="dashboard-container flex flex-col gap-6">
-          <Header logout={handleLogout} />
+          <Header
+            logout={handleLogout}
+            user={user}
+            isLoading={userLoading}
+            dashboardStats={dashboardStats}
+          />
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-7 lg:gap-8">
             <div className="space-y-6 lg:col-span-5">
               {/* Stats Cards Loading with staggered animation */}
@@ -436,7 +458,12 @@ function DashboardClientComponent({ staticData }: DashboardClientProps) {
   return (
     <div className="dashboard-full-height dashboard-responsive-wrapper">
       <div className="dashboard-container flex flex-col gap-6">
-        <Header logout={handleLogout} />
+        <Header
+          logout={handleLogout}
+          user={user}
+          isLoading={userLoading}
+          dashboardStats={dashboardStats}
+        />
         
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-7 lg:gap-8">
           {/* Main Content */}
