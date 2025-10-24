@@ -1,6 +1,5 @@
 import React from "react"
 import { Card, CardContent } from "./card"
-import "../../styles/components/dashboard/viais-card.css"
 
 // Type definition for ViaScores
 interface ViaScores {
@@ -106,17 +105,17 @@ function VIAISCardComponent({ viaScores }: VIAISCardProps) {
   const topStrengths = getTopViaStrengths(viaData, 4)
 
   return (
-    <Card className="viais-card">
-      <CardContent className="viais-card__content">
+    <Card className="border-[#eaecf0] bg-[#6475e9]">
+      <CardContent className="flex flex-col space-y-1 p-4 sm:p-4 sm:space-y-3 lg:p-4 lg:space-y-1">
         {/* VIAIS Statistics Header */}
-        <div className="viais-card__header">
-          <h3 className="viais-card__title">VIAIS</h3>
-          <p className="viais-card__description">Kekuatan Karakter Utama</p>
-          <div className="viais-card__strengths-grid">
+        <div className="text-center">
+          <h3 className="text-xl font-semibold text-left text-[#000000] sm:text-lg lg:text-xl">VIAIS</h3>
+          <p className="text-xs text-left mb-4 text-[#64707d] sm:text-sm sm:mb-3 lg:text-xs lg:mb-4">Kekuatan Karakter Utama</p>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-1 sm:gap-2 lg:grid-cols-2 lg:gap-2">
             {topStrengths.map((strength) => (
-              <div key={strength.name} className="viais-card__strength-item">
-                <div className="viais-card__strength-name">{strength.name}</div>
-                <div className="viais-card__strength-score">{strength.score}%</div>
+              <div key={strength.name} className="rounded-lg p-2 bg-[#f8f9fa] sm:p-3 sm:rounded-lg sm:flex sm:justify-between sm:items-center lg:p-2 lg:rounded-lg">
+                <div className="text-xs font-medium truncate text-[#64707d] sm:text-sm sm:font-medium sm:flex-1 lg:text-xs lg:font-medium lg:truncate">{strength.name}</div>
+                <div className="text-sm font-semibold text-[#1e1e1e] sm:text-base sm:font-bold sm:ml-auto lg:text-sm lg:font-semibold">{strength.score}%</div>
               </div>
             ))}
           </div>

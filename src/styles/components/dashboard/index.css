@@ -25,10 +25,9 @@ body {
 
 /* Import all dashboard component styles */
 /* Phase 2 components migrated to Tailwind - chart-card, progress-card, stats-card */
+/* Phase 3 components migrated to Tailwind - ocean-card, viais-card */
 /* world-map-card component doesn't exist, only CSS file was present */
 @import './header.css';
-@import './ocean-card.css';
-@import './viais-card.css';
 @import './assessment-table.css';
 @import './responsive.css';
 @import './mobile-enhancements.css';
