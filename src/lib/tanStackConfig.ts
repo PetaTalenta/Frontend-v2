@@ -157,7 +157,8 @@ export const queryPrefetch = {
   assessmentResult: async (id: string) => {
     await queryClient.prefetchQuery({
       queryKey: queryKeys.assessments.result(id),
-      staleTime: 2 * 60 * 1000, // 2 minutes
+      staleTime: 10 * 60 * 1000, // 10 minutes
+      gcTime: 15 * 60 * 1000, // 15 minutes cache
     });
   },
   
@@ -198,6 +199,15 @@ export const queryPrefetch = {
     await queryClient.prefetchQuery({
       queryKey: queryKeys.jobs.stats(),
       staleTime: 3 * 60 * 1000, // 3 minutes
+    });
+  },
+  
+  // Prefetch assessment results with priority
+  assessmentResultPriority: async (id: string) => {
+    await queryClient.prefetchQuery({
+      queryKey: queryKeys.assessments.result(id),
+      staleTime: 5 * 60 * 1000, // 5 minutes for priority data
+      gcTime: 10 * 60 * 1000, // 10 minutes cache
     });
   },
   

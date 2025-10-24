@@ -2,6 +2,7 @@ import axios, { AxiosInstance, AxiosResponse } from 'axios';
 import { RateLimiter, SecurityLogger } from '@/lib/security';
 import { queryClient, queryKeys, queryInvalidation } from '../lib/tanStackConfig';
 import type { JobsResponse, JobsParams, JobsStatsResponse } from '../types/dashboard';
+import type { AssessmentResultResponse, AssessmentResultError } from '../types/assessment-results';
 
 // Enhanced Security Event Types
 export interface SecurityEvent {
@@ -1329,6 +1330,115 @@ class AuthService {
     } catch (error: any) {
       throw this.handleError(error);
     }
+  }
+
+  // Get assessment result method with enhanced error handling and caching
+  async getAssessmentResult(id: string): Promise<AssessmentResultResponse> {
+    return await ErrorRecoveryManager.retryWithBackoff(async () => {
+      try {
+        // Validate UUID format before making request
+        if (!this.isValidUUID(id)) {
+          throw new ApiError('Invalid assessment result ID format', 400, 'INVALID_UUID');
+        }
+
+        const response: AxiosResponse<AssessmentResultResponse> = await this.apiClient.get(
+          `/api/archive/results/${id}`
+        );
+
+        // Log successful access for security monitoring
+        EnhancedSecurityLogger.logSecurityEvent({
+          type: 'UNAUTHORIZED_ACCESS', // Using existing type for data access logging
+          userId: this.getCurrentUser()?.uid,
+          details: {
+            action: 'access_assessment_result',
+            resultId: id,
+            timestamp: new Date().toISOString()
+          },
+        });
+
+        return response.data;
+      } catch (error: any) {
+        // Enhanced error handling for specific scenarios
+        if (error.response?.status === 404) {
+          throw new ApiError(
+            'Assessment result not found',
+            404,
+            'RESULT_NOT_FOUND',
+            { resultId: id }
+          );
+        }
+
+        if (error.response?.status === 403) {
+          throw new ApiError(
+            'Access denied. You do not have permission to view this result.',
+            403,
+            'ACCESS_DENIED',
+            { resultId: id }
+          );
+        }
+
+        if (error.response?.status === 401) {
+          // Token expired or invalid - will be handled by interceptor
+          EnhancedSecurityLogger.logSecurityEvent({
+            type: 'TOKEN_EXPIRED',
+            userId: this.getCurrentUser()?.uid,
+            details: {
+              action: 'access_assessment_result',
+              resultId: id
+            },
+          });
+        }
+
+        throw this.handleError(error);
+      }
+    }, {
+      maxRetries: 3,
+      baseDelay: 1000,
+      maxDelay: 8000,
+      backoffFactor: 2,
+      retryCondition: (error: any) => {
+        // Retry on network errors and 5xx server errors
+        return !error.response || (error.response.status >= 500 && error.response.status < 600);
+      },
+    });
+  }
+
+  // Utility method to validate UUID format
+  private isValidUUID(uuid: string): boolean {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(uuid);
+  }
+
+  // Prefetch assessment result for better UX
+  async prefetchAssessmentResult(id: string) {
+    try {
+      await queryClient.prefetchQuery({
+        queryKey: queryKeys.assessments.result(id),
+        queryFn: () => this.getAssessmentResult(id),
+        staleTime: 10 * 60 * 1000, // 10 minutes
+        gcTime: 15 * 60 * 1000, // 15 minutes cache
+      });
+    } catch (error) {
+      console.warn(`Failed to prefetch assessment result ${id}:`, error);
+    }
+  }
+
+  // Get cached assessment result
+  getCachedAssessmentResult(id: string): AssessmentResultResponse | undefined {
+    return queryClient.getQueryData(queryKeys.assessments.result(id));
+  }
+
+  // Check if assessment result is stale
+  isAssessmentResultStale(id: string): boolean {
+    const queryState = queryClient.getQueryState(queryKeys.assessments.result(id));
+    return queryState?.dataUpdatedAt ?
+      Date.now() - queryState.dataUpdatedAt > 10 * 60 * 1000 : // 10 minutes
+      true;
+  }
+
+  // Force refetch assessment result
+  async refetchAssessmentResult(id: string) {
+    return queryClient.refetchQueries({ queryKey: queryKeys.assessments.result(id) });
   }
 
   // Error handling utility
