@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../../hooks/useAuthWithTanStack';
+import { useAuth } from '../../hooks/useAuth';
 
 /**
  * Login Component - Real Implementation
@@ -28,7 +28,7 @@ const Login = ({ onLogin }: LoginProps) => {
 
   const onSubmit = async (data: LoginFormData) => {
     setLoginError('');
-    // clearError() - not available in useAuthWithTanStack
+    // clearError() - not available in useAuth
     
     try {
       await login(data);

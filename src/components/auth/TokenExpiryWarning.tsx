@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../../hooks/useAuthWithTanStack';
+import { useAuth } from '../../hooks/useAuth';
 import authService, { TokenManager } from '../../services/authService';
 
 interface TokenExpiryWarningProps {
@@ -18,6 +18,10 @@ const TokenExpiryWarning: React.FC<TokenExpiryWarningProps> = ({
   const [timeRemaining, setTimeRemaining] = useState<number>(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [dismissed, setDismissed] = useState(false);
+  
+  // Rate limiting for warning messages
+  const lastWarningTimeRef = React.useRef(0);
+  const WARNING_COOLDOWN = 5000; // 5 seconds
 
   useEffect(() => {
     if (!user) return;
@@ -25,14 +29,14 @@ const TokenExpiryWarning: React.FC<TokenExpiryWarningProps> = ({
     const checkTokenExpiry = () => {
       const token = TokenManager.getAccessToken();
       if (!token) {
-        console.log('TokenExpiryWarning: No token found');
+        logWarningOnce('TokenExpiryWarning: No token found');
         return;
       }
 
       try {
         // Validate token format before attempting to decode
         if (!isValidJWT(token)) {
-          console.warn('TokenExpiryWarning: Token is not in valid JWT format:', token.substring(0, 20) + '...');
+          logWarningOnce('TokenExpiryWarning: Token is not in valid JWT format:', token.substring(0, 20) + '...');
           // For non-JWT tokens, we can't check expiry, so we'll skip expiry checking
           return;
         }
@@ -42,7 +46,7 @@ const TokenExpiryWarning: React.FC<TokenExpiryWarningProps> = ({
         
         // Validate payload structure
         if (!payload || typeof payload.exp !== 'number') {
-          console.warn('TokenExpiryWarning: Invalid JWT payload structure:', payload);
+          logWarningOnce('TokenExpiryWarning: Invalid JWT payload structure:', payload);
           return;
         }
         
@@ -61,19 +65,28 @@ const TokenExpiryWarning: React.FC<TokenExpiryWarningProps> = ({
           setDismissed(false);
         } else if (minutesUntilExpiry <= 0) {
           // Token expired, logout user
-          console.log('TokenExpiryWarning: Token expired, logging out');
+          logWarningOnce('TokenExpiryWarning: Token expired, logging out');
           logout();
         }
       } catch (error) {
-        console.error('TokenExpiryWarning: Error checking token expiry:', error);
-        console.error('TokenExpiryWarning: Token that caused error:', token.substring(0, 50) + '...');
+        logWarningOnce('TokenExpiryWarning: Error checking token expiry:', error);
+        logWarningOnce('TokenExpiryWarning: Token that caused error:', token.substring(0, 50) + '...');
         
         // If we can't parse the token, it might be corrupted or invalid
         // In this case, we should logout for security
         if (error instanceof Error && error.message.includes('Failed to execute \'atob\'')) {
-          console.warn('TokenExpiryWarning: Invalid base64 encoding in token, logging out for security');
+          logWarningOnce('TokenExpiryWarning: Invalid base64 encoding in token, logging out for security');
           logout();
         }
+      }
+    };
+
+    // Rate-limited warning logger to prevent console spam
+    const logWarningOnce = (...args: any[]): void => {
+      const now = Date.now();
+      if (now - lastWarningTimeRef.current > WARNING_COOLDOWN) {
+        console.warn(...args);
+        lastWarningTimeRef.current = now;
       }
     };
 

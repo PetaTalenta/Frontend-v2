@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../../hooks/useAuthWithTanStack';
+import { useAuth } from '../../hooks/useAuth';
 import PasswordStrengthIndicator from './PasswordStrengthIndicator';
 
 /**
@@ -33,7 +33,7 @@ const Register = ({ onRegister }: RegisterProps) => {
 
   const onSubmit = async (data: RegisterFormData) => {
     setRegisterError('');
-    // clearError() - not available in useAuthWithTanStack
+    // clearError() - not available in useAuth
     
     try {
       // Prepare registration data

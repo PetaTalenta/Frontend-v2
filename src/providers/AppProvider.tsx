@@ -1,7 +1,7 @@
 'use client';
 
 import React, { ReactNode, useEffect } from 'react';
-import { TanStackProvider } from './TanStackProvider';
+import { TanStackProvider } from './QueryProvider';
 import { performanceMonitor } from '../lib/performance';
 
 interface AppProviderProps {

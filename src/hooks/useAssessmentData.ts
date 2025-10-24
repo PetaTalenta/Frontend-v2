@@ -1,6 +1,6 @@
 'use client';
 
 // Re-export the TanStack Query version for backward compatibility
-export { useAssessmentResult as useAssessmentData } from './useAssessmentWithTanStack';
-export { useAssessmentList, useStaticData } from './useAssessmentWithTanStack';
-export { default } from './useAssessmentWithTanStack';
+export { useAssessmentResult as useAssessmentData } from './useAssessment';
+export { useAssessmentList, useStaticData } from './useAssessment';
+export { default } from './useAssessment';

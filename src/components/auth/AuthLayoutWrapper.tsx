@@ -3,7 +3,7 @@
 import React from 'react';
 import TokenExpiryWarning from './TokenExpiryWarning';
 import OfflineStatusIndicator from './OfflineStatusIndicator';
-import { useAuth } from '../../hooks/useAuthWithTanStack';
+import { useAuth } from '../../hooks/useAuth';
 
 interface AuthLayoutWrapperProps {
   children: React.ReactNode;

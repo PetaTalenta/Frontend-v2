@@ -101,7 +101,7 @@ export function AssessmentProgressStream({
 // Client Component for interactive progress tracking
 'use client';
 
-import { useAssessmentProgress } from '../../hooks/useAssessmentWithTanStack';
+import { useAssessmentProgress } from '../../hooks/useAssessment';
 
 export function AssessmentProgressStreamClient() {
   const { progress, getProgress } = useAssessmentProgress();

@@ -206,6 +206,10 @@ class TokenManager {
   private static readonly REFRESH_TOKEN_KEY = 'futureguide_refresh_token';
   private static readonly USER_DATA_KEY = 'futureguide_user_data';
   private static readonly PARTIAL_USER_DATA_KEY = 'futureguide_partial_user_data';
+  
+  // Rate limiting for warning messages
+  private static lastWarningTime = 0;
+  private static readonly WARNING_COOLDOWN = 5000; // 5 seconds
 
   // Enhanced user data interface
   static setTokens(accessToken: string, refreshToken: string, userData: any, isPartial: boolean = false) {
@@ -345,7 +349,7 @@ class TokenManager {
     try {
       // Validate token format before attempting to decode
       if (!this.isValidJWT(token)) {
-        console.warn('TokenManager: Token is not in valid JWT format, treating as expired');
+        this.logWarningOnce('TokenManager: Token is not in valid JWT format, treating as expired');
         return true;
       }
 
@@ -353,16 +357,25 @@ class TokenManager {
       
       // Validate payload structure
       if (!payload || typeof payload.exp !== 'number') {
-        console.warn('TokenManager: Invalid JWT payload structure, treating as expired');
+        this.logWarningOnce('TokenManager: Invalid JWT payload structure, treating as expired');
         return true;
       }
       
       const now = Date.now() / 1000;
       return payload.exp < now;
     } catch (error) {
-      console.error('TokenManager: Error checking token expiry:', error);
+      this.logWarningOnce('TokenManager: Error checking token expiry:', error);
       // If we can't parse the token, treat it as expired for security
       return true;
+    }
+  }
+
+  // Rate-limited warning logger to prevent console spam
+  private static logWarningOnce(...args: any[]): void {
+    const now = Date.now();
+    if (now - this.lastWarningTime > this.WARNING_COOLDOWN) {
+      console.warn(...args);
+      this.lastWarningTime = now;
     }
   }
 

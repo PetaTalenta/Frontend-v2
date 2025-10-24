@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { UserProfile, ProfileFormData, PasswordFormData } from '../../types/profile';
-import { useAuth } from '../../hooks/useAuthWithTanStack';
+import { useAuth } from '../../hooks/useAuth';
 import ProfileLoading from './ProfileLoading';
 import ProfileCard from './ProfileCard';
 import SecurityCard from './SecurityCard';

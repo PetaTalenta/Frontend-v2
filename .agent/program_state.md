@@ -137,22 +137,27 @@ src/app/results/[id]/
 - Route protection dengan graceful degradation
 - Performance monitoring dengan API integration
 
-## 3. Strategi State Management
+## 3. Strategi State Management & Data Fetching
 
 **Implementasi:**
 - **Primary State Management**: TanStack Query v5.90.5 untuk server state management
 - **Local State**: React state untuk UI state
-- **Legacy Removal**: Zustand stores telah dihapus dan digantikan dengan TanStack Query
 - **Assessment Progress Management**: TanStack Query dengan LocalStorage persistence untuk assessment progress
 - Progressive Data Loading: Partial data → Background fetch → Complete data
 - Storage Strategy: LocalStorage + TanStack Query Cache
 - Optimized Configuration: Stale-time dan gc-time untuk optimal performance
+- **Advanced Token Management**: Enhanced token management dengan partial vs complete data separation
+- **Data Upgrade Mechanism**: Automatic data upgrade dari partial ke complete data
+- **Stale Data Detection**: Intelligent detection untuk stale data dengan TTL management
+- **Comprehensive Query Key Management**: Structured query keys untuk organized cache management
+- **Enhanced Error Handling**: Rate limiting integration, security logging, dan custom error classes
 
 **Lokasi Implementasi:**
-- `src/hooks/useAuthWithTanStack.ts` - Authentication state management dengan TanStack Query
-- `src/hooks/useAssessmentWithTanStack.ts` - Assessment data fetching dan progress management dengan TanStack Query
-- `src/hooks/useProfileWithTanStack.ts` - Profile data management dengan TanStack Query
+- `src/hooks/useAuth.ts` - Authentication state management dengan TanStack Query
+- `src/hooks/useAssessment.ts` - Assessment data fetching dan progress management dengan TanStack Query
+- `src/hooks/useProfile.ts` - Profile data management dengan TanStack Query
 - `src/providers/AppProvider.tsx` - Unified provider untuk semua state
+- `src/providers/QueryProvider.tsx` - TanStack Query provider wrapper (sebelumnya TanStackProvider.tsx)
 - `src/lib/tanStackConfig.ts` - TanStack Query configuration dengan optimal settings dan assessment progress keys
 
 **Best Practices Yang Dijadikan Acuan:**
@@ -163,7 +168,13 @@ src/app/results/[id]/
 - Error handling dengan automatic retry dan exponential backoff
 - Optimistic updates untuk immediate UI feedback
 - Background fetching untuk complete data loading
-- Migration from legacy Zustand stores ke modern TanStack Query
+- TanStack Query untuk modern data fetching dengan built-in caching
+- Automatic request deduplication untuk reduce network overhead
+- Centralized API configuration dengan proper error handling
+- Service layer consolidation untuk maintainability dan reduced duplication
+- Advanced token management dengan data separation strategies
+- Structured query key management untuk efficient cache organization
+- Enhanced security dengan rate limiting dan logging integration
 
 **Benefits:**
 - 77% faster build performance
@@ -171,65 +182,20 @@ src/app/results/[id]/
 - Automatic cache invalidation dan refetching
 - Improved error handling dan retry mechanisms
 - Progressive loading untuk enhanced UX
-- Reduced bundle size dengan removal of unused Zustand stores
-
-## 4. Strategi Data Fetching & Synchronization
-
-**Implementasi:**
-- **Library Migration**: Dari SWR ke TanStack Query v5.90.5
-- **Configuration**: Optimized dengan stale-time dan gc-time untuk performance
-- **Progressive Loading**: Partial data loading dengan background fetch untuk complete data
-- **Authentication Headers**: Secure requests dengan JWT token management
-- **Request Interceptors**: Automatic token refresh mechanism
-- **Error Handling**: Automatic retry dengan exponential backoff
-- **Optimistic Updates**: Immediate UI feedback untuk better UX
-- **Cache Strategy**: Intelligent caching dengan automatic invalidation
-- **Advanced Token Management**: Enhanced token management dengan partial vs complete data separation
-- **Data Upgrade Mechanism**: Automatic data upgrade dari partial ke complete data
-- **Stale Data Detection**: Intelligent detection untuk stale data dengan TTL management
-- **Comprehensive Query Key Management**: Structured query keys untuk organized cache management
-- **Enhanced Error Handling**: Rate limiting integration, security logging, dan custom error classes
-- **Assessment Progress Management**: LocalStorage integration untuk assessment progress persistence
-
-**Lokasi Implementasi:**
-- `src/lib/tanStackConfig.ts` - TanStack Query configuration dengan optimal settings dan structured query keys
-- `src/hooks/useAuthWithTanStack.ts` - Authentication data fetching dengan progressive loading
-- `src/hooks/useAssessmentWithTanStack.ts` - Assessment data fetching dengan LocalStorage persistence
-- `src/hooks/useProfileWithTanStack.ts` - Profile data management dengan optimistic updates
-- `src/services/authService.ts` - Consolidated API layer dengan authentication headers dan TanStack Query integration
-- `src/providers/TanStackProvider.tsx` - TanStack Query provider wrapper
-
-**Best Practices Yang Dijadikan Acuan:**
-- TanStack Query untuk modern data fetching dengan built-in caching
-- Progressive data loading untuk better perceived performance
-- Automatic request deduplication untuk reduce network overhead
-- Optimistic updates untuk immediate user feedback
-- Error boundaries dengan automatic retry mechanisms
-- Background fetching untuk complete data synchronization
-- Migration strategy dari SWR ke TanStack Query untuk better performance
-- Centralized API configuration dengan proper error handling
-- Service layer consolidation untuk maintainability dan reduced duplication
-- Advanced token management dengan data separation strategies
-- Structured query key management untuk efficient cache organization
-- Enhanced security dengan rate limiting dan logging integration
-
-**Performance Improvements:**
-- 77% faster build performance setelah migration
 - Request deduplication untuk reduce network requests
 - Automatic cache management dengan stale-while-revalidate
-- Progressive loading untuk better user experience
 - Enhanced error handling dengan exponential backoff retry
 - Service layer optimization dengan reduced code duplication
 - Advanced caching strategies dengan intelligent invalidation
 
-## 5. Strategi Authentication & Authorization
+
+## 4. Strategi Authentication & Authorization
 
 **Implementasi:**
 - **JWT Token Management**: Session management dengan automatic refresh
-- **Progressive Data Loading**: Partial data → Background fetch → Complete data
-- **Storage Strategy**: LocalStorage + TanStack Query Cache
 - **Token Expiry Warning**: System untuk user notification dengan robust validation
 - **Enhanced Token Validation**: JWT format validation sebelum decoding untuk prevent InvalidCharacterError
+- **Console Spam Prevention**: Rate-limited warning messages untuk prevent console spam (5-second cooldown)
 - **Profile Caching**: Intelligent caching dengan TTL management
 - **Auth Headers**: Secure API requests dengan JWT tokens
 - **Form Validation**: Login, Register, Logout dengan comprehensive validation
@@ -239,7 +205,7 @@ src/app/results/[id]/
 - **Enhanced Security Monitoring**: Security event tracking dengan pattern detection
 
 **Lokasi Implementasi:**
-- `src/hooks/useAuthWithTanStack.ts` - Authentication state management dengan TanStack Query
+- `src/hooks/useAuth.ts` - Authentication state management dengan TanStack Query
 - `src/services/authService.ts` - API layer dengan token management, enhanced security monitoring, dan error recovery
 - `src/components/auth/` - UI components (Login, Register, TokenExpiryWarning, OfflineStatusIndicator)
 - `src/lib/cache.ts` - Profile caching system dengan TTL
@@ -247,7 +213,7 @@ src/app/results/[id]/
 - `src/components/auth/AuthLayoutWrapper.tsx` - Auth layout dengan TanStack integration
 - `src/components/auth/Login.tsx` - Login form dengan validation
 - `src/components/auth/Register.tsx` - Register form dengan validation
-- `src/components/auth/TokenExpiryWarning.tsx` - Token expiry notification dengan enhanced validation
+- `src/components/auth/TokenExpiryWarning.tsx` - Token expiry notification dengan enhanced validation dan rate-limited warnings
 - `src/components/profile/ProfilePage.tsx` - Profile management
 
 **Best Practices Yang Dijadikan Acuan:**
@@ -258,12 +224,12 @@ src/app/results/[id]/
 - Token expiry warning untuk better UX
 - Enhanced token validation dengan format checking sebelum decoding
 - Robust error handling untuk non-JWT dan corrupted tokens
+- Rate-limited warning messages untuk prevent console spam (5-second cooldown)
 - Comprehensive logging untuk debugging token issues
 - Offline support untuk data persistence
 - Password strength validation untuk security
 - Input validation pada forms
 - Token validation dengan JWT decode
-- Migration dari Zustand ke TanStack Query untuk better performance
 - Enhanced logout validation dengan unsaved changes detection
 - Advanced error recovery dengan exponential backoff dan jitter
 - Security event monitoring dengan pattern detection
@@ -274,7 +240,6 @@ src/app/results/[id]/
 - Enhanced authentication flow dengan progressive loading
 - Better error handling dan retry mechanisms
 - Improved performance dengan TanStack Query caching
-- Backward compatibility maintained selama migration
 - API compatibility dengan backend preserved
 - Security measures enhanced dengan proper validation
 - Advanced security monitoring dengan real-time threat detection
@@ -282,7 +247,7 @@ src/app/results/[id]/
 - Enhanced reliability dengan exponential backoff error recovery
 - Comprehensive audit trail untuk security compliance
 
-## 6. Strategi Security
+## 5. Strategi Security
 
 **Implementasi:**
 - Security headers di next.config.mjs
@@ -292,7 +257,7 @@ src/app/results/[id]/
 - Input validation pada forms
 - Token validation dengan JWT decode
 - Removed CSRF protection karena backend tidak support
-- Enhanced Security: CSRF protection, rate limiting, secure cookies, dan enhanced security headers
+- Enhanced Security: rate limiting, secure cookies, dan enhanced security headers
 - Input Sanitization: Dan validation untuk prevent injection
 - Security Event Logging: Untuk monitoring
 
@@ -301,7 +266,7 @@ src/app/results/[id]/
 - `src/services/authService.ts` - Request/Response interceptors tanpa CSRF
 - `src/components/auth/` - Input validation
 - `.env.local` - Environment variables
-- `src/lib/security.ts` - Security utilities (CSRF, rate limiting, secure cookies)
+- `src/lib/security.ts` - Security utilities (rate limiting, secure cookies)
 
 **Best Practices Yang Dijadikan Acuan:**
 - Defense in depth dengan multiple security layers
@@ -309,21 +274,18 @@ src/app/results/[id]/
 - Input validation untuk prevent injection
 - JWT token validation untuk secure authentication
 - Request interceptors untuk consistent security headers
-- Remove unsupported headers untuk prevent CORS issues
-- CSRF protection dengan token-based validation
 - Rate limiting per endpoint dengan configurable limits
 - Secure cookie management dengan httpOnly, secure, dan sameSite flags
 - Enhanced security headers (CSP, HSTS, XSS Protection, etc.)
 
 **Security Enhancements:**
-- CSRF protection dengan token-based validation
 - Rate limiting per endpoint dengan configurable limits
 - Secure cookie management dengan httpOnly, secure, dan sameSite flags
 - Enhanced security headers (CSP, HSTS, XSS Protection, etc.)
 - Input sanitization dan validation
 - Security event logging untuk monitoring
 
-## 7. Strategi Caching
+## 6. Strategi Caching
 
 **Implementasi:**
 - Multi-Level Caching: Browser, Next.js, CDN
