@@ -7,6 +7,7 @@ import { AssessmentTable } from './assessment-table';
 import { VIAISCard } from './viais-card';
 import { OceanCard } from './ocean-card';
 import { ProgressCard } from './progress-card';
+import { useJobs, formatJobDataForTable } from '../../hooks/useJobs';
 
 // Dummy data untuk UI
 const dummyStatsData = [
@@ -145,6 +146,20 @@ interface DashboardClientProps {
 
 function DashboardClientComponent({ staticData }: DashboardClientProps) {
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Fetch jobs data from API
+  const { data: jobsData, isLoading: isJobsLoading, isError: isJobsError, error: jobsError, refetch: refetchJobs } = useJobs({
+    params: { limit: 20 },
+    enabled: true
+  });
+
+  // Format jobs data for table
+  const assessmentData = useMemo(() => {
+    if (jobsData?.data?.jobs) {
+      return formatJobDataForTable(jobsData.data.jobs);
+    }
+    return [];
+  }, [jobsData]);
 
   // Memoize dummy data to prevent unnecessary re-creation
   const dummyStatsData = useMemo(() => [
@@ -268,8 +283,14 @@ function DashboardClientComponent({ staticData }: DashboardClientProps) {
   // Memoize handlers
   const handleRefresh = useCallback(async () => {
     setIsLoading(true);
-    setTimeout(() => setIsLoading(false), 1000);
-  }, []);
+    try {
+      await refetchJobs();
+    } catch (error) {
+      console.error('Failed to refresh jobs:', error);
+    } finally {
+      setTimeout(() => setIsLoading(false), 500);
+    }
+  }, [refetchJobs]);
 
   const handleLogout = useCallback(() => {
     // Dummy logout function
@@ -335,10 +356,10 @@ function DashboardClientComponent({ staticData }: DashboardClientProps) {
             {/* Assessment History */}
             <div className="dashboard-table-scroll -mx-3 px-3 sm:mx-0 sm:px-0">
               <AssessmentTable
-                data={dummyAssessmentData}
+                data={assessmentData}
                 onRefresh={handleRefresh}
-                swrKey="dummy-key"
-                isLoading={false}
+                swrKey="jobs-data"
+                isLoading={isJobsLoading || isLoading}
                 isValidating={false}
               />
             </div>

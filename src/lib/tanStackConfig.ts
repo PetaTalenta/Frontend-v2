@@ -79,6 +79,13 @@ export const queryKeys = {
     stats: () => [...queryKeys.dashboard.all, 'stats'] as const,
     recent: () => [...queryKeys.dashboard.all, 'recent'] as const,
   },
+  
+  // Jobs queries
+  jobs: {
+    all: ['jobs'] as const,
+    list: (params?: any) => [...queryKeys.jobs.all, 'list', params] as const,
+    details: (id: string) => [...queryKeys.jobs.all, 'details', id] as const,
+  },
 } as const;
 
 // Query invalidation utilities
@@ -115,6 +122,13 @@ export const queryInvalidation = {
     stats: () => queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.stats() }),
     recent: () => queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.recent() }),
   },
+  
+  // Invalidate jobs-related queries
+  jobs: {
+    all: () => queryClient.invalidateQueries({ queryKey: queryKeys.jobs.all }),
+    list: (params?: any) => queryClient.invalidateQueries({ queryKey: queryKeys.jobs.list(params) }),
+    details: (id: string) => queryClient.invalidateQueries({ queryKey: queryKeys.jobs.details(id) }),
+  },
 } as const;
 
 // Prefetch utilities for better UX
@@ -148,6 +162,14 @@ export const queryPrefetch = {
     await queryClient.prefetchQuery({
       queryKey: queryKeys.dashboard.stats(),
       staleTime: 3 * 60 * 1000, // 3 minutes
+    });
+  },
+  
+  // Prefetch jobs list
+  jobsList: async (params?: any) => {
+    await queryClient.prefetchQuery({
+      queryKey: queryKeys.jobs.list(params),
+      staleTime: 5 * 60 * 1000, // 5 minutes
     });
   },
 } as const;

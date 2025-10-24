@@ -1,6 +1,7 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
 import { RateLimiter, SecurityLogger } from '@/lib/security';
 import { queryClient, queryKeys, queryInvalidation } from '../lib/tanStackConfig';
+import type { JobsResponse, JobsParams } from '../types/dashboard';
 
 // Enhanced Security Event Types
 export interface SecurityEvent {
@@ -1278,6 +1279,43 @@ class AuthService {
   // Force refetch profile data
   async refetchProfile() {
     return queryClient.refetchQueries({ queryKey: queryKeys.auth.profile() });
+  }
+
+  // Get jobs method for fetching assessment jobs
+  async getJobs(params: JobsParams = {}): Promise<JobsResponse> {
+    try {
+      const {
+        page = 1,
+        limit = 20,
+        status,
+        assessment_name,
+        sort = 'created_at',
+        order = 'DESC'
+      } = params;
+
+      const queryParams = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString(),
+        sort,
+        order
+      });
+
+      if (status) {
+        queryParams.append('status', status);
+      }
+
+      if (assessment_name) {
+        queryParams.append('assessment_name', assessment_name);
+      }
+
+      const response: AxiosResponse<JobsResponse> = await this.apiClient.get(
+        `/api/archive/jobs?${queryParams.toString()}`
+      );
+
+      return response.data;
+    } catch (error: any) {
+      throw this.handleError(error);
+    }
   }
 
   // Error handling utility

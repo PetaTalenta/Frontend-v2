@@ -11,6 +11,7 @@ import { Skeleton } from "./skeleton"
 import { SimpleAlertDialog } from "./alert-dialog-simple"
 import { ExternalLink, Trash2, Plus } from "lucide-react"
 import type { AssessmentData } from "../../types/dashboard"
+import { getStatusBadgeVariant, getStatusText, isJobProcessing, formatDateTimeForTable } from "../../hooks/useJobs"
 
 interface AssessmentTableProps {
   data: AssessmentData[]
@@ -108,7 +109,7 @@ function AssessmentTableComponent({ data, onRefresh, swrKey, isLoading, isValida
               <TableRow className="border-[#eaecf0]">
                 <TableHead className="font-medium text-[#64707d] px-2 sm:px-4 md:px-2 lg:px-4 py-2 text-xs sm:text-sm md:text-sm lg:text-sm">No</TableHead>
                 <TableHead className="font-medium text-[#64707d] px-2 sm:px-4 md:px-2 lg:px-4 py-2 text-xs sm:text-sm md:text-sm lg:text-sm">Archetype</TableHead>
-                <TableHead className="font-medium text-[#64707d] px-2 sm:px-4 md:px-2 lg:px-4 py-2 text-xs sm:text-sm md:text-sm lg:text-sm hidden sm:hidden md:hidden lg:table-cell">Tanggal Ujian</TableHead>
+                <TableHead className="font-medium text-[#64707d] px-2 sm:px-4 md:px-2 lg:px-4 py-2 text-xs sm:text-sm md:text-sm lg:text-sm hidden sm:hidden md:hidden lg:table-cell">Waktu</TableHead>
                 <TableHead className="font-medium text-[#64707d] px-2 sm:px-4 md:px-2 lg:px-4 py-2 text-xs sm:text-sm md:text-sm lg:text-sm">Status</TableHead>
                 <TableHead className="font-medium text-[#64707d] px-2 sm:px-4 md:px-2 lg:px-4 py-2 text-xs sm:text-sm md:text-sm lg:text-sm">Action</TableHead>
               </TableRow>
@@ -152,27 +153,13 @@ function AssessmentTableComponent({ data, onRefresh, swrKey, isLoading, isValida
                             </span>
                           )}
                         </TableCell>
-                        <TableCell className="text-[#64707d] px-2 sm:px-4 md:px-2 lg:px-4 py-2 text-xs sm:text-sm md:text-sm lg:text-sm hidden sm:hidden md:hidden lg:table-cell">{new Date(item.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</TableCell>
+                        <TableCell className="text-[#64707d] px-2 sm:px-4 md:px-2 lg:px-4 py-2 text-xs sm:text-sm md:text-sm lg:text-sm hidden sm:hidden md:hidden lg:table-cell">{formatDateTimeForTable(item.created_at)}</TableCell>
                         <TableCell className="px-2 sm:px-4 md:px-2 lg:px-4 py-2 text-xs sm:text-sm md:text-sm lg:text-sm">
                           <Badge
                             variant="secondary"
-                            className={`bg-[#f3f3f3] text-[#64707d] ${(() => {
-                              const s = String(item.status).toLowerCase();
-                              if (s === 'completed') return 'bg-[#d1fadf] text-[#027a48] border border-[#a6f4c5]';
-                              if (s === 'processing' || s === 'queued' || s === 'pending' || s === 'in_progress') return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-                              if (s === 'failed' || s === 'error') return 'bg-red-100 text-red-800 border-red-200';
-                              if (s === 'cancelled' || s === 'canceled') return 'bg-gray-100 text-gray-800 border-gray-200';
-                              return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-                            })()}`}
+                            className={`bg-[#f3f3f3] text-[#64707d] ${getStatusBadgeVariant(item.status)}`}
                           >
-                            {(() => {
-                              const s = String(item.status).toLowerCase();
-                              if (s === 'completed') return 'Selesai';
-                              if (s === 'processing' || s === 'queued' || s === 'pending' || s === 'in_progress') return 'Sedang Diproses';
-                              if (s === 'failed' || s === 'error') return 'Gagal';
-                              if (s === 'cancelled' || s === 'canceled') return 'Dibatalkan';
-                              return 'Belum Selesai';
-                            })()}
+                            {getStatusText(item.status)}
                           </Badge>
                         </TableCell>
                         <TableCell className="px-2 sm:px-4 md:px-2 lg:px-4 py-2 text-xs sm:text-sm md:text-sm lg:text-sm">
@@ -182,14 +169,8 @@ function AssessmentTableComponent({ data, onRefresh, swrKey, isLoading, isValida
                               size="icon"
                               className="h-8 w-8 sm:h-8 sm:w-8 md:h-8 md:w-8 lg:h-8 lg:w-8"
                               onClick={() => handleView(item.id)}
-                              disabled={(() => {
-                                const s = String(item.status).toLowerCase();
-                                return s === 'processing' || s === 'queued' || s === 'pending' || s === 'in_progress';
-                              })()}
-                              title={(() => {
-                                const s = String(item.status).toLowerCase();
-                                return (s === 'processing' || s === 'queued' || s === 'pending' || s === 'in_progress') ? 'Sedang diproses' : 'Lihat hasil';
-                              })()}
+                              disabled={isJobProcessing(item.status)}
+                              title={isJobProcessing(item.status) ? 'Sedang diproses' : 'Lihat hasil'}
                             >
                               <ExternalLink className="w-4 h-4 text-[#64707d]" />
                             </Button>
@@ -205,16 +186,8 @@ function AssessmentTableComponent({ data, onRefresh, swrKey, isLoading, isValida
                                   variant="ghost"
                                   size="icon"
                                   className="h-8 w-8 sm:h-8 sm:w-8 md:h-8 md:w-8 lg:h-8 lg:w-8"
-                                  disabled={(() => {
-                                    const s = String(item.status).toLowerCase();
-                                    const isProcessing = s === 'processing' || s === 'queued' || s === 'pending' || s === 'in_progress';
-                                    return isProcessing || isDeleting === (item.result_id || item.job_id);
-                                  })()}
-                                  title={(() => {
-                                    const s = String(item.status).toLowerCase();
-                                    const isProcessing = s === 'processing' || s === 'queued' || s === 'pending' || s === 'in_progress';
-                                    return isProcessing ? 'Sedang diproses' : 'Hapus';
-                                  })()}
+                                  disabled={isJobProcessing(item.status) || isDeleting === (item.result_id || item.job_id)}
+                                  title={isJobProcessing(item.status) ? 'Sedang diproses' : 'Hapus'}
                                 >
                                   <Trash2 className="w-4 h-4 text-[#64707d]" />
                                 </Button>

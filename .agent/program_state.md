@@ -331,3 +331,56 @@ src/app/results/[id]/
 - Background sync untuk offline actions
 - Push notification support dengan enhanced handlers
 
+
+ 
+## 7. Strategi Jobs API Integration
+
+**Implementasi:**
+- **Jobs API Integration**: Integrasi endpoint `/api/archive/jobs` untuk menampilkan 20 list jobs terbaru di assessment dashboard
+- **Type Definitions**: Interface types untuk response data jobs (JobData, JobsResponse, JobsPagination, JobsParams)
+- **Service Layer Enhancement**: Method `getJobs()` di authService dengan parameter filtering dan sorting
+- **TanStack Query Integration**: Query keys, invalidation, dan prefetch utilities untuk jobs
+- **Custom Hook**: `useJobs()` hook dengan caching, error handling, dan retry logic
+- **Dashboard Integration**: Real data fetching menggantikan dummy data dengan proper loading states
+- **Table Component Updates**: Mapping data structure dari API response ke existing table structure
+- **Date/Time Formatting**: Perubahan "Tanggal Ujian" ke "Waktu" dengan format dinamis (jam untuk hari yang sama, tanggal untuk beda hari)
+
+**Lokasi Implementasi:**
+- `src/types/dashboard.ts` - Type definitions untuk Jobs API (JobData, JobsResponse, JobsPagination, JobsParams)
+- `src/services/authService.ts` - getJobs method dengan parameter filtering dan error handling
+- `src/lib/tanStackConfig.ts` - Query keys, invalidation, dan prefetch utilities untuk jobs
+- `src/hooks/useJobs.ts` - Custom hook dengan caching, retry logic, dan utility functions
+- `src/components/dashboard/DashboardClient.tsx` - Integrasi useJobs hook menggantikan dummy data
+- `src/components/dashboard/assessment-table.tsx` - Update date/time formatting dan status handling
+
+**Best Practices Yang Dijadikan Acuan:**
+- TanStack Query untuk robust data fetching dengan caching
+- Proper TypeScript types untuk type safety
+- Error handling dengan exponential backoff retry
+- Progressive loading dengan skeleton screens
+- Data transformation untuk compatibility dengan existing components
+- Utility functions untuk reusable logic (status formatting, date/time formatting)
+- Consistent naming conventions dan file organization
+- Proper separation of concerns antara service layer, hooks, dan components
+- Optimistic updates untuk better user experience
+- Background refetch untuk fresh data
+- Minimal re-renders dengan React.memo dan proper dependency arrays
+
+**API Integration Details:**
+- **Endpoint**: `/api/archive/jobs` dengan JWT authentication
+- **Parameters**: page, limit, status, assessment_name, sort, order
+- **Response Structure**: jobs array dengan pagination metadata
+- **Status Handling**: queued, processing, completed, failed dengan proper Indonesian translation
+- **Date/Time Logic**: Show time for same day, date for different days
+- **Error Handling**: Network errors retry, 401/403 redirect, 500 error states
+- **Performance**: 5 menit stale time, background refetch, request deduplication
+
+**Benefits:**
+- Real-time data synchronization dengan server
+- Better user experience dengan proper loading states
+- Improved performance dengan intelligent caching
+- Enhanced error handling dan recovery mechanisms
+- Scalable architecture untuk future API integrations
+- Consistent data flow dengan TanStack Query
+- Type safety dengan comprehensive TypeScript definitions
+- Maintainable code dengan proper separation of concerns
