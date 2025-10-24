@@ -1,0 +1,48 @@
+/* Chart Card Component Styles */
+.chart-card {
+  @apply bg-white;
+  border-color: #eaecf0;
+}
+
+.chart-card__header {
+  /* Uses CardHeader component */
+}
+
+.chart-card__title {
+  @apply text-lg font-semibold;
+  color: #1e1e1e;
+}
+
+.chart-card__description {
+  @apply text-sm;
+  color: #64707d;
+}
+
+.chart-card__content {
+  /* Uses CardContent component */
+}
+
+.chart-card__chart-container {
+  @apply flex items-center justify-center gap-2 mb-6;
+}
+
+.chart-card__bar-item {
+  @apply flex flex-col items-center gap-2;
+}
+
+.chart-card__bar-background {
+  @apply relative w-8 rounded-2xl overflow-hidden;
+  height: 128px;
+  background-color: #f3f3f3;
+}
+
+.chart-card__bar-fill {
+  @apply absolute bottom-0 w-full transition-all duration-300;
+  min-height: 20px;
+  /* Height and background-color will be set dynamically */
+}
+
+.chart-card__bar-indicator {
+  @apply w-2 h-2 rounded-full;
+  background-color: #e5e7eb;
+}
