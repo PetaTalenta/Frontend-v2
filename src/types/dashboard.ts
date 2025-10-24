@@ -13,6 +13,7 @@ export interface StatCard {
   value: number;
   color: string;
   icon: string;
+  iconColor?: string; // Optional custom icon color
 }
 
 export interface ProgressItem {

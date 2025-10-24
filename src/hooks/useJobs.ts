@@ -111,10 +111,10 @@ export const formatJobDataForTable = (jobs: JobData[]) => {
 export const getStatusBadgeVariant = (status: string) => {
   const s = String(status).toLowerCase();
   if (s === 'completed') return 'bg-[#d1fadf] text-[#027a48] border border-[#a6f4c5]';
-  if (s === 'processing' || s === 'queued' || s === 'pending' || s === 'in_progress') return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-  if (s === 'failed' || s === 'error') return 'bg-red-100 text-red-800 border-red-200';
+  if (s === 'processing' || s === 'queued' || s === 'pending' || s === 'in_progress') return 'bg-[#f2f2f2] text-[#666666] border border-[#e0e0e0]';
+  if (s === 'failed' || s === 'error') return 'bg-[#fef2f2] text-[#dc2626] border border-[#fecaca]';
   if (s === 'cancelled' || s === 'canceled') return 'bg-gray-100 text-gray-800 border-gray-200';
-  return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+  return 'bg-[#f2f2f2] text-[#666666] border border-[#e0e0e0]';
 };
 
 // Utility function to get status text in Indonesian

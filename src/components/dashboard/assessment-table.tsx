@@ -94,7 +94,7 @@ function AssessmentTableComponent({ data, onRefresh, swrKey, isLoading, isValida
         </div>
         <div className="flex gap-2 ml-auto sm:ml-auto w-full sm:w-auto justify-end">
           <Button
-            className="text-white text-sm h-10 px-4 bg-[#6475e9] hover:bg-[#5a6bd8] w-full sm:w-auto justify-center"
+            className="text-white text-sm h-10 px-4 bg-[#6475E9] hover:bg-[#5a6bd8] w-full sm:w-auto justify-center"
             onClick={() => router.push("/select-assessment")}
           >
             <Plus className="w-4 h-4 mr-2" />
@@ -167,12 +167,12 @@ function AssessmentTableComponent({ data, onRefresh, swrKey, isLoading, isValida
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 sm:h-8 sm:w-8 md:h-8 md:w-8 lg:h-8 lg:w-8"
+                              className="h-8 w-8 sm:h-8 sm:w-8 md:h-8 md:w-8 lg:h-8 lg:w-8 hover:bg-[#6475E9] hover:text-white"
                               onClick={() => handleView(item.id)}
                               disabled={isJobProcessing(item.status)}
                               title={isJobProcessing(item.status) ? 'Sedang diproses' : 'Lihat hasil'}
                             >
-                              <ExternalLink className="w-4 h-4 text-[#64707d]" />
+                              <ExternalLink className="w-4 h-4 text-[#64707d] hover:text-white" />
                             </Button>
 
                             <SimpleAlertDialog
@@ -185,11 +185,11 @@ function AssessmentTableComponent({ data, onRefresh, swrKey, isLoading, isValida
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="h-8 w-8 sm:h-8 sm:w-8 md:h-8 md:w-8 lg:h-8 lg:w-8"
+                                  className="h-8 w-8 sm:h-8 sm:w-8 md:h-8 md:w-8 lg:h-8 lg:w-8 hover:bg-[#6475E9] hover:text-white"
                                   disabled={isJobProcessing(item.status) || isDeleting === (item.result_id || item.job_id)}
                                   title={isJobProcessing(item.status) ? 'Sedang diproses' : 'Hapus'}
                                 >
-                                  <Trash2 className="w-4 h-4 text-[#64707d]" />
+                                  <Trash2 className="w-4 h-4 text-[#64707d] hover:text-white" />
                                 </Button>
                               }
                             />
@@ -240,7 +240,7 @@ function AssessmentTableComponent({ data, onRefresh, swrKey, isLoading, isValida
                 size="sm"
                 className={`w-8 h-8 rounded-md ${
                   currentPage === page
-                    ? "text-white bg-[#6475e9] hover:bg-[#5a6bd8]"
+                    ? "text-white bg-[#6475E9] hover:bg-[#5a6bd8]"
                     : "text-[#64707d] bg-[#f3f3f3]"
                 }`}
                 onClick={() => setCurrentPage(page)}

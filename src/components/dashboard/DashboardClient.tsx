@@ -191,22 +191,25 @@ function DashboardClientComponent({ staticData }: DashboardClientProps) {
         id: 'processing',
         label: 'Processing',
         value: dashboardStats.processing,
-        color: '#f59e0b', // amber-500
+        color: '#DBEAFE', // light blue background
         icon: 'Cpu.svg',
+        iconColor: '#6C7EEB', // blue icon
       },
       {
         id: 'completed',
         label: 'Completed',
         value: dashboardStats.completed,
-        color: '#10b981', // emerald-500
+        color: '#DBFCE7', // light green background
         icon: 'Check.svg',
+        iconColor: '#00A63E', // green icon
       },
       {
         id: 'failed',
         label: 'Failed',
         value: dashboardStats.failed,
-        color: '#ef4444', // red-500
+        color: '#fca5a5', // soft red (red-300)
         icon: 'MagnifyingGlass.svg',
+        iconColor: '#DE3729', // red icon
       },
       {
         id: 'token-balance',
@@ -238,7 +241,7 @@ function DashboardClientComponent({ staticData }: DashboardClientProps) {
       id: 'score',
       label: 'Rata-rata Skor',
       value: 78,
-      color: '#6475e9',
+      color: '#DE3729',
       icon: 'MagnifyingGlass.svg',
     },
     {
@@ -396,8 +399,8 @@ function DashboardClientComponent({ staticData }: DashboardClientProps) {
       <div className="dashboard-full-height dashboard-responsive-wrapper">
         <div className="dashboard-container flex flex-col gap-6">
           <Header logout={handleLogout} />
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:gap-8">
-            <div className="space-y-6 lg:col-span-2">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-7 lg:gap-8">
+            <div className="space-y-6 lg:col-span-5">
               {/* Stats Cards Loading with staggered animation */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <StatsCardSkeleton delay={0} />
@@ -435,9 +438,9 @@ function DashboardClientComponent({ staticData }: DashboardClientProps) {
       <div className="dashboard-container flex flex-col gap-6">
         <Header logout={handleLogout} />
         
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:gap-8">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-7 lg:gap-8">
           {/* Main Content */}
-          <div className="space-y-6 mb-4 lg:mb-0 lg:col-span-2 max-w-full overflow-x-hidden">
+          <div className="space-y-6 mb-4 lg:mb-0 lg:col-span-5 max-w-full overflow-x-hidden">
             {/* Stats Cards with progressive loading */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {isStatsLoading ? (
@@ -474,7 +477,7 @@ function DashboardClientComponent({ staticData }: DashboardClientProps) {
             </div>
           </div>
           {/* Right Sidebar */}
-          <div className="flex flex-col gap-6 max-w-full overflow-x-hidden">
+          <div className="flex flex-col gap-6 max-w-full overflow-x-hidden lg:col-span-2">
             {/* VIAIS and Ocean cards stack vertically on mobile */}
             <div className="grid grid-cols-1 gap-4">
               <VIAISCard viaScores={dummyViaScoresMemo} />
