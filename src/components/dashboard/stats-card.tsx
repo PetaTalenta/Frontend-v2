@@ -1,4 +1,5 @@
 import React from "react"
+import Image from "next/image"
 import { Card, CardContent } from "./card"
 import type { StatCard } from "../../types/dashboard"
 import "../../styles/components/dashboard/stats-card.css"
@@ -20,9 +21,11 @@ function StatsCardComponent({ stat }: StatsCardProps) {
             className="stats-card__icon-container"
             style={{ backgroundColor: stat.color }}
           >
-            <img
+            <Image
               src={`/icons/${stat.icon}`}
               alt={stat.label}
+              width={24}
+              height={24}
               className="stats-card__icon"
             />
           </div>

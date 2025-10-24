@@ -1,4 +1,5 @@
 import React from "react"
+import Image from "next/image"
 
 interface AvatarProps {
   className?: string
@@ -32,9 +33,11 @@ export function AvatarImage({ src, alt, className }: AvatarImageProps) {
   }
 
   return (
-    <img
+    <Image
       src={src}
-      alt={alt}
+      alt={alt || ''}
+      width={40}
+      height={40}
       className={`aspect-square h-full w-full object-cover ${className || ''}`}
     />
   )

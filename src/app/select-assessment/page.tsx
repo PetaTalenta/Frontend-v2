@@ -39,7 +39,7 @@ export default function SelectAssessmentPage() {
           type="button"
           onClick={handleGoBack}
         >
-          <img src="/icons/CaretLeft.svg" alt="Back" className="w-4 h-4 sm:w-5 sm:h-5" />
+          <Image src="/icons/CaretLeft.svg" alt="Back" width={20} height={20} className="w-4 h-4 sm:w-5 sm:h-5" />
           Kembali
         </button>
       </div>
@@ -84,25 +84,25 @@ export default function SelectAssessmentPage() {
             </div>
             {/* RIASEC Card */}
             <div className="relative bg-[#6475e9] rounded-[24px] w-full max-w-[400px] lg:max-w-[444px] h-[400px] sm:h-[450px] lg:h-[480px] 2xl:h-[420px] flex flex-col items-center shadow-md overflow-hidden transition-transform duration-300 hover:-translate-y-2 hover:shadow-2xl cursor-pointer hidden md:flex">
-              <img src={upperRightIcon} alt="Go" className="absolute right-4 top-4 w-6 h-6 sm:w-8 sm:h-8 bg-white rounded-full p-1.5 sm:p-2 shadow z-10" />
+              <Image src={upperRightIcon} alt="Go" width={32} height={32} className="absolute right-4 top-4 w-6 h-6 sm:w-8 sm:h-8 bg-white rounded-full p-1.5 sm:p-2 shadow z-10" />
               <div className="flex flex-col items-center mt-8 sm:mt-12 mb-2">
                 <div className="font-bold text-white text-2xl sm:text-3xl lg:text-[36px] leading-tight tracking-tight font-['Plus Jakarta Sans',sans-serif]">RIASEC</div>
                 <div className="font-normal text-white text-sm sm:text-[16px] mt-1 font-['Plus Jakarta Sans',sans-serif] text-center px-4">Kenali bakat dan minat karirmu.</div>
               </div>
               <div className="flex-1 flex items-end w-full justify-center pb-0 relative z-10">
-                <img src={imgRIASEC} alt="RIASEC" className="w-[200px] h-[200px] sm:w-[250px] sm:h-[250px] lg:w-[300px] lg:h-[300px] 2xl:w-[280px] 2xl:h-[280px] object-contain" />
+                <Image src={imgRIASEC} alt="RIASEC" width={300} height={300} className="w-[200px] h-[200px] sm:w-[250px] sm:h-[250px] lg:w-[300px] lg:h-[300px] 2xl:w-[280px] 2xl:h-[280px] object-contain" />
               </div>
               <div className="absolute left-0 bottom-0 w-full h-[80px] sm:h-[100px] lg:h-[120px] 2xl:h-[100px] rounded-b-[24px] bg-[#bfc8f7] z-0" style={{clipPath:'ellipse(90% 60% at 50% 100%)'}} />
             </div>
             {/* OCEAN Card */}
             <div className="relative bg-[#6475e9] rounded-[24px] w-full max-w-[400px] lg:max-w-[444px] h-[400px] sm:h-[450px] lg:h-[480px] 2xl:h-[420px] flex flex-col items-center shadow-md overflow-hidden transition-transform duration-300 hover:-translate-y-2 hover:shadow-2xl cursor-pointer lg:col-span-1 hidden md:flex">
-              <img src={upperRightIcon} alt="Go" className="absolute right-4 top-4 w-6 h-6 sm:w-8 sm:h-8 bg-white rounded-full p-1.5 sm:p-2 shadow z-10" />
+              <Image src={upperRightIcon} alt="Go" width={32} height={32} className="absolute right-4 top-4 w-6 h-6 sm:w-8 sm:h-8 bg-white rounded-full p-1.5 sm:p-2 shadow z-10" />
               <div className="flex flex-col items-center mt-8 sm:mt-12 mb-2">
                 <div className="font-bold text-white text-2xl sm:text-3xl lg:text-[36px] leading-tight tracking-tight font-['Plus Jakarta Sans',sans-serif]">OCEAN</div>
                 <div className="font-normal text-white text-sm sm:text-[16px] mt-1 font-['Plus Jakarta Sans',sans-serif] text-center px-4">Pahami kepribadianmu secara mendalam.</div>
               </div>
               <div className="flex-1 flex items-end w-full justify-center pb-0 relative z-10">
-                <img src={imgOCEAN} alt="OCEAN" className="w-[200px] h-[200px] sm:w-[250px] sm:h-[250px] lg:w-[300px] lg:h-[300px] 2xl:w-[280px] 2xl:h-[280px] object-contain" />
+                <Image src={imgOCEAN} alt="OCEAN" width={300} height={300} className="w-[200px] h-[200px] sm:w-[250px] sm:h-[250px] lg:w-[300px] lg:h-[300px] 2xl:w-[280px] 2xl:h-[280px] object-contain" />
               </div>
               <div className="absolute left-0 bottom-0 w-full h-[80px] sm:h-[100px] lg:h-[120px] 2xl:h-[100px] rounded-b-[24px] bg-[#bfc8f7] z-0" style={{clipPath:'ellipse(90% 60% at 50% 100%)'}} />
             </div>
@@ -115,7 +115,7 @@ export default function SelectAssessmentPage() {
               onClick={handleStartAssessment}
             >
               Mulai Tes
-              <img src="/icons/Chevron right.svg" alt="Chevron Right" className="w-4 h-4 sm:w-5 sm:h-5 ml-1" />
+              <Image src="/icons/Chevron right.svg" alt="Chevron Right" width={20} height={20} className="w-4 h-4 sm:w-5 sm:h-5 ml-1" />
             </button>
           </div>
         </div>

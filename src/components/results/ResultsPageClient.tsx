@@ -266,6 +266,21 @@ function ResultsPageClientComponent({ initialResult, resultId }: ResultsPageClie
     }
   }, [isPublic]);
 
+  const copyToClipboard = useCallback((text: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      toast({
+        title: "Link disalin!",
+        description: "Link hasil assessment telah disalin ke clipboard.",
+      });
+    }).catch(() => {
+      toast({
+        title: "Gagal menyalin",
+        description: "Tidak dapat menyalin link. Silakan salin manual dari address bar.",
+        variant: "destructive",
+      });
+    });
+  }, []);
+
   // Share link (copy/share)
   const handleShare = useCallback(async () => {
     const url = window.location.href;
@@ -283,22 +298,7 @@ function ResultsPageClientComponent({ initialResult, resultId }: ResultsPageClie
     } else {
       copyToClipboard(url);
     }
-  }, [result.persona_profile?.archetype]);
-
-  const copyToClipboard = useCallback((text: string) => {
-    navigator.clipboard.writeText(text).then(() => {
-      toast({
-        title: "Link disalin!",
-        description: "Link hasil assessment telah disalin ke clipboard.",
-      });
-    }).catch(() => {
-      toast({
-        title: "Gagal menyalin",
-        description: "Tidak dapat menyalin link. Silakan salin manual dari address bar.",
-        variant: "destructive",
-      });
-    });
-  }, []);
+  }, [result.persona_profile?.archetype, copyToClipboard]);
 
   const handleExportPDF = useCallback(async () => {
     try {

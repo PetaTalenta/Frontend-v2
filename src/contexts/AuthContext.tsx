@@ -62,6 +62,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Load profile data
+  const loadProfile = useCallback(async () => {
+    try {
+      const profileData = await authService.getProfile();
+      setProfile(profileData);
+    } catch (err) {
+      console.error('Error loading profile:', err);
+      // Don't set error for profile loading failure, as it's not critical
+    }
+  }, []);
+
   // Check authentication status on mount
   useEffect(() => {
     let isMounted = true;
@@ -92,18 +103,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return () => {
       isMounted = false;
     };
-  }, []);
-
-  // Load profile data
-  const loadProfile = useCallback(async () => {
-    try {
-      const profileData = await authService.getProfile();
-      setProfile(profileData);
-    } catch (err) {
-      console.error('Error loading profile:', err);
-      // Don't set error for profile loading failure, as it's not critical
-    }
-  }, []);
+  }, [loadProfile]);
 
   // Login function
   const login = async (data: LoginData) => {

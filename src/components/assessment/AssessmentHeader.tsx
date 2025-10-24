@@ -1,7 +1,7 @@
 'use client';
 
-
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 
 
@@ -43,7 +43,7 @@ export default function AssessmentHeader({
             className="flex items-center gap-2 px-3 py-2 rounded-full border border-[#E5E7EB] bg-white text-[#64707D] text-sm font-medium shadow-sm hover:bg-[#f5f7fb] transition flex-shrink-0"
             type="button"
           >
-            <img src="/icons/CaretLeft.svg" alt="Back" className="w-4 h-4" />
+            <Image src="/icons/CaretLeft.svg" alt="Back" width={16} height={16} className="w-4 h-4" />
           </button>
           <span className="font-semibold text-base">{phase}: {assessmentName}</span>
         </div>
@@ -57,7 +57,7 @@ export default function AssessmentHeader({
             className="flex items-center gap-2 px-4 py-2 rounded-full border border-[#E5E7EB] bg-white text-[#64707D] text-[16px] font-medium shadow-sm hover:bg-[#f5f7fb] transition"
             type="button"
           >
-            <img src="/icons/CaretLeft.svg" alt="Back" className="w-4 h-4" />
+            <Image src="/icons/CaretLeft.svg" alt="Back" width={16} height={16} className="w-4 h-4" />
             <span>Kembali ke Dashboard</span>
           </button>
           <span className="font-semibold text-lg">{phase}: {assessmentName}</span>
