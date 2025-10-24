@@ -69,3 +69,37 @@ export interface JobsParams {
   sort?: string;
   order?: 'ASC' | 'DESC';
 }
+
+// Jobs Stats Types
+export interface JobsStatsData {
+  total_jobs: number;
+  queued: number;
+  processing: number;
+  completed: number;
+  failed: number;
+  success_rate: number;
+  avg_processing_time_seconds: number;
+}
+
+export interface JobsStatsResponse {
+  success: boolean;
+  message: string;
+  timestamp: string;
+  data: JobsStatsData;
+}
+
+// Dashboard Stats Types
+export interface DashboardStats {
+  processing: number;
+  completed: number;
+  failed: number;
+  tokenBalance: number;
+  totalJobs: number;
+  successRate: number;
+  avgProcessingTime: number;
+}
+
+export interface DashboardStatsData {
+  jobsStats: JobsStatsData;
+  tokenBalance: number;
+}

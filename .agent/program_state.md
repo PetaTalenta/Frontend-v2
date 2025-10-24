@@ -384,3 +384,114 @@ src/app/results/[id]/
 - Consistent data flow dengan TanStack Query
 - Type safety dengan comprehensive TypeScript definitions
 - Maintainable code dengan proper separation of concerns
+
+## 8. Strategi Dashboard Stats Implementation
+
+**Implementasi:**
+- **Jobs Stats API Integration**: Integrasi endpoint `/api/archive/jobs/stats` untuk mendapatkan statistik jobs (Processing, Completed, Failed)
+- **Profile API Integration**: Menggunakan existing endpoint `/api/auth/profile` untuk mendapatkan token balance
+- **Combined Stats Display**: Menampilkan 4 statistik utama di dashboard: Processing, Completed, Failed, dan Token Balance
+- **Real-time Data Fetching**: Menggunakan TanStack Query untuk automatic background refetch dan cache management
+- **Progressive Loading**: Skeleton screens dan loading states untuk better perceived performance
+- **Error Handling**: Comprehensive error recovery dengan exponential backoff retry mechanisms
+
+**Endpoint yang Sudah Diimplementasikan:**
+- `/api/auth/profile` - Sudah diimplementasikan di `authService.ts` method `getProfile()`
+- `/api/archive/jobs` - Sudah diimplementasikan di `authService.ts` method `getJobs()`
+
+**Endpoint yang Sudah Diimplementasikan:**
+- `/api/archive/jobs/stats` - Sudah diimplementasikan di `authService.ts` method `getJobsStats()`
+
+**Lokasi Implementasi:**
+- `src/types/dashboard.ts` - Type definitions untuk JobsStatsResponse dan DashboardStats (✅ COMPLETED)
+- `src/services/authService.ts` - getJobsStats() method dengan error handling dan retry logic (✅ COMPLETED)
+- `src/lib/tanStackConfig.ts` - Query keys dan invalidation utilities untuk jobs stats (✅ COMPLETED)
+- `src/hooks/useJobsStats.ts` - Custom hook untuk jobs stats fetching (✅ COMPLETED)
+- `src/hooks/useDashboardStats.ts` - Custom hook untuk combined dashboard stats (✅ COMPLETED)
+- `src/components/dashboard/stats-card.tsx` - Update untuk dynamic data dan loading states (✅ COMPLETED)
+- `src/components/dashboard/DashboardClient.tsx` - Integrasi useDashboardStats hook (✅ COMPLETED)
+
+**Best Practices Yang Dijadikan Acuan:**
+- TanStack Query untuk robust data fetching dengan caching
+- Parallel fetching dengan `useQueries` untuk optimal performance
+- Progressive loading dengan skeleton screens
+- Error boundaries dengan graceful degradation
+- Consistent naming conventions dan file organization
+- TypeScript untuk type safety
+- React.memo untuk prevent unnecessary re-renders
+- Proper separation of concerns antara service layer, hooks, dan components
+
+**API Integration Details:**
+- **Jobs Stats Endpoint**: `/api/archive/jobs/stats` dengan JWT authentication
+- **Response Structure**: total_jobs, queued, processing, completed, failed, success_rate, avg_processing_time_seconds
+- **Profile Endpoint**: `/api/auth/profile` (existing) untuk token_balance
+- **Combined Display**: Processing, Completed, Failed dari jobs stats + Token Balance dari profile
+- **Error Handling**: Network errors retry, 401/403 redirect, 500 error states
+- **Performance**: 3 menit stale time untuk jobs stats, 5 menit untuk profile, background refetch
+
+**Data Flow Architecture:**
+```
+Dashboard Component
+    ↓
+useDashboardStats Hook
+    ↓
+┌─────────────────┬─────────────────┐
+│   useJobsStats  │   useProfile    │
+│   (New Hook)    │  (Existing)     │
+└─────────────────┴─────────────────┘
+    ↓                    ↓
+┌─────────────────┬─────────────────┐
+│  authService    │  authService    │
+│ .getJobsStats() │ .getProfile()   │
+└─────────────────┴─────────────────┘
+    ↓                    ↓
+┌─────────────────┬─────────────────┐
+│ /api/archive/   │ /api/auth/      │
+│   jobs/stats    │   profile       │
+└─────────────────┴─────────────────┘
+```
+
+**Benefits:**
+- Real-time visibility untuk assessment progress dan token balance
+- Better user experience dengan proper loading states
+- Improved performance dengan intelligent caching
+- Enhanced error handling dan recovery mechanisms
+- Consistent dengan existing architecture patterns
+- Type safety dengan comprehensive TypeScript definitions
+- Maintainable code dengan proper separation of concerns
+- Scalable untuk future enhancements
+
+**Documentation:**
+- Lihat implementasi detail di `docs/dashboard-stats-implementation-plan.md`
+- Lihat laporan implementasi Phase 1-2 di `docs/dashboard-stats-phase1-2-implementation-report.md`
+- Lihat laporan implementasi Phase 3-4 di `docs/dashboard-stats-phase3-4-implementation-report.md`
+
+**New Files Added:**
+- `src/components/dashboard/stats-card-skeleton.tsx` - Skeleton component dengan staggered loading
+- `src/components/dashboard/DashboardErrorBoundary.tsx` - Error boundary dengan retry mechanisms
+- `src/lib/errorHandling.ts` - Enhanced error handling utilities
+
+**Enhanced Files:**
+- `src/components/dashboard/stats-card.tsx` - Enhanced dengan loading dan error states
+- `src/components/dashboard/DashboardClient.tsx` - Enhanced dengan error boundary dan progressive loading
+- `src/hooks/useDashboardStats.ts` - Enhanced dengan improved error handling
+- `src/lib/tanStackConfig.ts` - Enhanced dengan advanced caching strategies
+
+**Phase 1 & 2 Implementation Status: ✅ COMPLETED**
+- ✅ Type definitions untuk JobsStatsResponse dan DashboardStats sudah ditambahkan di `src/types/dashboard.ts`
+- ✅ getJobsStats() method sudah diimplementasikan di `src/services/authService.ts` dengan error handling dan retry logic
+- ✅ TanStack Query configuration sudah diperbarui di `src/lib/tanStackConfig.ts` dengan query keys dan invalidation utilities untuk jobs stats
+- ✅ useJobsStats() hook sudah dibuat di `src/hooks/useJobsStats.ts` dengan caching, error handling, dan retry logic
+- ✅ useDashboardStats() hook sudah dibuat di `src/hooks/useDashboardStats.ts` dengan parallel fetching menggunakan useQueries
+- ✅ Build berhasil tanpa error dan TypeScript validation passed
+- ✅ Implementation plan sudah diperbarui dengan status completion untuk Phase 1 dan 2
+
+**Phase 3 & 4 Implementation Status: ✅ COMPLETED**
+- ✅ Update stats-card component untuk dynamic data dan loading states
+- ✅ Integrasi useDashboardStats hook di DashboardClient component
+- ✅ Implementasi skeleton screens dan error boundaries
+- ✅ Progressive loading dengan staggered animation
+- ✅ Enhanced caching strategy dengan intelligent invalidation
+- ✅ Comprehensive error handling dengan exponential backoff retry
+- ✅ Error boundary implementation dengan graceful degradation
+- ✅ Performance optimizations dengan background refetch

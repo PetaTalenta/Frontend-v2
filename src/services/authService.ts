@@ -1,7 +1,7 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
 import { RateLimiter, SecurityLogger } from '@/lib/security';
 import { queryClient, queryKeys, queryInvalidation } from '../lib/tanStackConfig';
-import type { JobsResponse, JobsParams } from '../types/dashboard';
+import type { JobsResponse, JobsParams, JobsStatsResponse } from '../types/dashboard';
 
 // Enhanced Security Event Types
 export interface SecurityEvent {
@@ -1310,6 +1310,19 @@ class AuthService {
 
       const response: AxiosResponse<JobsResponse> = await this.apiClient.get(
         `/api/archive/jobs?${queryParams.toString()}`
+      );
+
+      return response.data;
+    } catch (error: any) {
+      throw this.handleError(error);
+    }
+  }
+
+  // Get jobs statistics method
+  async getJobsStats(): Promise<JobsStatsResponse> {
+    try {
+      const response: AxiosResponse<JobsStatsResponse> = await this.apiClient.get(
+        '/api/archive/jobs/stats'
       );
 
       return response.data;

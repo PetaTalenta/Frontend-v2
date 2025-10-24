@@ -32,6 +32,21 @@ export const queryClient = new QueryClient({
       // Refetch on mount
       refetchOnMount: true,
       
+      // Background refetch interval for real-time data
+      refetchInterval: (query) => {
+        // Only refetch critical data in background
+        if (query.queryKey.includes('stats')) {
+          return 2 * 60 * 1000; // 2 minutes for stats
+        }
+        return false; // Disable for other queries
+      },
+      
+      // Don't refetch in background if tab is not visible
+      refetchIntervalInBackground: false,
+      
+      // Network mode for better offline support
+      networkMode: 'online',
+      
       // Default error handler
       throwOnError: false,
     },
@@ -41,6 +56,9 @@ export const queryClient = new QueryClient({
       
       // Default error handler
       throwOnError: false,
+      
+      // Network mode for mutations
+      networkMode: 'online',
     },
   },
 });
@@ -85,6 +103,7 @@ export const queryKeys = {
     all: ['jobs'] as const,
     list: (params?: any) => [...queryKeys.jobs.all, 'list', params] as const,
     details: (id: string) => [...queryKeys.jobs.all, 'details', id] as const,
+    stats: () => [...queryKeys.jobs.all, 'stats'] as const,
   },
 } as const;
 
@@ -128,6 +147,7 @@ export const queryInvalidation = {
     all: () => queryClient.invalidateQueries({ queryKey: queryKeys.jobs.all }),
     list: (params?: any) => queryClient.invalidateQueries({ queryKey: queryKeys.jobs.list(params) }),
     details: (id: string) => queryClient.invalidateQueries({ queryKey: queryKeys.jobs.details(id) }),
+    stats: () => queryClient.invalidateQueries({ queryKey: queryKeys.jobs.stats() }),
   },
 } as const;
 
@@ -170,6 +190,23 @@ export const queryPrefetch = {
     await queryClient.prefetchQuery({
       queryKey: queryKeys.jobs.list(params),
       staleTime: 5 * 60 * 1000, // 5 minutes
+    });
+  },
+  
+  // Prefetch jobs stats
+  jobsStats: async () => {
+    await queryClient.prefetchQuery({
+      queryKey: queryKeys.jobs.stats(),
+      staleTime: 3 * 60 * 1000, // 3 minutes
+    });
+  },
+  
+  // Prefetch dashboard stats with priority
+  dashboardStatsPriority: async () => {
+    await queryClient.prefetchQuery({
+      queryKey: queryKeys.dashboard.stats(),
+      staleTime: 1 * 60 * 1000, // 1 minute for priority data
+      gcTime: 5 * 60 * 1000, // 5 minutes cache
     });
   },
 } as const;
@@ -215,6 +252,109 @@ export const cacheUtils = {
     };
     cacheUtils.setCompleteUser(mergedData);
     return mergedData;
+  },
+  
+  // Intelligent cache invalidation for dashboard stats
+  invalidateDashboardStats: (reason?: string) => {
+    console.log(`Invalidating dashboard stats: ${reason || 'manual'}`);
+    queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.stats() });
+    queryClient.invalidateQueries({ queryKey: queryKeys.jobs.stats() });
+  },
+  
+  // Selective cache invalidation based on data type
+  invalidateByDataType: (dataType: 'jobs' | 'profile' | 'stats') => {
+    switch (dataType) {
+      case 'jobs':
+        queryClient.invalidateQueries({ queryKey: queryKeys.jobs.all });
+        break;
+      case 'profile':
+        queryClient.invalidateQueries({ queryKey: queryKeys.auth.profile() });
+        break;
+      case 'stats':
+        queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.stats() });
+        queryClient.invalidateQueries({ queryKey: queryKeys.jobs.stats() });
+        break;
+    }
+  },
+  
+  // Cache warming for better perceived performance
+  warmCache: async () => {
+    try {
+      // Prefetch critical data in parallel
+      await Promise.all([
+        queryPrefetch.dashboardStatsPriority(),
+        queryPrefetch.jobsStats(),
+        queryPrefetch.userProfile(),
+      ]);
+    } catch (error) {
+      console.warn('Cache warming failed:', error);
+    }
+  },
+  
+  // Get cache statistics for monitoring
+  getCacheStats: () => {
+    const cache = queryClient.getQueryCache();
+    const queries = cache.getAll();
+    
+    return {
+      totalQueries: queries.length,
+      staleQueries: queries.filter(q => q.isStale()).length,
+      fetchingQueries: queries.filter(q => q.state.fetchStatus === 'fetching').length,
+      inactiveQueries: queries.filter(q => !q.getObserversCount()).length,
+    };
+  },
+  
+  // Clear stale cache entries
+  clearStaleCache: () => {
+    const cache = queryClient.getQueryCache();
+    const staleQueries = cache.getAll().filter(q => q.isStale());
+    
+    staleQueries.forEach(query => {
+      cache.remove(query);
+    });
+    
+    return staleQueries.length;
+  },
+} as const;
+
+// Advanced caching strategies for dashboard stats
+export const dashboardCacheStrategy = {
+  // Preload data when user is likely to need it
+  preloadOnUserAction: async (action: 'view_dashboard' | 'refresh_stats') => {
+    switch (action) {
+      case 'view_dashboard':
+        await Promise.all([
+          queryPrefetch.dashboardStatsPriority(),
+          queryPrefetch.jobsStats(),
+        ]);
+        break;
+      case 'refresh_stats':
+        cacheUtils.invalidateDashboardStats('user_refresh');
+        await queryPrefetch.dashboardStatsPriority();
+        break;
+    }
+  },
+  
+  // Smart refetch based on user activity
+  smartRefetch: (userActive: boolean) => {
+    if (userActive) {
+      // More aggressive refetch when user is active
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.dashboard.stats(),
+        refetchType: 'active'
+      });
+    }
+  },
+  
+  // Background sync for offline support
+  backgroundSync: async () => {
+    if (navigator.onLine) {
+      try {
+        await cacheUtils.warmCache();
+      } catch (error) {
+        console.warn('Background sync failed:', error);
+      }
+    }
   },
 } as const;
 

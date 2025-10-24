@@ -1,13 +1,18 @@
 'use client';
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import Header from './header';
 import { StatsCard } from './stats-card';
+import { StatsCardSkeleton } from './stats-card-skeleton';
 import { AssessmentTable } from './assessment-table';
 import { VIAISCard } from './viais-card';
 import { OceanCard } from './ocean-card';
 import { ProgressCard } from './progress-card';
+import DashboardErrorBoundary from './DashboardErrorBoundary';
 import { useJobs, formatJobDataForTable } from '../../hooks/useJobs';
+import { useDashboardStats } from '../../hooks/useDashboardStats';
+import { dashboardCacheStrategy } from '../../lib/tanStackConfig';
+import { handleComponentError } from '../../lib/errorHandling';
 
 // Dummy data untuk UI
 const dummyStatsData = [
@@ -153,6 +158,20 @@ function DashboardClientComponent({ staticData }: DashboardClientProps) {
     enabled: true
   });
 
+  // Fetch dashboard stats data from API
+  const {
+    data: dashboardStats,
+    loading: isStatsLoading,
+    isFetching: isStatsFetching,
+    error: statsError,
+    isError: isStatsError,
+    refreshAll,
+    jobsStatsError,
+    profileError,
+    hasRetryableError,
+    errorSeverity
+  } = useDashboardStats();
+
   // Format jobs data for table
   const assessmentData = useMemo(() => {
     if (jobsData?.data?.jobs) {
@@ -161,8 +180,46 @@ function DashboardClientComponent({ staticData }: DashboardClientProps) {
     return [];
   }, [jobsData]);
 
+  // Transform dashboard stats to StatCard format
+  const statsData = useMemo(() => {
+    if (!dashboardStats) {
+      return [];
+    }
+
+    return [
+      {
+        id: 'processing',
+        label: 'Processing',
+        value: dashboardStats.processing,
+        color: '#f59e0b', // amber-500
+        icon: 'Cpu.svg',
+      },
+      {
+        id: 'completed',
+        label: 'Completed',
+        value: dashboardStats.completed,
+        color: '#10b981', // emerald-500
+        icon: 'Check.svg',
+      },
+      {
+        id: 'failed',
+        label: 'Failed',
+        value: dashboardStats.failed,
+        color: '#ef4444', // red-500
+        icon: 'MagnifyingGlass.svg',
+      },
+      {
+        id: 'token-balance',
+        label: 'Token Balance',
+        value: dashboardStats.tokenBalance,
+        color: '#6475e9', // primary blue
+        icon: 'Chevron right.svg',
+      }
+    ];
+  }, [dashboardStats]);
+
   // Memoize dummy data to prevent unnecessary re-creation
-  const dummyStatsData = useMemo(() => [
+  const dummyStatsDataMemo = useMemo(() => [
     {
       id: 'assessments',
       label: 'Total Assessment',
@@ -193,7 +250,7 @@ function DashboardClientComponent({ staticData }: DashboardClientProps) {
     }
   ], []);
 
-  const dummyAssessmentData = useMemo(() => [
+  const dummyAssessmentDataMemo = useMemo(() => [
     {
       id: 1,
       archetype: 'The Innovator',
@@ -236,7 +293,7 @@ function DashboardClientComponent({ staticData }: DashboardClientProps) {
     }
   ], []);
 
-  const dummyProgressData = useMemo(() => [
+  const dummyProgressDataMemo = useMemo(() => [
     { label: 'Realistic', value: 75 },
     { label: 'Investigative', value: 85 },
     { label: 'Artistic', value: 60 },
@@ -245,7 +302,7 @@ function DashboardClientComponent({ staticData }: DashboardClientProps) {
     { label: 'Conventional', value: 55 }
   ], []);
 
-  const dummyOceanScores = useMemo(() => ({
+  const dummyOceanScoresMemo = useMemo(() => ({
     openness: 75,
     conscientiousness: 60,
     extraversion: 45,
@@ -253,7 +310,7 @@ function DashboardClientComponent({ staticData }: DashboardClientProps) {
     neuroticism: 25
   }), []);
 
-  const dummyViaScores = useMemo(() => ({
+  const dummyViaScoresMemo = useMemo(() => ({
     creativity: 92,
     curiosity: 89,
     judgment: 78,
@@ -284,18 +341,54 @@ function DashboardClientComponent({ staticData }: DashboardClientProps) {
   const handleRefresh = useCallback(async () => {
     setIsLoading(true);
     try {
-      await refetchJobs();
+      // Use smart refresh strategy
+      await dashboardCacheStrategy.preloadOnUserAction('refresh_stats');
+      await Promise.all([
+        refetchJobs(),
+        refreshAll()
+      ]);
     } catch (error) {
-      console.error('Failed to refresh jobs:', error);
+      console.error('Failed to refresh data:', error);
     } finally {
       setTimeout(() => setIsLoading(false), 500);
     }
-  }, [refetchJobs]);
+  }, [refetchJobs, refreshAll]);
+
+  // Handle stats retry
+  const handleStatsRetry = useCallback(async () => {
+    try {
+      await refreshAll();
+    } catch (error) {
+      console.error('Failed to refresh stats:', error);
+    }
+  }, [refreshAll]);
 
   const handleLogout = useCallback(() => {
     // Dummy logout function
     console.log('Logout clicked');
   }, []);
+
+  // Handle user activity for smart refetch
+  const handleUserActivity = useCallback(() => {
+    dashboardCacheStrategy.smartRefetch(true);
+  }, []);
+
+  // Preload data when component mounts
+  useEffect(() => {
+    dashboardCacheStrategy.preloadOnUserAction('view_dashboard');
+  }, []);
+
+  // Add event listeners for user activity
+  useEffect(() => {
+    // Add event listeners for user activity
+    document.addEventListener('click', handleUserActivity);
+    document.addEventListener('keydown', handleUserActivity);
+    
+    return () => {
+      document.removeEventListener('click', handleUserActivity);
+      document.removeEventListener('keydown', handleUserActivity);
+    };
+  }, [handleUserActivity]);
 
   // Loading state simulation
   if (isLoading) {
@@ -305,14 +398,12 @@ function DashboardClientComponent({ staticData }: DashboardClientProps) {
           <Header logout={handleLogout} />
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:gap-8">
             <div className="space-y-6 lg:col-span-2">
-              {/* Stats Cards Loading */}
+              {/* Stats Cards Loading with staggered animation */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="bg-white rounded-lg p-4 animate-pulse">
-                    <div className="h-4 bg-gray-200 rounded mb-2"></div>
-                    <div className="h-8 bg-gray-200 rounded"></div>
-                  </div>
-                ))}
+                <StatsCardSkeleton delay={0} />
+                <StatsCardSkeleton delay={100} />
+                <StatsCardSkeleton delay={200} />
+                <StatsCardSkeleton delay={300} />
               </div>
               {/* Assessment Table Loading */}
               <div className="bg-white rounded-lg p-6 animate-pulse">
@@ -343,15 +434,33 @@ function DashboardClientComponent({ staticData }: DashboardClientProps) {
     <div className="dashboard-full-height dashboard-responsive-wrapper">
       <div className="dashboard-container flex flex-col gap-6">
         <Header logout={handleLogout} />
-
+        
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:gap-8">
           {/* Main Content */}
           <div className="space-y-6 mb-4 lg:mb-0 lg:col-span-2 max-w-full overflow-x-hidden">
-            {/* Stats Cards */}
+            {/* Stats Cards with progressive loading */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {dummyStatsData.map((stat) => (
-                <StatsCard key={stat.id} stat={stat} />
-              ))}
+              {isStatsLoading ? (
+                // Show staggered skeleton during initial load
+                <>
+                  <StatsCardSkeleton delay={0} />
+                  <StatsCardSkeleton delay={100} />
+                  <StatsCardSkeleton delay={200} />
+                  <StatsCardSkeleton delay={300} />
+                </>
+              ) : (
+                // Show actual stats or error states
+                statsData.map((stat, index) => (
+                  <StatsCard
+                    key={stat.id}
+                    stat={stat}
+                    isLoading={isStatsFetching && !isStatsLoading}
+                    isError={isStatsError}
+                    onRetry={hasRetryableError ? handleStatsRetry : undefined}
+                    error={statsError?.userFriendlyMessage || 'Failed to load stats'}
+                  />
+                ))
+              )}
             </div>
             {/* Assessment History */}
             <div className="dashboard-table-scroll -mx-3 px-3 sm:mx-0 sm:px-0">
@@ -368,15 +477,15 @@ function DashboardClientComponent({ staticData }: DashboardClientProps) {
           <div className="flex flex-col gap-6 max-w-full overflow-x-hidden">
             {/* VIAIS and Ocean cards stack vertically on mobile */}
             <div className="grid grid-cols-1 gap-4">
-              <VIAISCard viaScores={dummyViaScores} />
-              <OceanCard oceanScores={dummyOceanScores} />
+              <VIAISCard viaScores={dummyViaScoresMemo} />
+              <OceanCard oceanScores={dummyOceanScoresMemo} />
             </div>
             {/* RIASEC card full width */}
             <div className="w-full">
               <ProgressCard
                 title="RIASEC"
                 description="Ketahui di mana Anda dapat tumbuh dan berkontribusi paling banyak."
-                data={dummyProgressData}
+                data={dummyProgressDataMemo}
               />
             </div>
           </div>
@@ -386,4 +495,19 @@ function DashboardClientComponent({ staticData }: DashboardClientProps) {
   );
 }
 
-export default React.memo(DashboardClientComponent);
+function DashboardClientWithErrorBoundary(props: DashboardClientProps) {
+  const handleError = useCallback((error: Error, errorInfo: React.ErrorInfo) => {
+    handleComponentError(error, errorInfo, {
+      component: 'DashboardClient',
+      timestamp: new Date().toISOString(),
+    });
+  }, []);
+
+  return (
+    <DashboardErrorBoundary onError={handleError}>
+      <DashboardClientComponent {...props} />
+    </DashboardErrorBoundary>
+  );
+}
+
+export default React.memo(DashboardClientWithErrorBoundary);
