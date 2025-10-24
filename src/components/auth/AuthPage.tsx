@@ -8,12 +8,19 @@ import { Zap } from 'lucide-react';
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
+  const [isRedirecting, setIsRedirecting] = useState(false);
   const router = useRouter();
 
   // Handle authentication and redirect to dashboard
-  const handleAuth = (data: any) => {
-    // Simulate authentication process
+  const handleAuth = async (data: any) => {
+    // Prevent multiple redirects
+    if (isRedirecting) return;
+    
+    setIsRedirecting(true);
     console.log('Auth data:', data);
+    
+    // Add small delay to ensure auth state is properly set
+    await new Promise(resolve => setTimeout(resolve, 100));
     
     // Redirect to dashboard after successful login/register
     router.push('/dashboard');

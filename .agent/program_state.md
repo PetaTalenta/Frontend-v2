@@ -65,6 +65,7 @@ Strategi yang Diterapkan pada Aplikasi FutureGuide
 - **Advanced Bundle Splitting**: Granular cache groups untuk vendor libraries (recharts, framer-motion, tanstack-query, radix-ui, lucide-react, vendor)
 - **Tree Shaking**: Unused dependencies elimination dengan optimizePackageImports
 - **Performance Monitoring**: Bundle analysis dan measurement dengan automated reporting
+- **Next.js Optimization Fixes (24 Oktober 2024)**: Perbaikan optimizePackageImports dan double compilation issues
 
 ## 2. Strategi Routing
 
@@ -324,10 +325,11 @@ src/app/results/[id]/
 
 **Lokasi Implementasi:**
 - `src/lib/cache.ts` - Cache manager dengan TTL dan cleanup otomatis
-- `next.config.mjs` - Static asset caching
+- `next.config.mjs` - Static asset caching dan optimizePackageImports configuration fixes
 - `src/app/layout.tsx` - Font optimization
 - `src/lib/offline.ts` - Offline storage integration
 - `public/sw.js` - Enhanced Service Worker dengan advanced caching strategies
+- `src/app/_document.tsx` - Missing document file untuk build compatibility
 - `src/lib/serviceWorker.ts` - Service Worker management utility
 - `src/components/ServiceWorkerInitializer.tsx` - Service Worker registration component
 

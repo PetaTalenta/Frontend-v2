@@ -59,14 +59,19 @@ export const metadata: Metadata = {
   },
 };
 
-// Main dashboard page - optimized with ISR for better performance
+// Main dashboard page - optimized with conditional rendering
 export default async function DashboardPage() {
-  const staticData = await getDashboardStaticData();
+  // In development, use dynamic rendering to prevent double compilation
+  if (process.env.NODE_ENV === 'development') {
+    return <DashboardClient staticData={await getDashboardStaticData()} />;
+  }
 
+  // In production, use ISR for better performance
+  const staticData = await getDashboardStaticData();
   return <DashboardClient staticData={staticData} />;
 }
 
-// ✅ OPTIMIZATION: Use ISR instead of force-dynamic for better performance
+// ✅ OPTIMIZATION: Use ISR only in production to prevent double compilation in development
 // Revalidate every 30 minutes to balance freshness and performance
-export const revalidate = 1800; // 30 minutes
+export const revalidate = 1800; // 30 minutes in production
 export const dynamic = 'auto'; // Let Next.js optimize automatically

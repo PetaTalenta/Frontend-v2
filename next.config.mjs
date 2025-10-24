@@ -23,11 +23,6 @@ const nextConfig = {
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     minimumCacheTTL: 60 * 60 * 24 * 30, // 30 days
-    domains: [
-      'images.FutureGuide.id',
-      'static.FutureGuide.id',
-      'cdn.FutureGuide.id'
-    ],
     remotePatterns: [
       {
         protocol: 'https',
@@ -43,11 +38,10 @@ const nextConfig = {
     // optimizeCss: true, // Disabled due to critters dependency issue
     optimizePackageImports: [
       'lucide-react',
-      '@radix-ui/react-icons',
-      'recharts',
-      'framer-motion',
-      '@tanstack/react-query',
-      'date-fns'
+      'recharts'
+      // Only include packages that are actually installed and used
+      // Removed '@radix-ui/react-icons' (not installed), 'framer-motion' (not used)
+      // Removed '@tanstack/react-query' and 'date-fns' as they don't fully support optimizePackageImports yet
     ],
     // Enable webpack bundle analyzer in production
     webpackBuildWorker: true,

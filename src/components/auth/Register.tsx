@@ -45,13 +45,12 @@ const Register = ({ onRegister }: RegisterProps) => {
       
       await registerUser(registerData);
       
-      // Call optional onRegister callback
+      // Call optional onRegister callback (this will handle the redirect)
       if (onRegister) {
         onRegister(data);
       }
       
-      // Redirect to dashboard after successful registration
-      router.push('/dashboard');
+      // Note: Redirect is handled by AuthPage component to prevent double navigation
     } catch (err: any) {
       // Handle specific error cases
       let errorMessage = 'Registration failed. Please try again.';

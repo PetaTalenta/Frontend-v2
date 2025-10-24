@@ -33,13 +33,12 @@ const Login = ({ onLogin }: LoginProps) => {
     try {
       await login(data);
       
-      // Call optional onLogin callback
+      // Call optional onLogin callback (this will handle the redirect)
       if (onLogin) {
         onLogin(data);
       }
       
-      // Redirect to dashboard after successful login
-      router.push('/dashboard');
+      // Note: Redirect is handled by AuthPage component to prevent double navigation
     } catch (err: any) {
       // Handle specific error cases
       let errorMessage = 'Login failed. Please check your credentials.';
