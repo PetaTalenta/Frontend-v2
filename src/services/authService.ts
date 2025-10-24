@@ -1,5 +1,5 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
-import { CSRFProtection, RateLimiter, SecurityLogger } from '@/lib/security';
+import { RateLimiter, SecurityLogger } from '@/lib/security';
 
 // Base URL dari laporan testing
 const BASE_URL = 'https://api.futureguide.id';
@@ -250,11 +250,7 @@ class AuthService {
           return Promise.reject(new Error('Rate limit exceeded. Please try again later.'));
         }
 
-        // Add CSRF protection for state-changing requests
-        if (config.method && ['POST', 'PUT', 'DELETE', 'PATCH'].includes(config.method.toUpperCase())) {
-          const csrfHeaders = CSRFProtection.addToHeaders(config.headers || {});
-          Object.assign(config.headers, csrfHeaders);
-        }
+        // CSRF protection removed as backend doesn't support it
 
         const token = TokenManager.getAccessToken();
         if (token) {
@@ -340,16 +336,13 @@ class AuthService {
   // Login method
   async login(data: LoginData): Promise<LoginResponse> {
     try {
-      // Generate CSRF token for login
-      const csrfToken = CSRFProtection.generateAndSetToken();
-      
       const response: AxiosResponse<LoginResponse> = await this.apiClient.post(
         '/api/auth/v2/login',
         data,
         {
-          headers: CSRFProtection.addToHeaders({
+          headers: {
             'Content-Type': 'application/json'
-          })
+          }
         }
       );
 
@@ -374,16 +367,13 @@ class AuthService {
   // Register method
   async register(data: RegisterData): Promise<RegisterResponse> {
     try {
-      // Generate CSRF token for registration
-      const csrfToken = CSRFProtection.generateAndSetToken();
-      
       const response: AxiosResponse<RegisterResponse> = await this.apiClient.post(
         '/api/auth/v2/register',
         data,
         {
-          headers: CSRFProtection.addToHeaders({
+          headers: {
             'Content-Type': 'application/json'
-          })
+          }
         }
       );
 
@@ -437,9 +427,9 @@ class AuthService {
         '/api/auth/profile',
         data,
         {
-          headers: CSRFProtection.addToHeaders({
+          headers: {
             'Content-Type': 'application/json'
-          })
+          }
         }
       );
       return response.data;

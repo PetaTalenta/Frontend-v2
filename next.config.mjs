@@ -108,10 +108,10 @@ const nextConfig = {
               : "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https: blob:; connect-src 'self' https://api.futureguide.id ws: wss:; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none';"
           },
           // Strict Transport Security (HTTPS only in production)
-          ...(process.env.NODE_ENV === 'production' && [{
+          ...(process.env.NODE_ENV === 'production' ? [{
             key: 'Strict-Transport-Security',
             value: 'max-age=31536000; includeSubDomains; preload'
-          }]),
+          }] : []),
         ],
       },
       // Static assets with long-term caching

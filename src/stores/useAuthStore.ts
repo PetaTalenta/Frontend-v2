@@ -327,6 +327,52 @@ export const useAuthStore = create<AuthState>()(
       }),
       // Custom storage version for migration
       version: 1,
+      // Migration function to handle state versioning
+      migrate: (persistedState: any, version: number) => {
+        // If no persisted state, return initial state
+        if (!persistedState) {
+          return {
+            user: null,
+            profile: null,
+            isAuthenticated: false,
+            tokens: {
+              idToken: null,
+              refreshToken: null,
+              expiryTime: null,
+            },
+          };
+        }
+
+        // Handle migration from older versions
+        if (version === 0) {
+          // Migrate from version 0 to 1
+          return {
+            ...persistedState,
+            // Ensure tokens structure exists
+            tokens: persistedState.tokens || {
+              idToken: null,
+              refreshToken: null,
+              expiryTime: null,
+            },
+            // Ensure other required fields exist
+            user: persistedState.user || null,
+            profile: persistedState.profile || null,
+            isAuthenticated: persistedState.isAuthenticated || false,
+          };
+        }
+
+        // For current version, ensure all required fields exist
+        return {
+          user: persistedState.user || null,
+          profile: persistedState.profile || null,
+          isAuthenticated: persistedState.isAuthenticated || false,
+          tokens: persistedState.tokens || {
+            idToken: null,
+            refreshToken: null,
+            expiryTime: null,
+          },
+        };
+      },
       onRehydrateStorage: () => (state) => {
         // Validate rehydrated state
         if (state) {
