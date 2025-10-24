@@ -59,15 +59,14 @@ export const metadata: Metadata = {
   },
 };
 
-// Main dashboard page - fully dynamic for user-specific content
+// Main dashboard page - optimized with ISR for better performance
 export default async function DashboardPage() {
   const staticData = await getDashboardStaticData();
 
   return <DashboardClient staticData={staticData} />;
 }
 
-// ✅ FIX: Remove conflicting ISR config
-// Dashboard is user-specific, so it should be fully dynamic
-// Removed: export const revalidate = 1800
-// Keep only: export const dynamic = 'force-dynamic'
-export const dynamic = 'force-dynamic'; // Force dynamic for user-specific content
+// ✅ OPTIMIZATION: Use ISR instead of force-dynamic for better performance
+// Revalidate every 30 minutes to balance freshness and performance
+export const revalidate = 1800; // 30 minutes
+export const dynamic = 'auto'; // Let Next.js optimize automatically

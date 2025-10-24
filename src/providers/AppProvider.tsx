@@ -2,6 +2,7 @@
 
 import React, { ReactNode, useEffect } from 'react';
 import { TanStackProvider } from './TanStackProvider';
+import { performanceMonitor } from '../lib/performance';
 
 interface AppProviderProps {
   children: ReactNode;
@@ -9,6 +10,11 @@ interface AppProviderProps {
 
 // Global provider yang menggabungkan semua state management
 export function AppProvider({ children }: AppProviderProps) {
+  // Initialize performance monitoring
+  useEffect(() => {
+    performanceMonitor.init();
+  }, []);
+
   return (
     <TanStackProvider>
       {children}

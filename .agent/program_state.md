@@ -44,22 +44,98 @@ Strategi yang Diterapkan pada Aplikasi FutureGuide
 
 ## 2. Strategi Routing
 
-**Implementasi:**
-- Next.js App Router (v15): File-based routing modern
-- Dynamic & Nested Routes: Untuk hasil assessment dan sub-halaman
-- Redirects: Otomatis dari root ke halaman auth
+### 2.1 Core Routing Implementation
+- **Next.js App Router (v15.5.6)**: File-based routing modern dengan optimal performance
+- **Rendering Strategies**: SSR, ISR, CSR per route type untuk optimal user experience
+- **Route Protection**: AuthLayoutWrapper implementation untuk global authentication management
+- **Dynamic Imports**: Optimized bundle loading dengan dynamic imports dan loading states
+
+### 2.2 Route Structure & Rendering Strategies
+
+#### Public Routes (SSR - Server-Side Rendering)
+- `/` → redirect ke `/auth` (Root redirect)
+- `/auth` - Authentication page (`export const dynamic = 'force-dynamic'`)
+- `/forgot-password` - Forgot password page
+- `/reset-password` - Reset password page
+
+#### Protected Routes (Mixed Rendering)
+- `/dashboard` - User dashboard (ISR: `export const revalidate = 1800`)
+- `/profile` - User profile page
+- `/assessment` - Assessment flow (CSR: `'use client'`)
+- `/assessment-loading` - Assessment loading state
+- `/select-assessment` - Assessment selection page
+
+#### Dynamic Routes (CSR - Client-Side Rendering)
+- `/results/[id]` - Assessment results summary
+- `/results/[id]/chat` - AI chat interface
+- `/results/[id]/combined` - Combined assessment view
+- `/results/[id]/ocean` - Big Five personality details
+- `/results/[id]/persona` - Persona profile details
+- `/results/[id]/riasec` - Career interest details
+- `/results/[id]/via` - Character strengths details
+
+#### API Routes
+- `/api/performance` - Performance metrics collection and aggregation
+
+### 2.3 Nested Route Structure untuk Assessment Results
+```
+src/app/results/[id]/
+├── layout.tsx          - Layout untuk semua result pages
+├── page.tsx           - Summary results (CSR dengan data fetching)
+├── not-found.tsx      - Custom 404 untuk invalid result IDs
+├── chat/
+│   └── page.tsx       - AI chat interface
+├── combined/
+│   └── page.tsx       - Combined assessment view
+├── ocean/
+│   └── page.tsx       - Big Five personality details
+├── persona/
+│   └── page.tsx       - Persona profile details
+├── riasec/
+│   └── page.tsx       - Career interest details
+└── via/
+    └── page.tsx       - Character strengths details
+```
+
+### 2.4 Route Protection & Authentication Strategy
+- **Global Protection**: `AuthLayoutWrapper` di root layout untuk semua routes
+- **Token Management**: Automatic token expiry warning dan refresh mechanism
+- **Offline Support**: Offline status indicator untuk degraded user experience
+- **Session Management**: Seamless logout dan refresh functionality
+- **Error Handling**: Consistent error states dengan retry mechanisms
+
+### 2.5 Rendering Strategy per Route Type
+- **SSR Routes**: Public pages yang membutuhkan SEO dan initial load yang cepat
+- **ISR Routes**: Dashboard dengan data semi-static yang perlu periodic updates
+- **CSR Routes**: Interactive pages yang membutuhkan real-time user interaction
+- **Dynamic Imports**: Semua routes menggunakan dynamic imports untuk optimal bundle loading
+- **Loading States**: Consistent loading skeletons untuk better perceived performance
+
+### 2.6 Error Handling & Edge Cases
+- **Global 404**: `src/app/not-found.tsx` untuk undefined routes
+- **Dynamic Route 404**: `src/app/results/[id]/not-found.tsx` untuk invalid result IDs
+- **Error Boundaries**: Consistent error states dengan retry functionality
+- **Loading States**: Unified loading skeletons untuk semua dynamic imports
 
 **Lokasi Implementasi:**
-- `src/app/` - Struktur routing berbasis file
-- `src/app/results/[id]/` - Dynamic routes untuk hasil assessment
-- `src/app/page.tsx` - Redirect ke halaman auth
+- `src/app/` - Struktur routing berbasis file lengkap
+- `src/app/results/[id]/` - Dynamic routes dengan nested structure
+- `src/app/page.tsx` - Root redirect ke `/auth`
+- `src/app/layout.tsx` - Root layout dengan AuthLayoutWrapper
+- `src/components/auth/AuthLayoutWrapper.tsx` - Global authentication management
+- `src/app/api/performance/route.ts` - API route untuk performance metrics
 
 **Best Practices Yang Dijadikan Acuan:**
-- File-based routing untuk maintainability
-- Dynamic routes untuk scalable content
-- Proper redirects untuk user flow
+- File-based routing untuk maintainability dan scalability
+- Dynamic routes dengan parameter validation untuk scalable content
+- Proper redirects untuk optimal user flow
 - Clean architecture dengan separation of concerns
-- Consistent naming conventions
+- Consistent naming conventions dan file organization
+- Rendering strategy optimization per route type
+- Dynamic imports untuk bundle optimization
+- Comprehensive error handling dan loading states
+- Route protection dengan graceful degradation
+- Performance monitoring dengan API integration
 
 ## 3. Strategi State Management
 
@@ -67,16 +143,17 @@ Strategi yang Diterapkan pada Aplikasi FutureGuide
 - **Primary State Management**: TanStack Query v5.90.5 untuk server state management
 - **Local State**: React state untuk UI state
 - **Legacy Removal**: Zustand stores telah dihapus dan digantikan dengan TanStack Query
+- **Assessment Progress Management**: TanStack Query dengan LocalStorage persistence untuk assessment progress
 - Progressive Data Loading: Partial data → Background fetch → Complete data
 - Storage Strategy: LocalStorage + TanStack Query Cache
 - Optimized Configuration: Stale-time dan gc-time untuk optimal performance
 
 **Lokasi Implementasi:**
 - `src/hooks/useAuthWithTanStack.ts` - Authentication state management dengan TanStack Query
-- `src/hooks/useAssessmentWithTanStack.ts` - Assessment data fetching dengan TanStack Query
+- `src/hooks/useAssessmentWithTanStack.ts` - Assessment data fetching dan progress management dengan TanStack Query
 - `src/hooks/useProfileWithTanStack.ts` - Profile data management dengan TanStack Query
 - `src/providers/AppProvider.tsx` - Unified provider untuk semua state
-- `src/lib/tanStackConfig.ts` - TanStack Query configuration dengan optimal settings
+- `src/lib/tanStackConfig.ts` - TanStack Query configuration dengan optimal settings dan assessment progress keys
 
 **Best Practices Yang Dijadikan Acuan:**
 - TanStack Query untuk server state management yang robust
@@ -107,13 +184,19 @@ Strategi yang Diterapkan pada Aplikasi FutureGuide
 - **Error Handling**: Automatic retry dengan exponential backoff
 - **Optimistic Updates**: Immediate UI feedback untuk better UX
 - **Cache Strategy**: Intelligent caching dengan automatic invalidation
+- **Advanced Token Management**: Enhanced token management dengan partial vs complete data separation
+- **Data Upgrade Mechanism**: Automatic data upgrade dari partial ke complete data
+- **Stale Data Detection**: Intelligent detection untuk stale data dengan TTL management
+- **Comprehensive Query Key Management**: Structured query keys untuk organized cache management
+- **Enhanced Error Handling**: Rate limiting integration, security logging, dan custom error classes
+- **Assessment Progress Management**: LocalStorage integration untuk assessment progress persistence
 
 **Lokasi Implementasi:**
-- `src/lib/tanStackConfig.ts` - TanStack Query configuration dengan optimal settings
-- `src/hooks/useAuthWithTanStack.ts` - Authentication data fetching
-- `src/hooks/useAssessmentWithTanStack.ts` - Assessment data fetching
-- `src/hooks/useProfileWithTanStack.ts` - Profile data management
-- `src/services/authService.ts` - API layer dengan authentication headers
+- `src/lib/tanStackConfig.ts` - TanStack Query configuration dengan optimal settings dan structured query keys
+- `src/hooks/useAuthWithTanStack.ts` - Authentication data fetching dengan progressive loading
+- `src/hooks/useAssessmentWithTanStack.ts` - Assessment data fetching dengan LocalStorage persistence
+- `src/hooks/useProfileWithTanStack.ts` - Profile data management dengan optimistic updates
+- `src/services/authService.ts` - Consolidated API layer dengan authentication headers dan TanStack Query integration
 - `src/providers/TanStackProvider.tsx` - TanStack Query provider wrapper
 
 **Best Practices Yang Dijadikan Acuan:**
@@ -125,6 +208,10 @@ Strategi yang Diterapkan pada Aplikasi FutureGuide
 - Background fetching untuk complete data synchronization
 - Migration strategy dari SWR ke TanStack Query untuk better performance
 - Centralized API configuration dengan proper error handling
+- Service layer consolidation untuk maintainability dan reduced duplication
+- Advanced token management dengan data separation strategies
+- Structured query key management untuk efficient cache organization
+- Enhanced security dengan rate limiting dan logging integration
 
 **Performance Improvements:**
 - 77% faster build performance setelah migration
@@ -132,6 +219,8 @@ Strategi yang Diterapkan pada Aplikasi FutureGuide
 - Automatic cache management dengan stale-while-revalidate
 - Progressive loading untuk better user experience
 - Enhanced error handling dengan exponential backoff retry
+- Service layer optimization dengan reduced code duplication
+- Advanced caching strategies dengan intelligent invalidation
 
 ## 5. Strategi Authentication & Authorization
 
@@ -139,22 +228,26 @@ Strategi yang Diterapkan pada Aplikasi FutureGuide
 - **JWT Token Management**: Session management dengan automatic refresh
 - **Progressive Data Loading**: Partial data → Background fetch → Complete data
 - **Storage Strategy**: LocalStorage + TanStack Query Cache
-- **Token Expiry Warning**: System untuk user notification
+- **Token Expiry Warning**: System untuk user notification dengan robust validation
+- **Enhanced Token Validation**: JWT format validation sebelum decoding untuk prevent InvalidCharacterError
 - **Profile Caching**: Intelligent caching dengan TTL management
 - **Auth Headers**: Secure API requests dengan JWT tokens
 - **Form Validation**: Login, Register, Logout dengan comprehensive validation
 - **Password Strength**: Indicator untuk security enhancement
+- **Enhanced Logout Validation**: Unsaved changes detection dan confirmation dialog
+- **Advanced Error Recovery**: Exponential backoff untuk failed requests dengan jitter
+- **Enhanced Security Monitoring**: Security event tracking dengan pattern detection
 
 **Lokasi Implementasi:**
 - `src/hooks/useAuthWithTanStack.ts` - Authentication state management dengan TanStack Query
-- `src/services/authService.ts` - API layer dengan token management
+- `src/services/authService.ts` - API layer dengan token management, enhanced security monitoring, dan error recovery
 - `src/components/auth/` - UI components (Login, Register, TokenExpiryWarning, OfflineStatusIndicator)
 - `src/lib/cache.ts` - Profile caching system dengan TTL
 - `src/lib/offline.ts` - Offline support utilities
 - `src/components/auth/AuthLayoutWrapper.tsx` - Auth layout dengan TanStack integration
 - `src/components/auth/Login.tsx` - Login form dengan validation
 - `src/components/auth/Register.tsx` - Register form dengan validation
-- `src/components/auth/TokenExpiryWarning.tsx` - Token expiry notification
+- `src/components/auth/TokenExpiryWarning.tsx` - Token expiry notification dengan enhanced validation
 - `src/components/profile/ProfilePage.tsx` - Profile management
 
 **Best Practices Yang Dijadikan Acuan:**
@@ -163,11 +256,19 @@ Strategi yang Diterapkan pada Aplikasi FutureGuide
 - Automatic token refresh untuk seamless UX
 - TanStack Query untuk robust auth state management
 - Token expiry warning untuk better UX
+- Enhanced token validation dengan format checking sebelum decoding
+- Robust error handling untuk non-JWT dan corrupted tokens
+- Comprehensive logging untuk debugging token issues
 - Offline support untuk data persistence
 - Password strength validation untuk security
 - Input validation pada forms
 - Token validation dengan JWT decode
 - Migration dari Zustand ke TanStack Query untuk better performance
+- Enhanced logout validation dengan unsaved changes detection
+- Advanced error recovery dengan exponential backoff dan jitter
+- Security event monitoring dengan pattern detection
+- Request deduplication untuk prevent duplicate operations
+- Graceful degradation untuk network failures
 
 **Benefits:**
 - Enhanced authentication flow dengan progressive loading
@@ -176,6 +277,10 @@ Strategi yang Diterapkan pada Aplikasi FutureGuide
 - Backward compatibility maintained selama migration
 - API compatibility dengan backend preserved
 - Security measures enhanced dengan proper validation
+- Advanced security monitoring dengan real-time threat detection
+- Improved user experience dengan unsaved changes protection
+- Enhanced reliability dengan exponential backoff error recovery
+- Comprehensive audit trail untuk security compliance
 
 ## 6. Strategi Security
 
@@ -257,177 +362,3 @@ Strategi yang Diterapkan pada Aplikasi FutureGuide
 - Cache metadata management untuk smart invalidation
 - Background sync untuk offline actions
 - Push notification support dengan enhanced handlers
-
-## 8. Strategi Offline Support
-
-**Implementasi:**
-- Offline detection dengan event listeners
-- Request queue untuk offline actions
-- Fallback data dari offline storage
-- Status indicator untuk online/offline state
-- Automatic sync saat koneksi tersedia kembali
-- Enhanced Offline Support: Background sync untuk offline actions
-- Push Notification Support: Dengan enhanced handlers
-
-**Lokasi Implementasi:**
-- `src/lib/offline.ts` - Offline manager dengan queue system
-- `src/components/auth/OfflineStatusIndicator.tsx` - Status UI
-- `src/contexts/AuthContext.tsx` - Offline state integration
-- `src/services/authService.ts` - Request queue implementation
-- `public/sw.js` - Enhanced Service Worker dengan background sync
-
-**Best Practices Yang Dijadikan Acuan:**
-- Event listeners untuk real-time connection status
-- Queue pattern untuk offline actions
-- Fallback data untuk seamless UX
-- Automatic sync untuk data consistency
-- User feedback untuk offline status
-- Background sync untuk offline actions
-- Push notification support dengan enhanced handlers
-
-## 9. Strategi Tailwind CSS Migration
-
-**Implementasi:**
-- Tailwind CSS Configuration: Custom colors, spacing, typography, dan utilities untuk dashboard
-- Dashboard Utilities: Common patterns dan responsive utilities
-- Component Migration: Progressive migration dari CSS ke Tailwind classes
-- Custom Properties: Integration dengan existing design system
-
-**Lokasi Implementasi:**
-- `tailwind.config.ts` - Konfigurasi Tailwind dengan dashboard-specific colors, spacing, dan utilities
-- `src/styles/components/dashboard/utilities.css` - Dashboard utility classes dan responsive patterns
-- `src/components/dashboard/chart-card.tsx` - Chart card component dengan Tailwind classes
-- `src/components/dashboard/progress-card.tsx` - Progress card component dengan responsive Tailwind design
-- `src/components/dashboard/stats-card.tsx` - Stats card component dengan responsive Tailwind design
-- `src/styles/components/dashboard/index.css` - Updated imports setelah migration
-
-**Best Practices Yang Dijadikan Acuan:**
-- Custom color system untuk maintain brand consistency
-- Responsive design dengan Tailwind breakpoints
-- Utility-first approach untuk maintainability
-- Component-based architecture dengan reusable patterns
-- Progressive migration strategy untuk minimal disruption
-- Backup system untuk rollback capability
-- Custom utilities untuk common dashboard patterns
-
-**Phase 2 Migration Completed (24 Oktober 2025):**
-- Chart Card component (48 lines) - Berhasil dimigrasi ke Tailwind classes
-- World Map Card - Component tidak ada, hanya CSS file yang ada (dihapus)
-- Progress Card component (160 lines) - Berhasil dimigrasi dengan responsive design
-- Stats Card component (248 lines) - Berhasil dimigrasi dengan responsive design
-- CSS files yang sudah dimigrasi: chart-card.css, progress-card.css, stats-card.css, world-map-card.css
-- Lint berhasil tanpa error
-
-**Benefits:**
-- Reduced CSS bundle size dengan eliminasi unused CSS
-- Improved maintainability dengan utility-first approach
-- Better responsive design consistency
-- Enhanced developer experience dengan predictable patterns
-- Future-proof design system dengan Tailwind configuration
-
-## 10. Current Implementation Status
-
-### Phase 2.1: Data Fetching Optimization ✅ COMPLETED
-- Migration dari SWR ke TanStack Query berhasil
-- Build performance improvement: 77% faster
-- Configuration: TanStack Query dengan optimal settings
-
-### Phase 2.2: Auth Data Optimization ✅ COMPLETED
-- Progressive data loading berhasil diimplementasikan
-- Partial dan complete data storage
-- Background fetching untuk complete profile data
-
-### Latest Cleanup: Unused Files Removal ✅ COMPLETED
-- Deleted 17 unused files (15 CSS + 2 TypeScript)
-- Fixed 6 affected files
-- Build successful without errors
-- Lint clean without warnings
-
-## 11. Performance Metrics
-
-### Build Performance
-- **Build Time**: 7.5s
-- **Bundle Size**: 103 kB First Load JS
-- **Tree Shaking**: Optimized
-
-### Runtime Performance
-- **Data Fetching**: Cached dengan automatic refetch
-- **Authentication**: Progressive loading untuk better UX
-- **Error Handling**: Automatic retry dengan exponential backoff
-
-## 12. Known Issues & Workarounds
-
-### Missing Features
-1. **Profile Update**: `updateProfile` function belum diimplementasikan
-   - Workaround: Console log placeholder
-   - Priority: High
-
-2. **Account Deletion**: `deleteAccount` function belum diimplementasikan
-   - Workaround: Logout sebagai temporary solution
-   - Priority: Medium
-
-3. **Token Refresh**: Proper `refreshToken` function belum tersedia
-   - Workaround: Logout untuk refresh session
-   - Priority: High
-
-### Type Safety
-- Some functions marked as `any` type due to incomplete implementation
-- Need proper type definitions for API responses
-
-## 13. Next Steps
-
-### Immediate (High Priority)
-1. Implement `updateProfile` function in TanStack Query
-2. Implement proper `refreshToken` mechanism
-3. Add proper error boundaries for auth flows
-
-### Short Term (Medium Priority)
-1. Implement `deleteAccount` function
-2. Add comprehensive error handling
-3. Optimize cache strategies
-
-### Long Term (Low Priority)
-1. Add offline support
-2. Implement real-time updates
-3. Performance monitoring dashboard
-
-## 14. Dependencies & Environment
-
-### Core Libraries
-- `@tanstack/react-query`: v5.90.5
-- `@tanstack/react-query-devtools`: v5.90.2
-- `react`: ^18.3.1
-- `react-dom`: ^18.3.1
-- `next`: ^15.5.6
-
-### Development Tools
-- `typescript`: ^5.6.3
-- `eslint`: ^8.57.1
-- `@next/eslint-config`: ^15.5.6
-
-### Environment Configuration
-- **Development**: `pnpm dev` (Port: 3000)
-- **Production**: `pnpm build` && `pnpm start`
-- **Hot Reload**: Enabled in development
-
-## 15. Testing & Security Status
-
-### Testing Status
-- **Build Testing** ✅: Production build successful, no compilation errors
-- **Lint Testing** ✅: ESLint clean, type checking passed
-- **Functional Testing** ⚠️: Basic auth flows working, profile management partial
-
-### Security Considerations
-- **Token Management**: JWT tokens in localStorage, refresh mechanism needed
-- **Data Validation**: Input validation on forms, API response validation
-- **Type Safety**: Enforced with TypeScript
-
-### Monitoring & Analytics
-- **Current Status**: Basic console logging, no performance monitoring
-- **Recommendations**: Implement error tracking (Sentry), performance monitoring, user analytics
-
----
-
-**Last Updated:** 2025-10-24
-**Version:** 6.0
-**Status:** Integrated Phase 2.1 & 2.2 Implementation - Migration to TanStack Query completed, Zustand stores removed, progressive loading implemented

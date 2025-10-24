@@ -2,9 +2,7 @@
 
 import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import authServiceWithTanStack from '../services/authServiceWithTanStack';
-import { UpdateProfileData, ProfileResponse } from '../services/authService';
-import { queryKeys, queryInvalidation } from '../lib/tanStackConfig';
+import authService, { UpdateProfileData, ProfileResponse, queryKeys, queryInvalidation } from '../services/authService';
 
 // Custom hook untuk profile data dengan TanStack Query
 export const useProfile = () => {
@@ -20,7 +18,7 @@ export const useProfile = () => {
     isError,
   } = useQuery({
     queryKey: queryKeys.auth.profile(),
-    queryFn: () => authServiceWithTanStack.getProfile(),
+    queryFn: () => authService.getProfile(),
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
     retry: (failureCount, error: any) => {
@@ -33,25 +31,25 @@ export const useProfile = () => {
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     refetchOnWindowFocus: false,
     refetchOnReconnect: true,
-    enabled: authServiceWithTanStack.isAuthenticated(), // Only fetch if user is authenticated
+    enabled: authService.isAuthenticated(), // Only fetch if user is authenticated
   });
 
   // Update profile mutation
   const updateProfileMutation = useMutation({
-    mutationFn: (data: UpdateProfileData) => authServiceWithTanStack.updateProfile(data),
+    mutationFn: (data: UpdateProfileData) => authService.updateProfile(data),
     onMutate: async (data) => {
       // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: queryKeys.auth.profile() });
       
       // Get context for optimistic update
-      const context = await authServiceWithTanStack.optimisticProfileUpdate(data);
+      const context = await authService.optimisticProfileUpdate(data);
       
       return context;
     },
     onError: (error, data, context) => {
       // Rollback optimistic update on error
       if (context) {
-        authServiceWithTanStack.rollbackProfileUpdate(context);
+        authService.rollbackProfileUpdate(context);
       }
     },
     onSettled: () => {
@@ -63,7 +61,7 @@ export const useProfile = () => {
 
   // Delete account mutation
   const deleteAccountMutation = useMutation({
-    mutationFn: () => authServiceWithTanStack.deleteAccount(),
+    mutationFn: () => authService.deleteAccount(),
     onSuccess: () => {
       // Clear all queries from cache
       queryClient.clear();
@@ -73,7 +71,7 @@ export const useProfile = () => {
   // Refresh profile
   const refreshProfile = async () => {
     try {
-      await authServiceWithTanStack.refetchProfile();
+      await authService.refetchProfile();
     } catch (error) {
       console.error('Failed to refresh profile:', error);
     }
@@ -81,12 +79,12 @@ export const useProfile = () => {
 
   // Check if profile data is stale
   const isProfileStale = () => {
-    return authServiceWithTanStack.isProfileStale();
+    return authService.isProfileStale();
   };
 
   // Get cached profile data
   const getCachedProfile = () => {
-    return authServiceWithTanStack.getCachedProfile();
+    return authService.getCachedProfile();
   };
 
   return {
@@ -120,7 +118,7 @@ export const useUser = () => {
   } = useQuery({
     queryKey: queryKeys.auth.user(),
     queryFn: () => {
-      const user = authServiceWithTanStack.getCurrentUser();
+      const user = authService.getCurrentUser();
       if (!user) {
         throw new Error('User not authenticated');
       }
@@ -128,7 +126,7 @@ export const useUser = () => {
     },
     staleTime: 10 * 60 * 1000, // 10 minutes
     gcTime: 30 * 60 * 1000, // 30 minutes
-    enabled: authServiceWithTanStack.isAuthenticated(), // Only fetch if user is authenticated
+    enabled: authService.isAuthenticated(), // Only fetch if user is authenticated
     retry: false, // Don't retry if user is not authenticated
   });
 
@@ -207,21 +205,21 @@ export const usePrefetchProfile = () => {
   const queryClient = useQueryClient();
 
   const prefetchProfile = async () => {
-    if (authServiceWithTanStack.isAuthenticated()) {
+    if (authService.isAuthenticated()) {
       await queryClient.prefetchQuery({
         queryKey: queryKeys.auth.profile(),
-        queryFn: () => authServiceWithTanStack.getProfile(),
+        queryFn: () => authService.getProfile(),
         staleTime: 5 * 60 * 1000, // 5 minutes
       });
     }
   };
 
   const prefetchUser = async () => {
-    if (authServiceWithTanStack.isAuthenticated()) {
+    if (authService.isAuthenticated()) {
       await queryClient.prefetchQuery({
         queryKey: queryKeys.auth.user(),
         queryFn: () => {
-          const user = authServiceWithTanStack.getCurrentUser();
+          const user = authService.getCurrentUser();
           if (!user) {
             throw new Error('User not authenticated');
           }

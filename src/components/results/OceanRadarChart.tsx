@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui-card';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from './ui-chart';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts';
 import { Brain } from 'lucide-react';
+import OptimizedChart from '../ui/OptimizedChart';
 import { AssessmentScores, getDummyAssessmentScores } from '../../data/dummy-assessment-data';
 
 interface OceanRadarChartProps {

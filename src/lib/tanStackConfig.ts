@@ -63,6 +63,7 @@ export const queryKeys = {
     results: () => [...queryKeys.assessments.all, 'results'] as const,
     result: (id: string) => [...queryKeys.assessments.results(), id] as const,
     list: () => [...queryKeys.assessments.all, 'list'] as const,
+    progress: () => [...queryKeys.assessments.all, 'progress'] as const,
   },
   
   // Profile queries
@@ -98,6 +99,7 @@ export const queryInvalidation = {
     results: () => queryClient.invalidateQueries({ queryKey: queryKeys.assessments.results() }),
     result: (id: string) => queryClient.invalidateQueries({ queryKey: queryKeys.assessments.result(id) }),
     list: () => queryClient.invalidateQueries({ queryKey: queryKeys.assessments.list() }),
+    progress: () => queryClient.invalidateQueries({ queryKey: queryKeys.assessments.progress() }),
   },
   
   // Invalidate profile-related queries

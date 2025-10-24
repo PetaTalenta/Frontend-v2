@@ -2,9 +2,17 @@
 
 import React from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import authServiceWithTanStack from '../services/authServiceWithTanStack';
-import { LoginData, RegisterData, LoginResponse, RegisterResponse, LogoutResponse } from '../services/authService';
-import { queryKeys, queryInvalidation } from '../lib/tanStackConfig';
+import authService, {
+  LoginData,
+  RegisterData,
+  LoginResponse,
+  RegisterResponse,
+  LogoutResponse,
+  queryKeys,
+  queryInvalidation,
+  LogoutValidationOptions,
+  UnsavedChanges
+} from '../services/authService';
 
 // Custom hook untuk authentication dengan TanStack Query
 export const useAuth = () => {
@@ -18,7 +26,7 @@ export const useAuth = () => {
   } = useQuery({
     queryKey: queryKeys.auth.user(),
     queryFn: () => {
-      const userData = authServiceWithTanStack.getCurrentUser();
+      const userData = authService.getCurrentUser();
       if (!userData) {
         throw new Error('User not authenticated');
       }
@@ -26,7 +34,7 @@ export const useAuth = () => {
     },
     staleTime: 10 * 60 * 1000, // 10 minutes
     gcTime: 30 * 60 * 1000, // 30 minutes
-    enabled: authServiceWithTanStack.isAuthenticated(),
+    enabled: authService.isAuthenticated(),
     retry: false,
   });
 
@@ -37,10 +45,10 @@ export const useAuth = () => {
     error: profileError,
   } = useQuery({
     queryKey: queryKeys.auth.profile(),
-    queryFn: () => authServiceWithTanStack.getProfile(),
+    queryFn: () => authService.getProfile(),
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
-    enabled: authServiceWithTanStack.isAuthenticated(),
+    enabled: authService.isAuthenticated(),
     retry: (failureCount, error: any) => {
       if (error?.response?.status >= 400 && error?.response?.status < 500) {
         return false;
@@ -55,16 +63,16 @@ export const useAuth = () => {
     isLoading: statusLoading,
   } = useQuery({
     queryKey: queryKeys.auth.dataStatus(),
-    queryFn: () => authServiceWithTanStack.getDataStatus(),
+    queryFn: () => authService.getDataStatus(),
     staleTime: 30 * 1000, // 30 seconds
     gcTime: 5 * 60 * 1000, // 5 minutes
-    enabled: authServiceWithTanStack.isAuthenticated(),
+    enabled: authService.isAuthenticated(),
     refetchInterval: 60 * 1000, // Check every minute
   });
 
   // Login mutation with progressive data loading
   const loginMutation = useMutation({
-    mutationFn: (data: LoginData) => authServiceWithTanStack.login(data),
+    mutationFn: (data: LoginData) => authService.login(data),
     onSuccess: (data: LoginResponse) => {
       if (data.success) {
         // Set partial user data in cache immediately
@@ -81,7 +89,7 @@ export const useAuth = () => {
         queryInvalidation.auth.profile();
         
         // Trigger background data upgrade
-        authServiceWithTanStack.ensureCompleteData();
+        authService.ensureCompleteData();
       }
     },
     onError: (error) => {
@@ -91,7 +99,7 @@ export const useAuth = () => {
 
   // Register mutation with progressive data loading
   const registerMutation = useMutation({
-    mutationFn: (data: RegisterData) => authServiceWithTanStack.register(data),
+    mutationFn: (data: RegisterData) => authService.register(data),
     onSuccess: (data: RegisterResponse) => {
       if (data.success) {
         // Set partial user data in cache immediately
@@ -108,7 +116,7 @@ export const useAuth = () => {
         queryInvalidation.auth.profile();
         
         // Trigger background data upgrade
-        authServiceWithTanStack.ensureCompleteData();
+        authService.ensureCompleteData();
       }
     },
     onError: (error) => {
@@ -116,9 +124,9 @@ export const useAuth = () => {
     },
   });
 
-  // Logout mutation
+  // Enhanced logout mutation with validation options
   const logoutMutation = useMutation({
-    mutationFn: () => authServiceWithTanStack.logout(),
+    mutationFn: (options?: LogoutValidationOptions) => authService.logout(options),
     onSuccess: () => {
       // Clear all auth-related queries
       queryClient.removeQueries({ queryKey: queryKeys.auth.all });
@@ -144,17 +152,47 @@ export const useAuth = () => {
     return registerMutation.mutateAsync(data);
   };
 
-  // Logout function
-  const logout = async () => {
-    return logoutMutation.mutateAsync();
+  // Enhanced logout function with validation options
+  const logout = async (options?: LogoutValidationOptions) => {
+    return logoutMutation.mutateAsync(options);
+  };
+
+  // Enhanced security monitoring functions
+  const getSecurityEvents = (limit?: number) => {
+    return authService.getSecurityEvents(limit);
+  };
+
+  const getSecurityEventsByType = (type: any, limit?: number) => {
+    return authService.getSecurityEventsByType(type, limit);
+  };
+
+  const detectSuspiciousActivity = () => {
+    return authService.detectSuspiciousActivity();
+  };
+
+  // Unsaved changes management
+  const setUnsavedChanges = (changes: Record<string, any>) => {
+    authService.setUnsavedChanges(changes);
+  };
+
+  const getUnsavedChanges = (): UnsavedChanges | null => {
+    return authService.getUnsavedChanges();
+  };
+
+  const hasUnsavedChanges = (): boolean => {
+    return authService.hasUnsavedChanges();
+  };
+
+  const clearUnsavedChanges = () => {
+    authService.clearUnsavedChanges();
   };
 
   // Check authentication status
-  const isAuthenticated = authServiceWithTanStack.isAuthenticated();
+  const isAuthenticated = authService.isAuthenticated();
 
   // Get current user data
   const getCurrentUser = () => {
-    return authServiceWithTanStack.getCurrentUser();
+    return authService.getCurrentUser();
   };
 
   // Refresh user data
@@ -165,12 +203,12 @@ export const useAuth = () => {
 
   // Get cached profile data
   const getCachedProfile = () => {
-    return authServiceWithTanStack.getCachedProfile();
+    return authService.getCachedProfile();
   };
 
   // Ensure complete data is loaded
   const ensureCompleteData = async () => {
-    return await authServiceWithTanStack.ensureCompleteData();
+    return await authService.ensureCompleteData();
   };
 
   // Check if user data is partial
@@ -180,7 +218,7 @@ export const useAuth = () => {
 
   // Get data status
   const getDataStatus = () => {
-    return authServiceWithTanStack.getDataStatus();
+    return authService.getDataStatus();
   };
 
   return {
@@ -204,6 +242,17 @@ export const useAuth = () => {
     // Utilities
     isUserDataPartial,
     getDataStatus,
+
+    // Enhanced security monitoring
+    getSecurityEvents,
+    getSecurityEventsByType,
+    detectSuspiciousActivity,
+
+    // Unsaved changes management
+    setUnsavedChanges,
+    getUnsavedChanges,
+    hasUnsavedChanges,
+    clearUnsavedChanges,
 
     // Mutation states
     isLoggingIn: loginMutation.isPending,

@@ -17,8 +17,8 @@ export const metadata: Metadata = {
   },
 };
 
-// Enable static generation for auth page to improve performance
-export const dynamic = 'force-static';
+// Enable SSR for auth page to improve SEO and initial load
+export const dynamic = 'force-dynamic';
 
 export default function Page() {
   return <AuthPage />;

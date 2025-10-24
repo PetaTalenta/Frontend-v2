@@ -6,6 +6,7 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from './ui-chart';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts';
 import { BarChart3, AlertCircle } from 'lucide-react';
 import { ChartErrorBoundary } from './ui-chart-error-boundary';
+import OptimizedChart from '../ui/OptimizedChart';
 import {
   AssessmentScores,
   VIA_CATEGORIES,

@@ -267,3 +267,383 @@ export const usePrefetchAssessment = () => {
 };
 
 export default useAssessmentResult;
+
+// Assessment Progress Management with TanStack Query
+interface AssessmentProgress {
+  currentSection: number;
+  currentPhase: number;
+  totalSections: number;
+  totalPhases: number;
+  answers: Record<string, any>;
+  isCompleted: boolean;
+  startTime: number | null;
+  endTime: number | null;
+}
+
+const initialAssessmentProgress: AssessmentProgress = {
+  currentSection: 0,
+  currentPhase: 0,
+  totalSections: 10,
+  totalPhases: 3,
+  answers: {},
+  isCompleted: false,
+  startTime: null,
+  endTime: null,
+};
+
+// LocalStorage utilities for assessment progress
+const assessmentProgressStorage = {
+  get: (): AssessmentProgress | null => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const stored = localStorage.getItem('assessment-progress');
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  },
+  
+  set: (progress: AssessmentProgress): void => {
+    if (typeof window === 'undefined') return;
+    try {
+      localStorage.setItem('assessment-progress', JSON.stringify(progress));
+    } catch {
+      // Silent fail for localStorage issues
+    }
+  },
+  
+  remove: (): void => {
+    if (typeof window === 'undefined') return;
+    try {
+      localStorage.removeItem('assessment-progress');
+    } catch {
+      // Silent fail for localStorage issues
+    }
+  },
+};
+
+// Custom hook for assessment progress management
+export const useAssessmentProgress = () => {
+  const queryClient = useQueryClient();
+
+  const {
+    data: progress = initialAssessmentProgress,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: queryKeys.assessments.progress(),
+    queryFn: () => {
+      // Load from localStorage on initial fetch
+      const stored = assessmentProgressStorage.get();
+      return stored || initialAssessmentProgress;
+    },
+    staleTime: Infinity, // Never stale, managed by mutations
+    gcTime: Infinity, // Never remove from cache
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchOnMount: true,
+  });
+
+  // Update current section mutation
+  const setCurrentSection = useMutation({
+    mutationFn: async (section: number) => {
+      const newSection = Math.max(0, Math.min(section, progress.totalSections - 1));
+      return newSection;
+    },
+    onMutate: async (newSection) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.assessments.progress() });
+      const previousProgress = queryClient.getQueryData<AssessmentProgress>(queryKeys.assessments.progress());
+      
+      const updatedProgress = { ...progress, currentSection: newSection };
+      queryClient.setQueryData(queryKeys.assessments.progress(), updatedProgress);
+      assessmentProgressStorage.set(updatedProgress);
+      
+      return { previousProgress };
+    },
+    onError: (err, newSection, context) => {
+      if (context?.previousProgress) {
+        queryClient.setQueryData(queryKeys.assessments.progress(), context.previousProgress);
+        assessmentProgressStorage.set(context.previousProgress);
+      }
+    },
+  });
+
+  // Update current phase mutation
+  const setCurrentPhase = useMutation({
+    mutationFn: async (phase: number) => {
+      const newPhase = Math.max(0, Math.min(phase, progress.totalPhases - 1));
+      return newPhase;
+    },
+    onMutate: async (newPhase) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.assessments.progress() });
+      const previousProgress = queryClient.getQueryData<AssessmentProgress>(queryKeys.assessments.progress());
+      
+      const updatedProgress = { ...progress, currentPhase: newPhase };
+      queryClient.setQueryData(queryKeys.assessments.progress(), updatedProgress);
+      assessmentProgressStorage.set(updatedProgress);
+      
+      return { previousProgress };
+    },
+    onError: (err, newPhase, context) => {
+      if (context?.previousProgress) {
+        queryClient.setQueryData(queryKeys.assessments.progress(), context.previousProgress);
+        assessmentProgressStorage.set(context.previousProgress);
+      }
+    },
+  });
+
+  // Navigation mutations
+  const nextSection = useMutation({
+    mutationFn: async () => {
+      const newSection = Math.min(progress.currentSection + 1, progress.totalSections - 1);
+      return newSection;
+    },
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.assessments.progress() });
+      const previousProgress = queryClient.getQueryData<AssessmentProgress>(queryKeys.assessments.progress());
+      
+      if (progress.currentSection < progress.totalSections - 1) {
+        const updatedProgress = { ...progress, currentSection: progress.currentSection + 1 };
+        queryClient.setQueryData(queryKeys.assessments.progress(), updatedProgress);
+        assessmentProgressStorage.set(updatedProgress);
+      }
+      
+      return { previousProgress };
+    },
+    onError: (err, variables, context) => {
+      if (context?.previousProgress) {
+        queryClient.setQueryData(queryKeys.assessments.progress(), context.previousProgress);
+        assessmentProgressStorage.set(context.previousProgress);
+      }
+    },
+  });
+
+  const previousSection = useMutation({
+    mutationFn: async () => {
+      const newSection = Math.max(progress.currentSection - 1, 0);
+      return newSection;
+    },
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.assessments.progress() });
+      const previousProgress = queryClient.getQueryData<AssessmentProgress>(queryKeys.assessments.progress());
+      
+      if (progress.currentSection > 0) {
+        const updatedProgress = { ...progress, currentSection: progress.currentSection - 1 };
+        queryClient.setQueryData(queryKeys.assessments.progress(), updatedProgress);
+        assessmentProgressStorage.set(updatedProgress);
+      }
+      
+      return { previousProgress };
+    },
+    onError: (err, variables, context) => {
+      if (context?.previousProgress) {
+        queryClient.setQueryData(queryKeys.assessments.progress(), context.previousProgress);
+        assessmentProgressStorage.set(context.previousProgress);
+      }
+    },
+  });
+
+  const nextPhase = useMutation({
+    mutationFn: async () => {
+      const newPhase = Math.min(progress.currentPhase + 1, progress.totalPhases - 1);
+      return newPhase;
+    },
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.assessments.progress() });
+      const previousProgress = queryClient.getQueryData<AssessmentProgress>(queryKeys.assessments.progress());
+      
+      if (progress.currentPhase < progress.totalPhases - 1) {
+        const updatedProgress = {
+          ...progress,
+          currentPhase: progress.currentPhase + 1,
+          currentSection: 0
+        };
+        queryClient.setQueryData(queryKeys.assessments.progress(), updatedProgress);
+        assessmentProgressStorage.set(updatedProgress);
+      }
+      
+      return { previousProgress };
+    },
+    onError: (err, variables, context) => {
+      if (context?.previousProgress) {
+        queryClient.setQueryData(queryKeys.assessments.progress(), context.previousProgress);
+        assessmentProgressStorage.set(context.previousProgress);
+      }
+    },
+  });
+
+  const previousPhase = useMutation({
+    mutationFn: async () => {
+      const newPhase = Math.max(progress.currentPhase - 1, 0);
+      return newPhase;
+    },
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.assessments.progress() });
+      const previousProgress = queryClient.getQueryData<AssessmentProgress>(queryKeys.assessments.progress());
+      
+      if (progress.currentPhase > 0) {
+        const updatedProgress = {
+          ...progress,
+          currentPhase: progress.currentPhase - 1,
+          currentSection: 0
+        };
+        queryClient.setQueryData(queryKeys.assessments.progress(), updatedProgress);
+        assessmentProgressStorage.set(updatedProgress);
+      }
+      
+      return { previousProgress };
+    },
+    onError: (err, variables, context) => {
+      if (context?.previousProgress) {
+        queryClient.setQueryData(queryKeys.assessments.progress(), context.previousProgress);
+        assessmentProgressStorage.set(context.previousProgress);
+      }
+    },
+  });
+
+  // Set answer mutation
+  const setAnswer = useMutation({
+    mutationFn: async ({ questionId, answer }: { questionId: string; answer: any }) => {
+      return { questionId, answer };
+    },
+    onMutate: async ({ questionId, answer }) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.assessments.progress() });
+      const previousProgress = queryClient.getQueryData<AssessmentProgress>(queryKeys.assessments.progress());
+      
+      const updatedProgress = {
+        ...progress,
+        answers: {
+          ...progress.answers,
+          [questionId]: answer,
+        },
+      };
+      queryClient.setQueryData(queryKeys.assessments.progress(), updatedProgress);
+      assessmentProgressStorage.set(updatedProgress);
+      
+      return { previousProgress };
+    },
+    onError: (err, variables, context) => {
+      if (context?.previousProgress) {
+        queryClient.setQueryData(queryKeys.assessments.progress(), context.previousProgress);
+        assessmentProgressStorage.set(context.previousProgress);
+      }
+    },
+  });
+
+  // Assessment lifecycle mutations
+  const startAssessment = useMutation({
+    mutationFn: async () => {
+      return Date.now();
+    },
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.assessments.progress() });
+      const previousProgress = queryClient.getQueryData<AssessmentProgress>(queryKeys.assessments.progress());
+      
+      const updatedProgress = {
+        ...progress,
+        startTime: Date.now(),
+        isCompleted: false,
+      };
+      queryClient.setQueryData(queryKeys.assessments.progress(), updatedProgress);
+      assessmentProgressStorage.set(updatedProgress);
+      
+      return { previousProgress };
+    },
+    onError: (err, variables, context) => {
+      if (context?.previousProgress) {
+        queryClient.setQueryData(queryKeys.assessments.progress(), context.previousProgress);
+        assessmentProgressStorage.set(context.previousProgress);
+      }
+    },
+  });
+
+  const completeAssessment = useMutation({
+    mutationFn: async () => {
+      return Date.now();
+    },
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.assessments.progress() });
+      const previousProgress = queryClient.getQueryData<AssessmentProgress>(queryKeys.assessments.progress());
+      
+      const updatedProgress = {
+        ...progress,
+        isCompleted: true,
+        endTime: Date.now(),
+      };
+      queryClient.setQueryData(queryKeys.assessments.progress(), updatedProgress);
+      assessmentProgressStorage.set(updatedProgress);
+      
+      return { previousProgress };
+    },
+    onError: (err, variables, context) => {
+      if (context?.previousProgress) {
+        queryClient.setQueryData(queryKeys.assessments.progress(), context.previousProgress);
+        assessmentProgressStorage.set(context.previousProgress);
+      }
+    },
+  });
+
+  const resetAssessment = useMutation({
+    mutationFn: async () => {
+      return initialAssessmentProgress;
+    },
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.assessments.progress() });
+      const previousProgress = queryClient.getQueryData<AssessmentProgress>(queryKeys.assessments.progress());
+      
+      queryClient.setQueryData(queryKeys.assessments.progress(), initialAssessmentProgress);
+      assessmentProgressStorage.set(initialAssessmentProgress);
+      
+      return { previousProgress };
+    },
+    onError: (err, variables, context) => {
+      if (context?.previousProgress) {
+        queryClient.setQueryData(queryKeys.assessments.progress(), context.previousProgress);
+        assessmentProgressStorage.set(context.previousProgress);
+      }
+    },
+  });
+
+  // Utility function to get progress percentage
+  const getProgress = () => {
+    const totalItems = progress.totalSections * progress.totalPhases;
+    const currentItem = progress.currentPhase * progress.totalSections + progress.currentSection + 1;
+    const percentage = (currentItem / totalItems) * 100;
+
+    return {
+      section: progress.currentSection,
+      phase: progress.currentPhase,
+      percentage,
+    };
+  };
+
+  return {
+    // State
+    progress,
+    loading: isLoading,
+    error,
+    
+    // Actions
+    setCurrentSection: setCurrentSection.mutate,
+    setCurrentPhase: setCurrentPhase.mutate,
+    nextSection: nextSection.mutate,
+    previousSection: previousSection.mutate,
+    nextPhase: nextPhase.mutate,
+    previousPhase: previousPhase.mutate,
+    setAnswer: setAnswer.mutate,
+    startAssessment: startAssessment.mutate,
+    completeAssessment: completeAssessment.mutate,
+    resetAssessment: resetAssessment.mutate,
+    
+    // Utilities
+    getProgress,
+    
+    // Loading states
+    isUpdating: setCurrentSection.isPending || setCurrentPhase.isPending,
+    isNavigating: nextSection.isPending || previousSection.isPending || nextPhase.isPending || previousPhase.isPending,
+    isAnswering: setAnswer.isPending,
+    isStarting: startAssessment.isPending,
+    isCompleting: completeAssessment.isPending,
+    isResetting: resetAssessment.isPending,
+  };
+};

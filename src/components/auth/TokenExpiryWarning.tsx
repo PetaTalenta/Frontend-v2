@@ -24,11 +24,28 @@ const TokenExpiryWarning: React.FC<TokenExpiryWarningProps> = ({
 
     const checkTokenExpiry = () => {
       const token = TokenManager.getAccessToken();
-      if (!token) return;
+      if (!token) {
+        console.log('TokenExpiryWarning: No token found');
+        return;
+      }
 
       try {
+        // Validate token format before attempting to decode
+        if (!isValidJWT(token)) {
+          console.warn('TokenExpiryWarning: Token is not in valid JWT format:', token.substring(0, 20) + '...');
+          // For non-JWT tokens, we can't check expiry, so we'll skip expiry checking
+          return;
+        }
+
         // Decode JWT payload to get expiry time
         const payload = JSON.parse(atob(token.split('.')[1]));
+        
+        // Validate payload structure
+        if (!payload || typeof payload.exp !== 'number') {
+          console.warn('TokenExpiryWarning: Invalid JWT payload structure:', payload);
+          return;
+        }
+        
         const expiryTime = payload.exp * 1000; // Convert to milliseconds
         const currentTime = Date.now();
         const timeUntilExpiry = expiryTime - currentTime;
@@ -44,10 +61,37 @@ const TokenExpiryWarning: React.FC<TokenExpiryWarningProps> = ({
           setDismissed(false);
         } else if (minutesUntilExpiry <= 0) {
           // Token expired, logout user
+          console.log('TokenExpiryWarning: Token expired, logging out');
           logout();
         }
       } catch (error) {
-        console.error('Error checking token expiry:', error);
+        console.error('TokenExpiryWarning: Error checking token expiry:', error);
+        console.error('TokenExpiryWarning: Token that caused error:', token.substring(0, 50) + '...');
+        
+        // If we can't parse the token, it might be corrupted or invalid
+        // In this case, we should logout for security
+        if (error instanceof Error && error.message.includes('Failed to execute \'atob\'')) {
+          console.warn('TokenExpiryWarning: Invalid base64 encoding in token, logging out for security');
+          logout();
+        }
+      }
+    };
+
+    // Helper function to validate JWT format
+    const isValidJWT = (token: string): boolean => {
+      try {
+        // Check if token has the correct format (header.payload.signature)
+        const parts = token.split('.');
+        if (parts.length !== 3) {
+          return false;
+        }
+        
+        // Try to decode the header to verify it's valid base64
+        const header = JSON.parse(atob(parts[0]));
+        // Basic JWT header validation
+        return header && (header.alg || header.typ);
+      } catch {
+        return false;
       }
     };
 
