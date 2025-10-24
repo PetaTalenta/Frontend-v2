@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useAuthStore } from '../../stores/useAuthStore';
+import { useAuth } from '../../hooks/useAuthWithTanStack';
 import authService, { TokenManager } from '../../services/authService';
 
 interface TokenExpiryWarningProps {
@@ -13,7 +13,7 @@ const TokenExpiryWarning: React.FC<TokenExpiryWarningProps> = ({
   warningThreshold = 5, 
   onRefresh 
 }) => {
-  const { user, logout } = useAuthStore();
+  const { user, logout } = useAuth();
   const [showWarning, setShowWarning] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState<number>(0);
   const [isRefreshing, setIsRefreshing] = useState(false);

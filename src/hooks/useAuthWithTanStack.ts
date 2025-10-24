@@ -10,7 +10,7 @@ import { queryKeys, queryInvalidation } from '../lib/tanStackConfig';
 export const useAuth = () => {
   const queryClient = useQueryClient();
 
-  // Query untuk user data
+  // Query untuk user data (supports partial and complete data)
   const {
     data: user,
     isLoading: userLoading,
@@ -49,21 +49,39 @@ export const useAuth = () => {
     },
   });
 
-  // Login mutation
+  // Query untuk data status monitoring
+  const {
+    data: dataStatus,
+    isLoading: statusLoading,
+  } = useQuery({
+    queryKey: queryKeys.auth.dataStatus(),
+    queryFn: () => authServiceWithTanStack.getDataStatus(),
+    staleTime: 30 * 1000, // 30 seconds
+    gcTime: 5 * 60 * 1000, // 5 minutes
+    enabled: authServiceWithTanStack.isAuthenticated(),
+    refetchInterval: 60 * 1000, // Check every minute
+  });
+
+  // Login mutation with progressive data loading
   const loginMutation = useMutation({
     mutationFn: (data: LoginData) => authServiceWithTanStack.login(data),
     onSuccess: (data: LoginResponse) => {
       if (data.success) {
-        // Invalidate and refetch user and profile data
-        queryInvalidation.auth.user();
-        queryInvalidation.auth.profile();
-        
-        // Set user data in cache immediately
-        queryClient.setQueryData(queryKeys.auth.user(), {
+        // Set partial user data in cache immediately
+        const partialUserData = {
           uid: data.data.uid,
           email: data.data.email,
           displayName: data.data.displayName,
-        });
+          isPartial: true,
+        };
+        
+        queryClient.setQueryData(queryKeys.auth.user(), partialUserData);
+        
+        // Invalidate and refetch profile data
+        queryInvalidation.auth.profile();
+        
+        // Trigger background data upgrade
+        authServiceWithTanStack.ensureCompleteData();
       }
     },
     onError: (error) => {
@@ -71,21 +89,26 @@ export const useAuth = () => {
     },
   });
 
-  // Register mutation
+  // Register mutation with progressive data loading
   const registerMutation = useMutation({
     mutationFn: (data: RegisterData) => authServiceWithTanStack.register(data),
     onSuccess: (data: RegisterResponse) => {
       if (data.success) {
-        // Invalidate and refetch user and profile data
-        queryInvalidation.auth.user();
-        queryInvalidation.auth.profile();
-        
-        // Set user data in cache immediately
-        queryClient.setQueryData(queryKeys.auth.user(), {
+        // Set partial user data in cache immediately
+        const partialUserData = {
           uid: data.data.uid,
           email: data.data.email,
           displayName: data.data.displayName,
-        });
+          isPartial: true,
+        };
+        
+        queryClient.setQueryData(queryKeys.auth.user(), partialUserData);
+        
+        // Invalidate and refetch profile data
+        queryInvalidation.auth.profile();
+        
+        // Trigger background data upgrade
+        authServiceWithTanStack.ensureCompleteData();
       }
     },
     onError: (error) => {
@@ -145,13 +168,29 @@ export const useAuth = () => {
     return authServiceWithTanStack.getCachedProfile();
   };
 
+  // Ensure complete data is loaded
+  const ensureCompleteData = async () => {
+    return await authServiceWithTanStack.ensureCompleteData();
+  };
+
+  // Check if user data is partial
+  const isUserDataPartial = () => {
+    return user?.isPartial || false;
+  };
+
+  // Get data status
+  const getDataStatus = () => {
+    return authServiceWithTanStack.getDataStatus();
+  };
+
   return {
     // State
     user,
     profile,
     isAuthenticated,
-    isLoading: userLoading || profileLoading,
+    isLoading: userLoading || profileLoading || statusLoading,
     error: userError || profileError,
+    dataStatus,
 
     // Actions
     login,
@@ -160,6 +199,11 @@ export const useAuth = () => {
     refreshUserData,
     getCurrentUser,
     getCachedProfile,
+    ensureCompleteData,
+
+    // Utilities
+    isUserDataPartial,
+    getDataStatus,
 
     // Mutation states
     isLoggingIn: loginMutation.isPending,

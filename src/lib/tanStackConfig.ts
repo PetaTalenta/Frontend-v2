@@ -52,6 +52,9 @@ export const queryKeys = {
     all: ['auth'] as const,
     profile: () => [...queryKeys.auth.all, 'profile'] as const,
     user: () => [...queryKeys.auth.all, 'user'] as const,
+    partialUser: () => [...queryKeys.auth.all, 'partialUser'] as const,
+    completeUser: () => [...queryKeys.auth.all, 'completeUser'] as const,
+    dataStatus: () => [...queryKeys.auth.all, 'dataStatus'] as const,
   },
   
   // Assessment queries
@@ -84,6 +87,9 @@ export const queryInvalidation = {
     all: () => queryClient.invalidateQueries({ queryKey: queryKeys.auth.all }),
     profile: () => queryClient.invalidateQueries({ queryKey: queryKeys.auth.profile() }),
     user: () => queryClient.invalidateQueries({ queryKey: queryKeys.auth.user() }),
+    partialUser: () => queryClient.invalidateQueries({ queryKey: queryKeys.auth.partialUser() }),
+    completeUser: () => queryClient.invalidateQueries({ queryKey: queryKeys.auth.completeUser() }),
+    dataStatus: () => queryClient.invalidateQueries({ queryKey: queryKeys.auth.dataStatus() }),
   },
   
   // Invalidate assessment-related queries
@@ -127,12 +133,64 @@ export const queryPrefetch = {
     });
   },
   
+  // Prefetch complete user data
+  completeUserData: async () => {
+    await queryClient.prefetchQuery({
+      queryKey: queryKeys.auth.completeUser(),
+      staleTime: 5 * 60 * 1000, // 5 minutes
+    });
+  },
+  
   // Prefetch dashboard stats
   dashboardStats: async () => {
     await queryClient.prefetchQuery({
       queryKey: queryKeys.dashboard.stats(),
       staleTime: 3 * 60 * 1000, // 3 minutes
     });
+  },
+} as const;
+
+// Cache utilities for progressive data loading
+export const cacheUtils = {
+  // Set partial user data
+  setPartialUser: (userData: any) => {
+    queryClient.setQueryData(queryKeys.auth.partialUser(), userData);
+  },
+  
+  // Get partial user data
+  getPartialUser: () => {
+    return queryClient.getQueryData(queryKeys.auth.partialUser());
+  },
+  
+  // Set complete user data
+  setCompleteUser: (userData: any) => {
+    queryClient.setQueryData(queryKeys.auth.completeUser(), userData);
+    // Clear partial data when complete data is set
+    queryClient.removeQueries({ queryKey: queryKeys.auth.partialUser() });
+  },
+  
+  // Get complete user data
+  getCompleteUser: () => {
+    return queryClient.getQueryData(queryKeys.auth.completeUser());
+  },
+  
+  // Check if user data is partial
+  isUserDataPartial: () => {
+    const partialData = queryClient.getQueryData(queryKeys.auth.partialUser());
+    const completeData = queryClient.getQueryData(queryKeys.auth.completeUser());
+    return partialData && !completeData;
+  },
+  
+  // Merge partial and complete data
+  mergeUserData: (partialData: any, completeData: any) => {
+    const mergedData = {
+      ...partialData,
+      ...completeData,
+      isPartial: false,
+      mergedAt: new Date().toISOString(),
+    };
+    cacheUtils.setCompleteUser(mergedData);
+    return mergedData;
   },
 } as const;
 

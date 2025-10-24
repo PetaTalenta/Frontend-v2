@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useRouter } from 'next/navigation';
-import { useAuthStore } from '../../stores/useAuthStore';
+import { useAuth } from '../../hooks/useAuthWithTanStack';
 import PasswordStrengthIndicator from './PasswordStrengthIndicator';
 
 /**
@@ -22,7 +22,7 @@ interface RegisterFormData {
 
 const Register = ({ onRegister }: RegisterProps) => {
   const router = useRouter();
-  const { register: registerUser, isLoading, error, clearError } = useAuthStore();
+  const { register: registerUser, isRegistering, error } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [registerError, setRegisterError] = useState('');
@@ -33,7 +33,7 @@ const Register = ({ onRegister }: RegisterProps) => {
 
   const onSubmit = async (data: RegisterFormData) => {
     setRegisterError('');
-    clearError();
+    // clearError() - not available in useAuthWithTanStack
     
     try {
       // Prepare registration data
@@ -306,11 +306,11 @@ const Register = ({ onRegister }: RegisterProps) => {
 
         <button
           type="submit"
-          disabled={isLoading}
+          disabled={isRegistering}
           className="w-full py-3 px-4 bg-gradient-to-r from-slate-600 to-blue-600 text-white font-medium rounded-lg hover:from-slate-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 transform hover:scale-[1.01] active:scale-[0.99] shadow-md disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none"
         >
           <div className="flex items-center justify-center">
-            {isLoading ? (
+            {isRegistering ? (
               <>
                 <svg className="animate-spin h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>

@@ -14,15 +14,24 @@ import { queryClient, queryKeys, queryInvalidation } from '../lib/tanStackConfig
 
 // Enhanced auth service with TanStack Query integration
 class AuthServiceWithTanStack {
-  // Login with cache integration
+  // Login with cache integration and progressive data loading
   async login(data: LoginData): Promise<LoginResponse> {
     try {
       const response = await authService.login(data);
       
       if (response.success) {
-        // Invalidate and refetch user profile after successful login
-        queryInvalidation.auth.profile();
-        queryInvalidation.auth.user();
+        // Set partial user data in cache immediately
+        const partialUserData = {
+          uid: response.data.uid,
+          email: response.data.email,
+          displayName: response.data.displayName,
+          isPartial: true,
+        };
+        
+        queryClient.setQueryData(queryKeys.auth.user(), partialUserData);
+        
+        // Prefetch complete profile data in background
+        this.prefetchCompleteUserData();
         
         // Prefetch dashboard stats for better UX
         this.prefetchUserData();
@@ -34,15 +43,24 @@ class AuthServiceWithTanStack {
     }
   }
 
-  // Register with cache integration
+  // Register with cache integration and progressive data loading
   async register(data: RegisterData): Promise<RegisterResponse> {
     try {
       const response = await authService.register(data);
       
       if (response.success) {
-        // Invalidate and refetch user profile after successful registration
-        queryInvalidation.auth.profile();
-        queryInvalidation.auth.user();
+        // Set partial user data in cache immediately
+        const partialUserData = {
+          uid: response.data.uid,
+          email: response.data.email,
+          displayName: response.data.displayName,
+          isPartial: true,
+        };
+        
+        queryClient.setQueryData(queryKeys.auth.user(), partialUserData);
+        
+        // Prefetch complete profile data in background
+        this.prefetchCompleteUserData();
         
         // Prefetch user data for better UX
         this.prefetchUserData();
@@ -75,13 +93,34 @@ class AuthServiceWithTanStack {
     }
   }
 
-  // Get profile with TanStack Query integration
+  // Get profile with TanStack Query integration and data merging
   async getProfile(): Promise<ProfileResponse> {
     try {
       const response = await authService.getProfile();
       
       // Update cache with fresh profile data
       queryClient.setQueryData(queryKeys.auth.profile(), response);
+      
+      // Update user data with complete information
+      const userData = authService.getCurrentUser();
+      if (userData && !userData.isPartial) {
+        const completeUserData = {
+          uid: userData.uid,
+          email: userData.email,
+          displayName: userData.displayName,
+          id: userData.id,
+          username: userData.username,
+          user_type: userData.user_type,
+          is_active: userData.is_active,
+          token_balance: userData.token_balance,
+          last_login: userData.last_login,
+          created_at: userData.created_at,
+          profile: userData.profile,
+          isPartial: false,
+        };
+        
+        queryClient.setQueryData(queryKeys.auth.user(), completeUserData);
+      }
       
       return response;
     } catch (error) {
@@ -166,6 +205,39 @@ class AuthServiceWithTanStack {
     } catch (error) {
       console.warn('Failed to prefetch user data:', error);
     }
+  }
+
+  // Prefetch complete user data for progressive loading
+  private async prefetchCompleteUserData() {
+    try {
+      // Fetch complete profile data in background
+      await queryClient.prefetchQuery({
+        queryKey: queryKeys.auth.profile(),
+        queryFn: () => authService.fetchCompleteProfile(),
+        staleTime: 5 * 60 * 1000, // 5 minutes
+      });
+    } catch (error) {
+      console.warn('Failed to prefetch complete user data:', error);
+    }
+  }
+
+  // Check if data needs upgrade and trigger upgrade if needed
+  async ensureCompleteData() {
+    if (authService.needsDataUpgrade()) {
+      try {
+        await this.prefetchCompleteUserData();
+        return true;
+      } catch (error) {
+        console.warn('Failed to upgrade user data:', error);
+        return false;
+      }
+    }
+    return true;
+  }
+
+  // Get data status for debugging and monitoring
+  getDataStatus() {
+    return authService.getDataStatus();
   }
 
   // Optimistic update helpers

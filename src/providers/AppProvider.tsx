@@ -1,8 +1,6 @@
 'use client';
 
 import React, { ReactNode, useEffect } from 'react';
-import { useAuthStore } from '../stores/useAuthStore';
-import { useAssessmentStore } from '../stores/useAssessmentStore';
 import { TanStackProvider } from './TanStackProvider';
 
 interface AppProviderProps {
@@ -11,13 +9,6 @@ interface AppProviderProps {
 
 // Global provider yang menggabungkan semua state management
 export function AppProvider({ children }: AppProviderProps) {
-  const initializeAuth = useAuthStore((state) => state.initializeAuth);
-  
-  // Initialize auth on app start
-  useEffect(() => {
-    initializeAuth();
-  }, [initializeAuth]);
-
   return (
     <TanStackProvider>
       {children}
@@ -25,38 +16,28 @@ export function AppProvider({ children }: AppProviderProps) {
   );
 }
 
-// Hook untuk mengakses global state
+// Hook untuk mengakses global state (simplified)
 export const useGlobalState = () => {
-  const auth = useAuthStore();
-  const assessment = useAssessmentStore();
-  
   return {
-    auth,
-    assessment,
+    // Global state sekarang dikelola oleh TanStack Query
   };
 };
 
-// Selectors untuk optimized re-renders
+// Selectors untuk optimized re-renders (simplified)
 export const useAppLoading = () => {
-  const authLoading = useAuthStore((state) => state.isLoading);
-  const assessmentLoading = useAssessmentStore((state) => state.isLoading);
-  
   return {
-    isLoading: authLoading || assessmentLoading,
-    authLoading,
-    assessmentLoading,
+    isLoading: false, // Loading state sekarang dikelola per query
+    authLoading: false,
+    assessmentLoading: false,
   };
 };
 
 export const useAppError = () => {
-  const authError = useAuthStore((state) => state.error);
-  const assessmentError = useAssessmentStore((state) => state.error);
-  
   return {
-    error: authError || assessmentError,
-    authError,
-    assessmentError,
-    clearAuthError: useAuthStore((state) => state.clearError),
-    clearAssessmentError: useAssessmentStore((state) => state.setError),
+    error: null, // Error state sekarang dikelola per query
+    authError: null,
+    assessmentError: null,
+    clearAuthError: () => {},
+    clearAssessmentError: () => {},
   };
 };

@@ -163,17 +163,36 @@ export class ApiError extends Error {
   }
 }
 
-// Token management utility
+// Enhanced token management utility with partial data support
 class TokenManager {
   private static readonly ACCESS_TOKEN_KEY = 'futureguide_access_token';
   private static readonly REFRESH_TOKEN_KEY = 'futureguide_refresh_token';
   private static readonly USER_DATA_KEY = 'futureguide_user_data';
+  private static readonly PARTIAL_USER_DATA_KEY = 'futureguide_partial_user_data';
 
-  static setTokens(accessToken: string, refreshToken: string, userData: any) {
+  // Enhanced user data interface
+  static setTokens(accessToken: string, refreshToken: string, userData: any, isPartial: boolean = false) {
     if (typeof window !== 'undefined') {
       localStorage.setItem(this.ACCESS_TOKEN_KEY, accessToken);
       localStorage.setItem(this.REFRESH_TOKEN_KEY, refreshToken);
-      localStorage.setItem(this.USER_DATA_KEY, JSON.stringify(userData));
+      
+      if (isPartial) {
+        // Store partial data separately
+        localStorage.setItem(this.PARTIAL_USER_DATA_KEY, JSON.stringify({
+          ...userData,
+          isPartial: true,
+          storedAt: new Date().toISOString()
+        }));
+      } else {
+        // Store complete data
+        localStorage.setItem(this.USER_DATA_KEY, JSON.stringify({
+          ...userData,
+          isPartial: false,
+          storedAt: new Date().toISOString()
+        }));
+        // Clear partial data when complete data is stored
+        localStorage.removeItem(this.PARTIAL_USER_DATA_KEY);
+      }
     }
   }
 
@@ -193,8 +212,85 @@ class TokenManager {
 
   static getUserData(): any {
     if (typeof window !== 'undefined') {
-      const userData = localStorage.getItem(this.USER_DATA_KEY);
-      return userData ? JSON.parse(userData) : null;
+      // Try to get complete data first
+      const completeData = localStorage.getItem(this.USER_DATA_KEY);
+      if (completeData) {
+        const parsed = JSON.parse(completeData);
+        return { ...parsed, isPartial: false };
+      }
+
+      // Fallback to partial data
+      const partialData = localStorage.getItem(this.PARTIAL_USER_DATA_KEY);
+      if (partialData) {
+        const parsed = JSON.parse(partialData);
+        return { ...parsed, isPartial: true };
+      }
+
+      return null;
+    }
+    return null;
+  }
+
+  static getPartialUserData(): any {
+    if (typeof window !== 'undefined') {
+      const partialData = localStorage.getItem(this.PARTIAL_USER_DATA_KEY);
+      return partialData ? JSON.parse(partialData) : null;
+    }
+    return null;
+  }
+
+  static getCompleteUserData(): any {
+    if (typeof window !== 'undefined') {
+      const completeData = localStorage.getItem(this.USER_DATA_KEY);
+      return completeData ? JSON.parse(completeData) : null;
+    }
+    return null;
+  }
+
+  static mergeUserData(partialData: any, completeData: any): any {
+    return {
+      // Keep auth tokens from partial data
+      uid: completeData.data?.user?.id || partialData.uid,
+      email: completeData.data?.user?.email || partialData.email,
+      displayName: completeData.data?.user?.username || partialData.displayName,
+      
+      // Add complete profile data
+      id: completeData.data?.user?.id,
+      username: completeData.data?.user?.username,
+      user_type: completeData.data?.user?.user_type,
+      is_active: completeData.data?.user?.is_active,
+      token_balance: completeData.data?.user?.token_balance,
+      last_login: completeData.data?.user?.last_login,
+      created_at: completeData.data?.user?.created_at,
+      
+      // Profile details
+      profile: completeData.data?.user?.profile,
+      
+      // Auth tokens
+      idToken: partialData.idToken,
+      refreshToken: partialData.refreshToken,
+      expiresIn: partialData.expiresIn,
+      
+      // Metadata
+      isPartial: false,
+      mergedAt: new Date().toISOString()
+    };
+  }
+
+  static upgradePartialToComplete(completeData: any) {
+    if (typeof window !== 'undefined') {
+      const partialData = this.getPartialUserData();
+      if (partialData) {
+        const mergedData = this.mergeUserData(partialData, completeData);
+        
+        // Store as complete data
+        localStorage.setItem(this.USER_DATA_KEY, JSON.stringify(mergedData));
+        
+        // Remove partial data
+        localStorage.removeItem(this.PARTIAL_USER_DATA_KEY);
+        
+        return mergedData;
+      }
     }
     return null;
   }
@@ -204,6 +300,7 @@ class TokenManager {
       localStorage.removeItem(this.ACCESS_TOKEN_KEY);
       localStorage.removeItem(this.REFRESH_TOKEN_KEY);
       localStorage.removeItem(this.USER_DATA_KEY);
+      localStorage.removeItem(this.PARTIAL_USER_DATA_KEY);
     }
   }
 
@@ -215,6 +312,23 @@ class TokenManager {
     } catch {
       return true;
     }
+  }
+
+  static isDataPartial(): boolean {
+    const userData = this.getUserData();
+    return userData ? userData.isPartial : false;
+  }
+
+  static getDataAge(): number {
+    const userData = this.getUserData();
+    if (userData && userData.storedAt) {
+      return Date.now() - new Date(userData.storedAt).getTime();
+    }
+    return Infinity;
+  }
+
+  static isDataStale(maxAge: number = 5 * 60 * 1000): boolean {
+    return this.getDataAge() > maxAge;
   }
 }
 
@@ -295,7 +409,8 @@ class AuthService {
               TokenManager.setTokens(
                 idToken,
                 newRefreshToken,
-                TokenManager.getUserData()
+                TokenManager.getUserData(),
+                TokenManager.isDataPartial()
               );
 
               // Process queued requests
@@ -333,7 +448,7 @@ class AuthService {
     );
   }
 
-  // Login method
+  // Login method with partial data storage
   async login(data: LoginData): Promise<LoginResponse> {
     try {
       const response: AxiosResponse<LoginResponse> = await this.apiClient.post(
@@ -347,14 +462,21 @@ class AuthService {
       );
 
       if (response.data.success) {
+        // Store partial data immediately for better UX
+        const partialUserData = {
+          uid: response.data.data.uid,
+          email: response.data.data.email,
+          displayName: response.data.data.displayName,
+          idToken: response.data.data.idToken,
+          refreshToken: response.data.data.refreshToken,
+          expiresIn: response.data.data.expiresIn,
+        };
+
         TokenManager.setTokens(
           response.data.data.idToken,
           response.data.data.refreshToken,
-          {
-            uid: response.data.data.uid,
-            email: response.data.data.email,
-            displayName: response.data.data.displayName,
-          }
+          partialUserData,
+          true // Mark as partial data
         );
       }
 
@@ -364,7 +486,7 @@ class AuthService {
     }
   }
 
-  // Register method
+  // Register method with partial data storage
   async register(data: RegisterData): Promise<RegisterResponse> {
     try {
       const response: AxiosResponse<RegisterResponse> = await this.apiClient.post(
@@ -378,14 +500,22 @@ class AuthService {
       );
 
       if (response.data.success) {
+        // Store partial data immediately for better UX
+        const partialUserData = {
+          uid: response.data.data.uid,
+          email: response.data.data.email,
+          displayName: response.data.data.displayName,
+          idToken: response.data.data.idToken,
+          refreshToken: response.data.data.refreshToken,
+          expiresIn: response.data.data.expiresIn,
+          createdAt: response.data.data.createdAt,
+        };
+
         TokenManager.setTokens(
           response.data.data.idToken,
           response.data.data.refreshToken,
-          {
-            uid: response.data.data.uid,
-            email: response.data.data.email,
-            displayName: response.data.data.displayName,
-          }
+          partialUserData,
+          true // Mark as partial data
         );
       }
 
@@ -408,16 +538,63 @@ class AuthService {
     }
   }
 
-  // Get profile method
+  // Get profile method with data merging
   async getProfile(): Promise<ProfileResponse> {
     try {
       const response: AxiosResponse<ProfileResponse> = await this.apiClient.get(
         '/api/auth/profile'
       );
+
+      // If we have partial data, upgrade it to complete data
+      if (TokenManager.isDataPartial()) {
+        TokenManager.upgradePartialToComplete(response.data);
+      }
+
       return response.data;
     } catch (error: any) {
       throw this.handleError(error);
     }
+  }
+
+  // Method to fetch and merge complete profile data
+  async fetchCompleteProfile(): Promise<ProfileResponse | null> {
+    try {
+      const profileData = await this.getProfile();
+      
+      // Ensure data is stored as complete
+      if (!TokenManager.isDataPartial()) {
+        const userData = TokenManager.getUserData();
+        if (userData) {
+          TokenManager.setTokens(
+            userData.idToken,
+            userData.refreshToken,
+            userData,
+            false // Mark as complete data
+          );
+        }
+      }
+
+      return profileData;
+    } catch (error: any) {
+      console.warn('Failed to fetch complete profile:', error);
+      return null;
+    }
+  }
+
+  // Method to check if user data needs upgrade
+  needsDataUpgrade(): boolean {
+    return TokenManager.isDataPartial() || TokenManager.isDataStale();
+  }
+
+  // Method to get current data status
+  getDataStatus() {
+    return {
+      isPartial: TokenManager.isDataPartial(),
+      isStale: TokenManager.isDataStale(),
+      dataAge: TokenManager.getDataAge(),
+      hasPartialData: !!TokenManager.getPartialUserData(),
+      hasCompleteData: !!TokenManager.getCompleteUserData(),
+    };
   }
 
   // Update profile method
