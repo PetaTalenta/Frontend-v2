@@ -21,6 +21,13 @@ Strategi yang Diterapkan pada Aplikasi FutureGuide
 - `src/components/assessment/AssessmentHeader.tsx` - Image optimization dengan proper dimensions
 - `src/components/dashboard/avatar.tsx` - Avatar component dengan Next.js Image
 - `src/components/dashboard/stats-card.tsx` - Stats card dengan optimized image loading
+- `src/components/dashboard/header.tsx` - Dropdown profile component fix (24 Oktober 2024)
+- `docs/dashboard-dropdown-profile-fix-report.md` - Laporan perbaikan dropdown lengkap
+- `src/app/results/[id]/ocean/page.tsx` - OceanRadarChart dynamic import (Phase 3.1)
+- `src/app/results/[id]/riasec/page.tsx` - RiasecRadarChart dynamic import (Phase 3.1)
+- `src/app/results/[id]/via/page.tsx` - ViaRadarChart dynamic import (Phase 3.1)
+- `src/app/results/[id]/combined/page.tsx` - CombinedAssessmentGrid dynamic import (Phase 3.1)
+- `docs/phase-3-1-bundle-optimization-implementation-report.md` - Laporan implementasi bundle optimization lengkap
 
 **Best Practices Yang Dijadikan Acuan:**
 - Skeleton screens untuk better perceived performance
@@ -33,6 +40,16 @@ Strategi yang Diterapkan pada Aplikasi FutureGuide
 - Priority loading untuk above-the-fold images
 - TypeScript untuk type safety
 - React Hooks optimization dengan proper dependency arrays
+- Proper state management untuk interactive components (dropdown profile fix)
+- Click outside detection untuk auto-close functionality
+- Responsive design untuk mobile dan desktop
+- Clean component architecture dengan proper props management
+- Dynamic imports untuk heavy components dengan loading states
+- Granular bundle splitting dengan priority-based cache groups
+- Tree shaking agresif untuk unused dependencies
+- Deterministic chunk IDs untuk better caching
+- Package import optimization untuk reduced bundle size
+- Performance monitoring dengan automated bundle analysis
 
 **Performance Improvements:**
 - Bundle size reduction melalui code splitting
@@ -41,6 +58,13 @@ Strategi yang Diterapkan pada Aplikasi FutureGuide
 - Better Largest Contentful Paint (LCP) dengan optimized image loading
 - Optimized font loading dengan swap strategy
 - Lazy loading untuk heavy components
+- **Dropdown Profile Fix (24 Oktober 2024)**: Memperbaiki dropdown profile yang selalu terbuka pada halaman dashboard
+- **Interactive Component Behavior**: Dropdown sekarang hanya terbuka saat diklik dan tertutup otomatis
+- **Enhanced User Experience**: Menghilangkan prop `forceMount` yang menyebabkan dropdown selalu visible
+- **Bundle Size Optimization (Phase 3.1 - 24 Oktober 2024)**: Implementasi dynamic imports untuk heavy chart components
+- **Advanced Bundle Splitting**: Granular cache groups untuk vendor libraries (recharts, framer-motion, tanstack-query, radix-ui, lucide-react, vendor)
+- **Tree Shaking**: Unused dependencies elimination dengan optimizePackageImports
+- **Performance Monitoring**: Bundle analysis dan measurement dengan automated reporting
 
 ## 2. Strategi Routing
 
@@ -325,37 +349,3 @@ src/app/results/[id]/
 - Background sync untuk offline actions
 - Push notification support dengan enhanced handlers
 
-## 7. Strategi UI/UX Optimization
-
-**Implementasi Terbaru (24 Oktober 2024):**
-- **Dropdown Profile Fix**: Memperbaiki dropdown profile yang selalu terbuka pada halaman dashboard
-- **Interactive Component Behavior**: Dropdown sekarang hanya terbuka saat diklik dan tertutup otomatis
-- **Enhanced User Experience**: Menghilangkan prop `forceMount` yang menyebabkan dropdown selalu visible
-
-**Lokasi Implementasi:**
-- `src/components/dashboard/header.tsx` - Dropdown profile component fix
-- `docs/dashboard-dropdown-profile-fix-report.md` - Laporan perbaikan lengkap
-
-**Perubahan Spesifik:**
-- Menghapus prop `forceMount` dari `DropdownMenuContent` pada mobile (line 80)
-- Menghapus prop `forceMount` dari `DropdownMenuContent` pada desktop (line 118)
-- Dropdown sekarang mengikuti state `isOpen` dengan benar
-
-**Best Practices Yang Diterapkan:**
-- Proper state management untuk interactive components
-- Click outside detection untuk auto-close functionality
-- Responsive design untuk mobile dan desktop
-- Clean component architecture dengan proper props management
-
-**Benefits:**
-- ✅ Dropdown profile hanya terbuka saat avatar diklik
-- ✅ Auto-close saat klik di luar area dropdown
-- ✅ Auto-close saat memilih menu item
-- ✅ Better user experience dengan proper interaction patterns
-- ✅ Tidak ada performance impact
-- ✅ Build dan lint bersih dari error
-
-**Testing Results:**
-- ✅ Build successful: `pnpm build` (Exit code: 0)
-- ✅ Lint clean: `pnpm lint` (No ESLint warnings or errors)
-- ✅ Fungsionalitas dropdown berkerja dengan benar untuk mobile dan desktop

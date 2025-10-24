@@ -24,14 +24,14 @@ const nextConfig = {
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     minimumCacheTTL: 60 * 60 * 24 * 30, // 30 days
     domains: [
-      'images.FutureGuide.com',
-      'static.FutureGuide.com',
-      'cdn.FutureGuide.com'
+      'images.FutureGuide.id',
+      'static.FutureGuide.id',
+      'cdn.FutureGuide.id'
     ],
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: '*.FutureGuide.com',
+        hostname: '*.FutureGuide.id',
         port: '',
         pathname: '/**',
       },
@@ -44,8 +44,17 @@ const nextConfig = {
     optimizePackageImports: [
       'lucide-react',
       '@radix-ui/react-icons',
-      'recharts'
-    ]
+      'recharts',
+      'framer-motion',
+      '@tanstack/react-query',
+      'date-fns'
+    ],
+    // Enable webpack bundle analyzer in production
+    webpackBuildWorker: true,
+    // Optimize client chunks
+    optimizeCss: false, // Disabled due to critters dependency issue
+    // Enable parallel builds
+    workerThreads: false, // Disabled for compatibility
   },
 
   // Compiler optimizations
@@ -219,11 +228,53 @@ const nextConfig = {
         ...config.optimization.splitChunks,
         cacheGroups: {
           ...config.optimization.splitChunks?.cacheGroups,
+          // Separate chart libraries into their own chunks
           recharts: {
             test: /[\\/]node_modules[\\/]recharts[\\/]/,
             name: 'recharts',
             chunks: 'all',
-            priority: 10,
+            priority: 20,
+            enforce: true,
+          },
+          // Separate animation libraries
+          framerMotion: {
+            test: /[\\/]node_modules[\\/]framer-motion[\\/]/,
+            name: 'framer-motion',
+            chunks: 'all',
+            priority: 15,
+            enforce: true,
+          },
+          // Separate query libraries
+          tanStackQuery: {
+            test: /[\\/]node_modules[\\/]@tanstack[\\/]react-query[\\/]/,
+            name: 'tanstack-query',
+            chunks: 'all',
+            priority: 15,
+            enforce: true,
+          },
+          // Separate UI libraries
+          radixUI: {
+            test: /[\\/]node_modules[\\/]@radix-ui[\\/]/,
+            name: 'radix-ui',
+            chunks: 'all',
+            priority: 12,
+            enforce: true,
+          },
+          // Separate icon libraries
+          lucideReact: {
+            test: /[\\/]node_modules[\\/]lucide-react[\\/]/,
+            name: 'lucide-react',
+            chunks: 'all',
+            priority: 12,
+            enforce: true,
+          },
+          // Common vendor chunk for frequently used libraries
+          vendor: {
+            test: /[\\/]node_modules[\\/]/,
+            name: 'vendors',
+            chunks: 'all',
+            priority: 5,
+            minChunks: 2,
           },
         },
       };
@@ -247,6 +298,7 @@ const nextConfig = {
 
     return config;
   },
+
 
   // Proxy configuration - uncomment when external API is working
   // async rewrites() {

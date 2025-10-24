@@ -9,7 +9,20 @@ import { Progress } from '../../../../components/results/ui-progress';
 import { Badge } from '../../../../components/results/ui-badge';
 import { Skeleton } from '../../../../components/results/ui-skeleton';
 import { ArrowLeft, Palette, Lightbulb, Search, Heart, Shield, Scale, Flower } from 'lucide-react';
-import ViaRadarChart from '../../../../components/results/ViaRadarChart';
+import dynamic from 'next/dynamic';
+
+// Dynamic import for ViaRadarChart to reduce bundle size
+const ViaRadarChart = dynamic(() => import('../../../../components/results/ViaRadarChart'), {
+  loading: () => (
+    <div className="bg-white rounded-lg border border-gray-200 p-6">
+      <div className="animate-pulse">
+        <div className="h-4 bg-gray-200 rounded w-1/3 mb-4"></div>
+        <div className="h-64 bg-gray-200 rounded"></div>
+      </div>
+    </div>
+  ),
+  ssr: false
+});
 import {
   getDummyAssessmentResult,
   getScoreInterpretation,

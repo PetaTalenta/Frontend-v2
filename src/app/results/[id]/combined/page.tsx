@@ -6,7 +6,24 @@ import Link from 'next/link';
 import { Button } from '../../../../components/results/ui-button';
 import { Skeleton } from '../../../../components/results/ui-skeleton';
 import { ArrowLeft, Grid3X3 } from 'lucide-react';
-import CombinedAssessmentGrid from '../../../../components/results/CombinedAssessmentGrid';
+import dynamic from 'next/dynamic';
+
+// Dynamic import for CombinedAssessmentGrid to reduce bundle size
+const CombinedAssessmentGrid = dynamic(() => import('../../../../components/results/CombinedAssessmentGrid'), {
+  loading: () => (
+    <div className="grid grid-cols-2 gap-6">
+      {[1, 2, 3, 4].map((i) => (
+        <div key={i} className="bg-white rounded-lg border p-6">
+          <div className="animate-pulse">
+            <div className="h-8 w-8 rounded-lg mb-4"></div>
+            <div className="h-[500px] w-full bg-gray-200 rounded"></div>
+          </div>
+        </div>
+      ))}
+    </div>
+  ),
+  ssr: false
+});
 import { getDummyAssessmentResult } from '../../../../data/dummy-assessment-data';
 
 export default function CombinedDetailPage() {

@@ -11,7 +11,20 @@ import { Skeleton } from '../../../../components/results/ui-skeleton';
 import { toast } from '../../../../components/results/ui-use-toast';
 import { VIA_CATEGORIES } from '../../../../data/dummy-assessment-data';
 import { ArrowLeft, Brain, Eye, Heart, Zap, CheckCircle } from 'lucide-react';
-import OceanRadarChart from '../../../../components/results/OceanRadarChart';
+import dynamic from 'next/dynamic';
+
+// Dynamic import for OceanRadarChart to reduce bundle size
+const OceanRadarChart = dynamic(() => import('../../../../components/results/OceanRadarChart'), {
+  loading: () => (
+    <div className="bg-white rounded-lg border border-gray-200 p-6">
+      <div className="animate-pulse">
+        <div className="h-4 bg-gray-200 rounded w-1/3 mb-4"></div>
+        <div className="h-64 bg-gray-200 rounded"></div>
+      </div>
+    </div>
+  ),
+  ssr: false
+});
 import {
   getDummyAssessmentResult,
   getScoreInterpretation as getDummyScoreInterpretation
