@@ -2,7 +2,6 @@ import React from "react"
 import { Card, CardContent } from "./card"
 import { Progress } from "./progress"
 import type { ProgressItem } from "../../types/dashboard"
-import "../../styles/components/dashboard/progress-card.css"
 
 interface ProgressCardProps {
   title: string
@@ -12,21 +11,21 @@ interface ProgressCardProps {
 
 function ProgressCardComponent({ title, description, data }: ProgressCardProps) {
   return (
-    <Card className="progress-card">
-      <CardContent className="progress-card__content">
-        <h3 className="progress-card__title">{title}</h3>
-        <p className="progress-card__description">{description}</p>
+    <Card className="bg-white border-dashboard-border">
+      <CardContent className="p-4 sm:p-5 lg:p-6">
+        <h3 className="font-semibold text-dashboard-text-primary text-lg sm:text-xl">{title}</h3>
+        <p className="text-xs sm:text-sm mb-2 sm:mb-3 lg:mb-2 text-dashboard-text-secondary">{description}</p>
 
-        <div className="progress-card__items">
+        <div className="space-y-3 sm:space-y-4">
           {data.map((item, index) => (
-            <div key={index} className="progress-card__item">
-              <div className="progress-card__item-header">
-                <span className="progress-card__item-label">{item.label}</span>
-                <span className="progress-card__item-value">{item.value}%</span>
+            <div key={index} className="space-y-2">
+              <div className="flex justify-between text-sm sm:text-base">
+                <span className="text-dashboard-text-secondary text-sm sm:text-base">{item.label}</span>
+                <span className="font-medium text-dashboard-text-primary text-sm sm:text-base sm:font-bold">{item.value}%</span>
               </div>
               <Progress
                 value={item.value}
-                className="progress-card__progress-bar"
+                className="h-2 sm:h-2.5"
                 style={{
                   "--progress-background": "#6475e9",
                 } as React.CSSProperties}

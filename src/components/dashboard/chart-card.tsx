@@ -1,6 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "./card"
 import type { ChartData } from "../../types/dashboard"
-import "../../styles/components/dashboard/chart-card.css"
 
 interface ChartCardProps {
   title: string
@@ -12,23 +11,23 @@ export function ChartCard({ title, description, data }: ChartCardProps) {
   const maxValue = Math.max(...data.map(item => item.value))
 
   return (
-    <Card className="chart-card">
-      <CardHeader className="chart-card__header">
-        <CardTitle className="chart-card__title">{title}</CardTitle>
-        <p className="chart-card__description">{description}</p>
+    <Card className="bg-white border-dashboard-border">
+      <CardHeader>
+        <CardTitle className="text-lg font-semibold text-dashboard-text-primary">{title}</CardTitle>
+        <p className="text-sm text-dashboard-text-secondary">{description}</p>
       </CardHeader>
-      <CardContent className="chart-card__content">
-        <div className="chart-card__chart-container">
+      <CardContent>
+        <div className="flex items-center justify-center gap-2 mb-6">
           {data.map((item, index) => {
             const height = (item.value / maxValue) * 100
             return (
-              <div key={index} className="chart-card__bar-item">
+              <div key={index} className="flex flex-col items-center gap-2">
                 <div
-                  className="chart-card__bar-background"
+                  className="relative w-dashboard-chart-bar rounded-dashboard-2xl overflow-hidden"
                   style={{ height: '128px', backgroundColor: '#F3F3F3' }}
                 >
                   <div
-                    className="chart-card__bar-fill"
+                    className="absolute bottom-0 w-full transition-all duration-300"
                     style={{
                       height: `${height}%`,
                       backgroundColor: item.color,
@@ -36,7 +35,7 @@ export function ChartCard({ title, description, data }: ChartCardProps) {
                     }}
                   />
                 </div>
-                <div className="chart-card__bar-indicator" />
+                <div className="w-2 h-2 rounded-full bg-dashboard-background-indicator" />
               </div>
             )
           })}
