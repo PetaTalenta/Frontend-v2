@@ -77,7 +77,7 @@ function HeaderComponent({ title, description, logout }: HeaderProps) {
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56 bg-white border border-gray-200 rounded-lg shadow-lg min-w-[200px]" align="end" forceMount>
+              <DropdownMenuContent className="w-56 bg-white border border-gray-200 rounded-lg shadow-lg min-w-[200px]" align="end">
                 <DropdownMenuLabel className="font-normal">
                   <div className="flex flex-col gap-1">
                     <p className="text-sm font-medium leading-none text-gray-900">
@@ -115,7 +115,7 @@ function HeaderComponent({ title, description, logout }: HeaderProps) {
               </Avatar>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-56 bg-white border border-gray-200 rounded-lg shadow-lg min-w-[200px]" align="end" forceMount>
+          <DropdownMenuContent className="w-56 bg-white border border-gray-200 rounded-lg shadow-lg min-w-[200px]" align="end">
             <DropdownMenuLabel className="font-normal">
               <div className="flex flex-col gap-1">
                 <p className="text-sm font-medium leading-none text-gray-900">
