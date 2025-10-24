@@ -11,7 +11,6 @@ import { Skeleton } from "./skeleton"
 import { SimpleAlertDialog } from "./alert-dialog-simple"
 import { ExternalLink, Trash2, Plus } from "lucide-react"
 import type { AssessmentData } from "../../types/dashboard"
-import "../../styles/components/dashboard/assessment-table.css"
 
 interface AssessmentTableProps {
   data: AssessmentData[]
@@ -84,44 +83,46 @@ function AssessmentTableComponent({ data, onRefresh, swrKey, isLoading, isValida
   }
 
   return (
-    <div className="assessment-table">
-      <div className="assessment-table__header sm:flex-row sm:items-center sm:justify-between space-y-0">
-        <div className="assessment-table__header-text">
-          <div className="assessment-table__title" style={{fontWeight:'bold', fontSize:'1.5rem'}}>Riwayat Asesmen</div>
-          <p className="assessment-table__description">
+    <div className="bg-white flex flex-col rounded-lg border shadow-sm border-[#eaecf0] h-auto sm:h-auto md:h-auto lg:h-auto">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between flex-shrink-0 flex-nowrap gap-3 p-4 sm:p-6 md:p-5">
+        <div className="flex flex-col gap-2">
+          <div className="font-semibold text-[#1e1e1e] text-lg sm:text-lg md:text-lg lg:text-lg leading-7">Riwayat Asesmen</div>
+          <p className="text-xs mt-1 text-[#64707d]">
             Tinjau hasil analisis Anda dan gunakan informasi ini untuk meningkatkan kinerja di masa mendatang.
           </p>
         </div>
-        <div className="assessment-table__header-actions">
-          <Button className="assessment-table__new-button" onClick={() => router.push("/select-assessment") }>
-            <Plus className="assessment-table__new-button-icon" />
+        <div className="flex gap-2 ml-auto sm:ml-auto w-full sm:w-auto justify-end">
+          <Button
+            className="text-white text-sm h-10 px-4 bg-[#6475e9] hover:bg-[#5a6bd8] w-full sm:w-auto justify-center"
+            onClick={() => router.push("/select-assessment")}
+          >
+            <Plus className="w-4 h-4 mr-2" />
             Asesmen Baru
           </Button>
         </div>
       </div>
-      <div className="assessment-table__content">
-        <div className="assessment-table__table-container responsive-table-wrapper">
-          <Table>
+      <div className="flex flex-col flex-1 min-h-0 p-4 sm:p-6 md:p-4 lg:p-4">
+        <div className="flex-1 overflow-x-auto overflow-y-visible -webkit-overflow-scrolling-touch scrollbar-thin">
+          <Table className="min-w-[600px] sm:min-w-full md:min-w-full lg:min-w-full">
             <TableHeader>
-              <TableRow className="assessment-table__table-row">
-                <TableHead className="assessment-table__table-head">No</TableHead>
-                <TableHead className="assessment-table__table-head">Archetype</TableHead>
-
-                <TableHead className="assessment-table__table-head dashboard-hide-mobile">Tanggal Ujian</TableHead>
-                <TableHead className="assessment-table__table-head">Status</TableHead>
-                <TableHead className="assessment-table__table-head">Action</TableHead>
+              <TableRow className="border-[#eaecf0]">
+                <TableHead className="font-medium text-[#64707d] px-2 sm:px-4 md:px-2 lg:px-4 py-2 text-xs sm:text-sm md:text-sm lg:text-sm">No</TableHead>
+                <TableHead className="font-medium text-[#64707d] px-2 sm:px-4 md:px-2 lg:px-4 py-2 text-xs sm:text-sm md:text-sm lg:text-sm">Archetype</TableHead>
+                <TableHead className="font-medium text-[#64707d] px-2 sm:px-4 md:px-2 lg:px-4 py-2 text-xs sm:text-sm md:text-sm lg:text-sm hidden sm:hidden md:hidden lg:table-cell">Tanggal Ujian</TableHead>
+                <TableHead className="font-medium text-[#64707d] px-2 sm:px-4 md:px-2 lg:px-4 py-2 text-xs sm:text-sm md:text-sm lg:text-sm">Status</TableHead>
+                <TableHead className="font-medium text-[#64707d] px-2 sm:px-4 md:px-2 lg:px-4 py-2 text-xs sm:text-sm md:text-sm lg:text-sm">Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 [...Array(3)].map((_, idx) => (
                   <TableRow key={`skeleton-${idx}`}>
-                    <TableCell><Skeleton className="h-4 w-6" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-48" /></TableCell>
-                    <TableCell className="dashboard-hide-mobile"><Skeleton className="h-4 w-32" /></TableCell>
-                    <TableCell><Skeleton className="h-6 w-24" /></TableCell>
-                    <TableCell>
-                      <div className="assessment-table__action-buttons">
+                    <TableCell className="px-2 sm:px-4 md:px-2 lg:px-4 py-2 text-xs sm:text-sm md:text-sm lg:text-sm"><Skeleton className="h-4 w-6" /></TableCell>
+                    <TableCell className="px-2 sm:px-4 md:px-2 lg:px-4 py-2 text-xs sm:text-sm md:text-sm lg:text-sm"><Skeleton className="h-4 w-48" /></TableCell>
+                    <TableCell className="px-2 sm:px-4 md:px-2 lg:px-4 py-2 text-xs sm:text-sm md:text-sm lg:text-sm hidden sm:hidden md:hidden lg:table-cell"><Skeleton className="h-4 w-32" /></TableCell>
+                    <TableCell className="px-2 sm:px-4 md:px-2 lg:px-4 py-2 text-xs sm:text-sm md:text-sm lg:text-sm"><Skeleton className="h-6 w-24" /></TableCell>
+                    <TableCell className="px-2 sm:px-4 md:px-2 lg:px-4 py-2 text-xs sm:text-sm md:text-sm lg:text-sm">
+                      <div className="flex gap-2 sm:gap-2 md:gap-2 lg:gap-2">
                         <Skeleton className="h-8 w-8 rounded" />
                         <Skeleton className="h-8 w-8 rounded" />
                       </div>
@@ -136,14 +137,14 @@ function AssessmentTableComponent({ data, onRefresh, swrKey, isLoading, isValida
                     return (
                       <TableRow
                         key={item.id}
-                        className="assessment-table__table-row"
+                        className="border-[#eaecf0]"
                         style={{
                           opacity: isPending ? 0.6 : 1,
                           transition: 'all 0.3s ease-in-out'
                         }}
                       >
-                        <TableCell className="assessment-table__table-cell">{startIndex + index + 1}</TableCell>
-                        <TableCell className="assessment-table__table-cell">
+                        <TableCell className="text-[#1e1e1e] px-2 sm:px-4 md:px-2 lg:px-4 py-2 text-xs sm:text-sm md:text-sm lg:text-sm">{startIndex + index + 1}</TableCell>
+                        <TableCell className="text-[#1e1e1e] px-2 sm:px-4 md:px-2 lg:px-4 py-2 text-xs sm:text-sm md:text-sm lg:text-sm">
                           {item.archetype}
                           {isPending && (
                             <span className="ml-2 text-xs text-gray-500 italic">
@@ -151,90 +152,89 @@ function AssessmentTableComponent({ data, onRefresh, swrKey, isLoading, isValida
                             </span>
                           )}
                         </TableCell>
-
-                        <TableCell className="assessment-table__table-cell--secondary dashboard-hide-mobile">{new Date(item.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="secondary"
-                          className={`assessment-table__badge ${(() => {
-                            const s = String(item.status).toLowerCase();
-                            if (s === 'completed') return 'assessment-table__badge--success';
-                            if (s === 'processing' || s === 'queued' || s === 'pending' || s === 'in_progress') return 'assessment-table__badge--processing';
-                            if (s === 'failed' || s === 'error') return 'assessment-table__badge--danger';
-                            if (s === 'cancelled' || s === 'canceled') return 'assessment-table__badge--cancelled';
-                            return 'assessment-table__badge--warning';
-                          })()}`}
-                        >
-                          {(() => {
-                            const s = String(item.status).toLowerCase();
-                            if (s === 'completed') return 'Selesai';
-                            if (s === 'processing' || s === 'queued' || s === 'pending' || s === 'in_progress') return 'Sedang Diproses';
-                            if (s === 'failed' || s === 'error') return 'Gagal';
-                            if (s === 'cancelled' || s === 'canceled') return 'Dibatalkan';
-                            return 'Belum Selesai';
-                          })()}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="assessment-table__action-buttons">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="assessment-table__action-button"
-                            onClick={() => handleView(item.id)}
-                            disabled={(() => {
+                        <TableCell className="text-[#64707d] px-2 sm:px-4 md:px-2 lg:px-4 py-2 text-xs sm:text-sm md:text-sm lg:text-sm hidden sm:hidden md:hidden lg:table-cell">{new Date(item.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</TableCell>
+                        <TableCell className="px-2 sm:px-4 md:px-2 lg:px-4 py-2 text-xs sm:text-sm md:text-sm lg:text-sm">
+                          <Badge
+                            variant="secondary"
+                            className={`bg-[#f3f3f3] text-[#64707d] ${(() => {
                               const s = String(item.status).toLowerCase();
-                              return s === 'processing' || s === 'queued' || s === 'pending' || s === 'in_progress';
-                            })()}
-                            title={(() => {
-                              const s = String(item.status).toLowerCase();
-                              return (s === 'processing' || s === 'queued' || s === 'pending' || s === 'in_progress') ? 'Sedang diproses' : 'Lihat hasil';
-                            })()}
+                              if (s === 'completed') return 'bg-[#d1fadf] text-[#027a48] border border-[#a6f4c5]';
+                              if (s === 'processing' || s === 'queued' || s === 'pending' || s === 'in_progress') return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+                              if (s === 'failed' || s === 'error') return 'bg-red-100 text-red-800 border-red-200';
+                              if (s === 'cancelled' || s === 'canceled') return 'bg-gray-100 text-gray-800 border-gray-200';
+                              return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+                            })()}`}
                           >
-                            <ExternalLink className="assessment-table__action-icon" />
-                          </Button>
+                            {(() => {
+                              const s = String(item.status).toLowerCase();
+                              if (s === 'completed') return 'Selesai';
+                              if (s === 'processing' || s === 'queued' || s === 'pending' || s === 'in_progress') return 'Sedang Diproses';
+                              if (s === 'failed' || s === 'error') return 'Gagal';
+                              if (s === 'cancelled' || s === 'canceled') return 'Dibatalkan';
+                              return 'Belum Selesai';
+                            })()}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="px-2 sm:px-4 md:px-2 lg:px-4 py-2 text-xs sm:text-sm md:text-sm lg:text-sm">
+                          <div className="flex gap-2 sm:gap-2 md:gap-2 lg:gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 sm:h-8 sm:w-8 md:h-8 md:w-8 lg:h-8 lg:w-8"
+                              onClick={() => handleView(item.id)}
+                              disabled={(() => {
+                                const s = String(item.status).toLowerCase();
+                                return s === 'processing' || s === 'queued' || s === 'pending' || s === 'in_progress';
+                              })()}
+                              title={(() => {
+                                const s = String(item.status).toLowerCase();
+                                return (s === 'processing' || s === 'queued' || s === 'pending' || s === 'in_progress') ? 'Sedang diproses' : 'Lihat hasil';
+                              })()}
+                            >
+                              <ExternalLink className="w-4 h-4 text-[#64707d]" />
+                            </Button>
 
-                          <SimpleAlertDialog
-                            title="Konfirmasi Hapus"
-                            description={`Apakah Anda yakin ingin menghapus assessment "${item.archetype}"? Tindakan ini tidak dapat dibatalkan.`}
-                            onConfirm={() => handleDelete(item.id)}
-                            confirmText={isDeleting === (item.result_id || item.job_id) ? 'Menghapus...' : 'Ya, Hapus'}
-                            cancelText="Batal"
-                            trigger={
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="assessment-table__action-button"
-                                disabled={(() => {
-                                  const s = String(item.status).toLowerCase();
-                                  const isProcessing = s === 'processing' || s === 'queued' || s === 'pending' || s === 'in_progress';
-                                  return isProcessing || isDeleting === (item.result_id || item.job_id);
-                                })()}
-                                title={(() => {
-                                  const s = String(item.status).toLowerCase();
-                                  const isProcessing = s === 'processing' || s === 'queued' || s === 'pending' || s === 'in_progress';
-                                  return isProcessing ? 'Sedang diproses' : 'Hapus';
-                                })()}
-                              >
-                                <Trash2 className="assessment-table__action-icon" />
-                              </Button>
-                            }
-                          />
-                        </div>
-                      </TableCell>
-                    </TableRow>
+                            <SimpleAlertDialog
+                              title="Konfirmasi Hapus"
+                              description={`Apakah Anda yakin ingin menghapus assessment "${item.archetype}"? Tindakan ini tidak dapat dibatalkan.`}
+                              onConfirm={() => handleDelete(item.id)}
+                              confirmText={isDeleting === (item.result_id || item.job_id) ? 'Menghapus...' : 'Ya, Hapus'}
+                              cancelText="Batal"
+                              trigger={
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 sm:h-8 sm:w-8 md:h-8 md:w-8 lg:h-8 lg:w-8"
+                                  disabled={(() => {
+                                    const s = String(item.status).toLowerCase();
+                                    const isProcessing = s === 'processing' || s === 'queued' || s === 'pending' || s === 'in_progress';
+                                    return isProcessing || isDeleting === (item.result_id || item.job_id);
+                                  })()}
+                                  title={(() => {
+                                    const s = String(item.status).toLowerCase();
+                                    const isProcessing = s === 'processing' || s === 'queued' || s === 'pending' || s === 'in_progress';
+                                    return isProcessing ? 'Sedang diproses' : 'Hapus';
+                                  })()}
+                                >
+                                  <Trash2 className="w-4 h-4 text-[#64707d]" />
+                                </Button>
+                              }
+                            />
+                          </div>
+                        </TableCell>
+                      </TableRow>
                     );
                   })}
 
                   {/* Filler rows to keep table height consistent up to itemsPerPage */}
                   {currentData.length < itemsPerPage && Array.from({ length: itemsPerPage - currentData.length }).map((_, idx) => (
-                    <TableRow key={`empty-${idx}`} className="assessment-table__table-row opacity-50">
-                      <TableCell className="assessment-table__table-cell">&nbsp;</TableCell>
-                      <TableCell className="assessment-table__table-cell">&nbsp;</TableCell>
-                      <TableCell className="assessment-table__table-cell--secondary dashboard-hide-mobile">&nbsp;</TableCell>
-                      <TableCell className="assessment-table__table-cell">&nbsp;</TableCell>
-                      <TableCell>
-                        <div className="assessment-table__action-buttons" />
+                    <TableRow key={`empty-${idx}`} className="border-[#eaecf0] opacity-50">
+                      <TableCell className="text-[#1e1e1e] px-2 sm:px-4 md:px-2 lg:px-4 py-2 text-xs sm:text-sm md:text-sm lg:text-sm">&nbsp;</TableCell>
+                      <TableCell className="text-[#1e1e1e] px-2 sm:px-4 md:px-2 lg:px-4 py-2 text-xs sm:text-sm md:text-sm lg:text-sm">&nbsp;</TableCell>
+                      <TableCell className="text-[#64707d] px-2 sm:px-4 md:px-2 lg:px-4 py-2 text-xs sm:text-sm md:text-sm lg:text-sm hidden sm:hidden md:hidden lg:table-cell">&nbsp;</TableCell>
+                      <TableCell className="text-[#1e1e1e] px-2 sm:px-4 md:px-2 lg:px-4 py-2 text-xs sm:text-sm md:text-sm lg:text-sm">&nbsp;</TableCell>
+                      <TableCell className="px-2 sm:px-4 md:px-2 lg:px-4 py-2 text-xs sm:text-sm md:text-sm lg:text-sm">
+                        <div className="flex gap-2 sm:gap-2 md:gap-2 lg:gap-2" />
                       </TableCell>
                     </TableRow>
                   ))}
@@ -244,11 +244,11 @@ function AssessmentTableComponent({ data, onRefresh, swrKey, isLoading, isValida
           </Table>
         </div>
         {/* Pagination */}
-        <div className="assessment-table__pagination">
-          <div className="assessment-table__pagination-left">
-            <span className="assessment-table__pagination-text">Show</span>
+        <div className="flex items-center justify-between p-4 sm:p-4 md:p-3 lg:p-4 border-t border-[#e5e7eb] mt-4 flex-shrink-0">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-[#64707d]">Show</span>
             <Select value={itemsPerPage.toString()} onValueChange={(value) => setItemsPerPage(Number(value))}>
-              <SelectTrigger className="assessment-table__pagination-select">
+              <SelectTrigger className="w-16 h-8">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -257,16 +257,18 @@ function AssessmentTableComponent({ data, onRefresh, swrKey, isLoading, isValida
                 <SelectItem value="50">50</SelectItem>
               </SelectContent>
             </Select>
-            <span className="assessment-table__pagination-text">Data</span>
+            <span className="text-sm text-[#64707d]">Data</span>
           </div>
-          <div className="assessment-table__pagination-right">
+          <div className="flex gap-1 bg-transparent">
             {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
               <Button
                 key={page}
                 variant={currentPage === page ? "default" : "ghost"}
                 size="sm"
-                className={`assessment-table__pagination-button ${
-                  currentPage === page ? "assessment-table__pagination-button--active" : "assessment-table__pagination-button--inactive"
+                className={`w-8 h-8 rounded-md ${
+                  currentPage === page
+                    ? "text-white bg-[#6475e9] hover:bg-[#5a6bd8]"
+                    : "text-[#64707d] bg-[#f3f3f3]"
                 }`}
                 onClick={() => setCurrentPage(page)}
               >
