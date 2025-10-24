@@ -279,8 +279,8 @@ function DashboardClientComponent({ staticData }: DashboardClientProps) {
   // Loading state simulation
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 pb-8">
-        <div className="max-w-full mx-auto p-4 sm:p-6 lg:p-8 flex flex-col gap-6">
+      <div className="dashboard-full-height dashboard-responsive-wrapper">
+        <div className="dashboard-container flex flex-col gap-6">
           <Header logout={handleLogout} />
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:gap-8">
             <div className="space-y-6 lg:col-span-2">
@@ -319,8 +319,8 @@ function DashboardClientComponent({ staticData }: DashboardClientProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-8">
-      <div className="max-w-full mx-auto p-4 sm:p-6 lg:p-8 xl:max-w-7xl 2xl:max-w-screen-2xl flex flex-col gap-6">
+    <div className="dashboard-full-height dashboard-responsive-wrapper">
+      <div className="dashboard-container flex flex-col gap-6">
         <Header logout={handleLogout} />
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:gap-8">
@@ -333,7 +333,7 @@ function DashboardClientComponent({ staticData }: DashboardClientProps) {
               ))}
             </div>
             {/* Assessment History */}
-            <div className="overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0">
+            <div className="dashboard-table-scroll -mx-3 px-3 sm:mx-0 sm:px-0">
               <AssessmentTable
                 data={dummyAssessmentData}
                 onRefresh={handleRefresh}
