@@ -16,18 +16,8 @@ Strategi yang Diterapkan pada Aplikasi FutureGuide
 - `src/components/assessment/AssessmentStream.tsx` - Streaming untuk assessment
 - `next.config.mjs` - Konfigurasi optimization dengan webpack customizations
 - `src/components/ui/OptimizedImage.tsx` - Lazy loading image component
-- `src/components/ui/OptimizedChart.tsx` - Lazy loading chart component
 - `src/app/select-assessment/page.tsx` - Next.js Image component integration
 - `src/components/assessment/AssessmentHeader.tsx` - Image optimization dengan proper dimensions
-- `src/components/dashboard/avatar.tsx` - Avatar component dengan Next.js Image
-- `src/components/dashboard/stats-card.tsx` - Stats card dengan optimized image loading
-- `src/components/dashboard/header.tsx` - Dropdown profile component fix (24 Oktober 2024)
-- `docs/dashboard-dropdown-profile-fix-report.md` - Laporan perbaikan dropdown lengkap
-- `src/app/results/[id]/ocean/page.tsx` - OceanRadarChart dynamic import (Phase 3.1)
-- `src/app/results/[id]/riasec/page.tsx` - RiasecRadarChart dynamic import (Phase 3.1)
-- `src/app/results/[id]/via/page.tsx` - ViaRadarChart dynamic import (Phase 3.1)
-- `src/app/results/[id]/combined/page.tsx` - CombinedAssessmentGrid dynamic import (Phase 3.1)
-- `docs/phase-3-1-bundle-optimization-implementation-report.md` - Laporan implementasi bundle optimization lengkap
 
 **Best Practices Yang Dijadikan Acuan:**
 - Skeleton screens untuk better perceived performance
@@ -58,14 +48,6 @@ Strategi yang Diterapkan pada Aplikasi FutureGuide
 - Better Largest Contentful Paint (LCP) dengan optimized image loading
 - Optimized font loading dengan swap strategy
 - Lazy loading untuk heavy components
-- **Dropdown Profile Fix (24 Oktober 2024)**: Memperbaiki dropdown profile yang selalu terbuka pada halaman dashboard
-- **Interactive Component Behavior**: Dropdown sekarang hanya terbuka saat diklik dan tertutup otomatis
-- **Enhanced User Experience**: Menghilangkan prop `forceMount` yang menyebabkan dropdown selalu visible
-- **Bundle Size Optimization (Phase 3.1 - 24 Oktober 2024)**: Implementasi dynamic imports untuk heavy chart components
-- **Advanced Bundle Splitting**: Granular cache groups untuk vendor libraries (recharts, framer-motion, tanstack-query, radix-ui, lucide-react, vendor)
-- **Tree Shaking**: Unused dependencies elimination dengan optimizePackageImports
-- **Performance Monitoring**: Bundle analysis dan measurement dengan automated reporting
-- **Next.js Optimization Fixes (24 Oktober 2024)**: Perbaikan optimizePackageImports dan double compilation issues
 
 ## 2. Strategi Routing
 
@@ -202,7 +184,6 @@ src/app/results/[id]/
 - Enhanced security dengan rate limiting dan logging integration
 
 **Benefits:**
-- 77% faster build performance
 - Better data synchronization dengan server state
 - Automatic cache invalidation dan refetching
 - Improved error handling dan retry mechanisms
@@ -220,7 +201,7 @@ src/app/results/[id]/
 - **JWT Token Management**: Session management dengan automatic refresh
 - **Token Expiry Warning**: System untuk user notification dengan robust validation
 - **Enhanced Token Validation**: JWT format validation sebelum decoding untuk prevent InvalidCharacterError
-- **Console Spam Prevention**: Rate-limited warning messages untuk prevent console spam (5-second cooldown)
+- **Console Spam Prevention**: Rate-limited warning messages untuk prevent console spam
 - **Profile Caching**: Intelligent caching dengan TTL management
 - **Auth Headers**: Secure API requests dengan JWT tokens
 - **Form Validation**: Login, Register, Logout dengan comprehensive validation
@@ -249,7 +230,7 @@ src/app/results/[id]/
 - Token expiry warning untuk better UX
 - Enhanced token validation dengan format checking sebelum decoding
 - Robust error handling untuk non-JWT dan corrupted tokens
-- Rate-limited warning messages untuk prevent console spam (5-second cooldown)
+- Rate-limited warning messages untuk prevent console spam
 - Comprehensive logging untuk debugging token issues
 - Offline support untuk data persistence
 - Password strength validation untuk security
@@ -265,9 +246,8 @@ src/app/results/[id]/
 - Enhanced authentication flow dengan progressive loading
 - Better error handling dan retry mechanisms
 - Improved performance dengan TanStack Query caching
-- API compatibility dengan backend preserved
 - Security measures enhanced dengan proper validation
-- Advanced security monitoring dengan real-time threat detection
+- Advanced security monitoring
 - Improved user experience dengan unsaved changes protection
 - Enhanced reliability dengan exponential backoff error recovery
 - Comprehensive audit trail untuk security compliance
