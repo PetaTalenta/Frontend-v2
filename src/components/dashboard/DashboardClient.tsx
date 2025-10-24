@@ -279,13 +279,13 @@ function DashboardClientComponent({ staticData }: DashboardClientProps) {
   // Loading state simulation
   if (isLoading) {
     return (
-      <div className="dashboard-full-height">
-        <div className="dashboard-container">
+      <div className="min-h-screen bg-gray-50 pb-8">
+        <div className="max-w-full mx-auto p-4 sm:p-6 lg:p-8 flex flex-col gap-6">
           <Header logout={handleLogout} />
-          <div className="dashboard-main-grid">
-            <div className="space-y-6">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:gap-8">
+            <div className="space-y-6 lg:col-span-2">
               {/* Stats Cards Loading */}
-              <div className="dashboard-stats-grid">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {[1, 2, 3, 4].map((i) => (
                   <div key={i} className="bg-white rounded-lg p-4 animate-pulse">
                     <div className="h-4 bg-gray-200 rounded mb-2"></div>
@@ -304,7 +304,7 @@ function DashboardClientComponent({ staticData }: DashboardClientProps) {
               </div>
             </div>
             {/* Sidebar Loading */}
-            <div className="dashboard-sidebar space-y-6">
+            <div className="flex flex-col gap-6">
               {[1, 2, 3].map((i) => (
                 <div key={i} className="bg-white rounded-lg p-6 animate-pulse">
                   <div className="h-6 bg-gray-200 rounded mb-4"></div>
@@ -319,24 +319,21 @@ function DashboardClientComponent({ staticData }: DashboardClientProps) {
   }
 
   return (
-    <div className="dashboard-full-height">
-      <div className="dashboard-container">
+    <div className="min-h-screen bg-gray-50 pb-8">
+      <div className="max-w-full mx-auto p-4 sm:p-6 lg:p-8 xl:max-w-7xl 2xl:max-w-screen-2xl flex flex-col gap-6">
         <Header logout={handleLogout} />
 
-        <div className="dashboard-main-grid">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:gap-8">
           {/* Main Content */}
-          <div
-            className="space-y-6 dashboard-mobile-card-spacing"
-            style={{ maxWidth: '100%', overflowX: 'hidden' }}
-          >
+          <div className="space-y-6 mb-4 lg:mb-0 lg:col-span-2 max-w-full overflow-x-hidden">
             {/* Stats Cards */}
-            <div className="dashboard-stats-grid">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {dummyStatsData.map((stat) => (
                 <StatsCard key={stat.id} stat={stat} />
               ))}
             </div>
             {/* Assessment History */}
-            <div className="dashboard-table-scroll">
+            <div className="overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0">
               <AssessmentTable
                 data={dummyAssessmentData}
                 onRefresh={handleRefresh}
@@ -347,17 +344,14 @@ function DashboardClientComponent({ staticData }: DashboardClientProps) {
             </div>
           </div>
           {/* Right Sidebar */}
-          <div
-            className="dashboard-sidebar"
-            style={{ maxWidth: '100%', overflowX: 'hidden' }}
-          >
+          <div className="flex flex-col gap-6 max-w-full overflow-x-hidden">
             {/* VIAIS and Ocean cards stack vertically on mobile */}
-            <div className="dashboard-sidebar-mobile-grid dashboard-sidebar-mobile-stack">
+            <div className="grid grid-cols-1 gap-4">
               <VIAISCard viaScores={dummyViaScores} />
               <OceanCard oceanScores={dummyOceanScores} />
             </div>
             {/* RIASEC card full width */}
-            <div className="dashboard-sidebar-mobile-full">
+            <div className="w-full">
               <ProgressCard
                 title="RIASEC"
                 description="Ketahui di mana Anda dapat tumbuh dan berkontribusi paling banyak."
