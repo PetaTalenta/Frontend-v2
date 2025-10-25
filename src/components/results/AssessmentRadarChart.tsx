@@ -7,11 +7,23 @@ import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'r
 import { BarChart3, AlertCircle } from 'lucide-react';
 import { ChartErrorBoundary } from './ui-chart-error-boundary';
 import OptimizedChart from '../ui/OptimizedChart';
-import {
-  AssessmentScores,
-  VIA_CATEGORIES,
-  getDummyAssessmentScores
-} from '../../data/dummy-assessment-data';
+import { RiasecScores, OceanScores, ViaScores } from '../../types/assessment-results';
+
+interface AssessmentScores {
+  riasec: RiasecScores;
+  ocean: OceanScores;
+  viaIs: ViaScores;
+}
+
+// VIA Categories for radar chart
+const VIA_CATEGORIES = {
+  'Wisdom & Knowledge': ['creativity', 'curiosity', 'judgment', 'loveOfLearning', 'perspective'],
+  'Courage': ['bravery', 'perseverance', 'honesty', 'zest'],
+  'Humanity': ['love', 'kindness', 'socialIntelligence'],
+  'Justice': ['teamwork', 'fairness', 'leadership'],
+  'Temperance': ['forgiveness', 'humility', 'prudence', 'selfRegulation'],
+  'Transcendence': ['appreciationOfBeauty', 'gratitude', 'hope', 'humor', 'spirituality']
+};
 
 interface AssessmentRadarChartProps {
   scores?: AssessmentScores;
@@ -22,8 +34,8 @@ type RadarType = 'riasec' | 'ocean' | 'viais';
 function AssessmentRadarChartComponent({ scores }: AssessmentRadarChartProps) {
   const [activeRadar, setActiveRadar] = useState<RadarType>('riasec');
 
-  // Use dummy data if no scores provided
-  const assessmentScores = scores || getDummyAssessmentScores();
+  // Use provided scores or return null if not available
+  const assessmentScores = scores;
 
   // Early return if scores data is not available
   if (!assessmentScores || !assessmentScores.riasec || !assessmentScores.ocean || !assessmentScores.viaIs) {

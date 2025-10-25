@@ -4,11 +4,11 @@ import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { TrendingUp, Target, Award, Users } from 'lucide-react';
-import { AssessmentScores, getDummyAssessmentScores } from '../../data/dummy-assessment-data';
+import { RiasecScores } from '../../types/assessment-results';
 import { useAssessmentResult } from '@/hooks/useAssessmentResult';
 
 interface CareerStatsCardProps {
-  scores?: AssessmentScores;
+  scores?: any;
   resultId?: string;
 }
 
@@ -33,7 +33,7 @@ function CareerStatsCardComponent({ scores, resultId }: CareerStatsCardProps) {
         industryScore: {}
       };
     }
-    return scores || getDummyAssessmentScores();
+    return scores;
   }, [transformedData, scores]);
 
   // Extract career data from transformed data (already transformed by hook)
@@ -342,9 +342,37 @@ function CareerStatsCardComponent({ scores, resultId }: CareerStatsCardProps) {
 }
 
 export default React.memo(CareerStatsCardComponent, (prevProps, nextProps) => {
-  // Custom comparison for optimal performance
-  return (
-    prevProps.resultId === nextProps.resultId &&
-    prevProps.scores === nextProps.scores
-  );
+  // Enhanced comparison for optimal performance
+  // Compare resultId first as it's most likely to change
+  if (prevProps.resultId !== nextProps.resultId) {
+    return false;
+  }
+  
+  // Deep comparison for scores if it exists
+  if (prevProps.scores !== nextProps.scores) {
+    // If both are undefined/null, they're equal
+    if (!prevProps.scores && !nextProps.scores) {
+      return true;
+    }
+    // If one is undefined/null, they're different
+    if (!prevProps.scores || !nextProps.scores) {
+      return false;
+    }
+    // Compare key score properties for performance
+    return (
+      prevProps.scores.riasec?.realistic === nextProps.scores.riasec?.realistic &&
+      prevProps.scores.riasec?.investigative === nextProps.scores.riasec?.investigative &&
+      prevProps.scores.riasec?.artistic === nextProps.scores.riasec?.artistic &&
+      prevProps.scores.riasec?.social === nextProps.scores.riasec?.social &&
+      prevProps.scores.riasec?.enterprising === nextProps.scores.riasec?.enterprising &&
+      prevProps.scores.riasec?.conventional === nextProps.scores.riasec?.conventional &&
+      prevProps.scores.ocean?.openness === nextProps.scores.ocean?.openness &&
+      prevProps.scores.ocean?.conscientiousness === nextProps.scores.ocean?.conscientiousness &&
+      prevProps.scores.ocean?.extraversion === nextProps.scores.ocean?.extraversion &&
+      prevProps.scores.ocean?.agreeableness === nextProps.scores.ocean?.agreeableness &&
+      prevProps.scores.ocean?.neuroticism === nextProps.scores.ocean?.neuroticism
+    );
+  }
+  
+  return true;
 })

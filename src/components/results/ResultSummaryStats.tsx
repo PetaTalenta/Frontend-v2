@@ -3,12 +3,55 @@
 import React from 'react';
 import { Card, CardContent } from './ui-card';
 import { BarChart3, Trophy, Target, Calendar } from 'lucide-react';
-import {
-  AssessmentScores,
-  getDominantRiasecType,
-  getTopViaStrengths,
-  getDummyAssessmentResult
-} from '../../data/dummy-assessment-data';
+import { RiasecScores, OceanScores, ViaScores } from '../../types/assessment-results';
+
+interface AssessmentScores {
+  riasec: RiasecScores;
+  ocean: OceanScores;
+  viaIs: ViaScores;
+}
+
+// Helper functions for score interpretation
+const getDominantRiasecType = (riasec: RiasecScores) => {
+  const entries = Object.entries(riasec) as [keyof RiasecScores, number][];
+  const sorted = entries.sort(([, a], [, b]) => b - a);
+  const primary = sorted[0][0];
+  const secondary = sorted[1][0];
+  const tertiary = sorted[2][0];
+  
+  return {
+    primary,
+    secondary,
+    tertiary,
+    code: `${primary[0].toUpperCase()}${secondary[0].toUpperCase()}${tertiary[0].toUpperCase()}`
+  };
+};
+
+const getTopViaStrengths = (via: ViaScores, count: number) => {
+  const entries = Object.entries(via) as [keyof ViaScores, number][];
+  return entries
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, count)
+    .map(([strength, score]) => ({ strength, score, category: getViaCategory(strength) }));
+};
+
+const getViaCategory = (strength: keyof ViaScores): string => {
+  const VIA_CATEGORIES = {
+    'Wisdom & Knowledge': ['creativity', 'curiosity', 'judgment', 'loveOfLearning', 'perspective'],
+    'Courage': ['bravery', 'perseverance', 'honesty', 'zest'],
+    'Humanity': ['love', 'kindness', 'socialIntelligence'],
+    'Justice': ['teamwork', 'fairness', 'leadership'],
+    'Temperance': ['forgiveness', 'humility', 'prudence', 'selfRegulation'],
+    'Transcendence': ['appreciationOfBeauty', 'gratitude', 'hope', 'humor', 'spirituality']
+  };
+  
+  for (const [category, strengths] of Object.entries(VIA_CATEGORIES)) {
+    if (strengths.includes(strength)) {
+      return category;
+    }
+  }
+  return 'Other';
+};
 
 interface ResultSummaryStatsProps {
   scores?: AssessmentScores;
@@ -51,10 +94,8 @@ const formatDateIDParts = (value: any): { main: string; sub: string } => {
 
 
 export default function ResultSummaryStats({ scores, createdAt }: ResultSummaryStatsProps) {
-  // Use dummy data if no scores provided
-  const dummyResult = getDummyAssessmentResult();
-  const assessmentScores = scores || dummyResult.assessment_data;
-  const dummyCreatedAt = createdAt || dummyResult.created_at || dummyResult.createdAt;
+  // Use provided scores
+  const assessmentScores = scores;
 
   // Ensure scores data exists to prevent errors
   if (!assessmentScores || !assessmentScores.riasec || !assessmentScores.ocean || !assessmentScores.viaIs) {
@@ -151,8 +192,8 @@ export default function ResultSummaryStats({ scores, createdAt }: ResultSummaryS
       <StatCard
         icon={Calendar}
         title="Assessment Date"
-        value={formatDateIDParts(dummyCreatedAt).main}
-        subtitle={formatDateIDParts(dummyCreatedAt).sub}
+        value={formatDateIDParts(createdAt).main}
+        subtitle={formatDateIDParts(createdAt).sub}
         color="#8b5cf6"
       />
     </div>

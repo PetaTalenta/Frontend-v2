@@ -6,19 +6,18 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui-card';
 import { Button } from './ui-button';
 import { User, Star, ArrowRight, Briefcase } from 'lucide-react';
 import {
-  PersonaProfile,
-  getDummyPersonaProfile
-} from '../../data/dummy-assessment-data';
+  TestResult
+} from '../../types/assessment-results';
 
 interface PersonaProfileSummaryProps {
-  persona?: PersonaProfile;
+  persona?: TestResult;
   resultId?: string;
 }
 
 export default function PersonaProfileSummary({ persona, resultId }: PersonaProfileSummaryProps) {
-  // Use dummy data if no persona provided
-  const personaProfile = persona || getDummyPersonaProfile();
-  const dummyResultId = resultId || 'dummy-result-123';
+  // Use provided persona or return null if missing
+  const personaProfile = persona;
+  const currentResultId = resultId || '';
 
   // Ensure profile data exists to prevent errors
   if (!personaProfile) {
@@ -36,12 +35,12 @@ export default function PersonaProfileSummary({ persona, resultId }: PersonaProf
 
   // Helper function to get the profile title with fallbacks
   const getProfileTitle = () => {
-    return personaProfile.archetype || personaProfile.title || 'Profil Tidak Tersedia';
+    return personaProfile.archetype || 'Profil Tidak Tersedia';
   };
-
+  
   // Helper function to get the profile description with fallbacks
   const getProfileDescription = () => {
-    return personaProfile.shortSummary || personaProfile.description || 'Deskripsi tidak tersedia';
+    return personaProfile.shortSummary || 'Deskripsi tidak tersedia';
   };
 
   // Get first 2 sentences of description for summary
@@ -111,17 +110,12 @@ export default function PersonaProfileSummary({ persona, resultId }: PersonaProf
                 <div key={index} className="bg-white/10 rounded-lg p-3">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-white/90 text-sm font-medium">{career.careerName}</span>
-                    {career.matchPercentage && (
-                      <span className="text-green-300 text-xs font-semibold">
-                        {career.matchPercentage}% match
-                      </span>
-                    )}
                   </div>
-                  {career.description && (
+                  {career.justification && (
                     <p className="text-white/70 text-xs leading-relaxed">
-                      {career.description.length > 80
-                        ? career.description.substring(0, 80) + '...'
-                        : career.description}
+                      {career.justification.length > 80
+                        ? career.justification.substring(0, 80) + '...'
+                        : career.justification}
                     </p>
                   )}
                 </div>
@@ -134,9 +128,9 @@ export default function PersonaProfileSummary({ persona, resultId }: PersonaProf
 
 
         {/* View Full Profile Button */}
-        {dummyResultId && (
+        {currentResultId && (
           <div className="pt-2">
-            <Link href={`/results/${dummyResultId}/persona`}>
+            <Link href={`/results/${currentResultId}/persona`}>
               <Button
                 variant="secondary"
                 className="w-full bg-white/20 text-white border-white/30 hover:bg-white/30 transition-colors"

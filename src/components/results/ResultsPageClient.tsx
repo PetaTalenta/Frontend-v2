@@ -8,12 +8,10 @@ import { Card } from '../ui/card';
 import { toast } from './ui-use-toast';
 import OptimizedChart from '../ui/OptimizedChart';
 import {
-  AssessmentResult,
-  AssessmentScores,
-  PersonaProfile,
-  getDummyAssessmentResult,
-  getDummyAssessmentScores
-} from '../../data/dummy-assessment-data';
+  AssessmentResultData,
+  TestData,
+  TestResult
+} from '../../types/assessment-results';
 import PersonaProfileSummary from './PersonaProfileSummary';
 import AssessmentScoresSummary from './AssessmentScoresSummary';
 import ResultSummaryStats from './ResultSummaryStats';
@@ -145,7 +143,7 @@ const ChartFallback = ({ title = 'Chart Unavailable' }: { title?: string }) => (
 );
 
 // Safe chart wrapper component with multiple fallback levels
-const SafeAssessmentRadarChart = ({ scores }: { scores: AssessmentScores }) => {
+const SafeAssessmentRadarChart = ({ scores }: { scores: any }) => {
   const [hasError, setHasError] = React.useState(false);
   const [useSimpleChart, setUseSimpleChart] = React.useState(false);
 
@@ -164,21 +162,21 @@ const SafeAssessmentRadarChart = ({ scores }: { scores: AssessmentScores }) => {
 };
 
 // Safe career stats wrapper component
-const SafeCareerStatsCard = ({ scores }: { scores: AssessmentScores }) => {
+const SafeCareerStatsCard = ({ scores }: { scores: any }) => {
   return <CareerStatsCard scores={scores} />;
 };
 
 interface ResultsPageClientProps {
-  initialResult?: AssessmentResult;
+  initialResult?: AssessmentResultData;
   resultId?: string;
 }
 
-function ResultsPageClientComponent({ initialResult, resultId }: ResultsPageClientProps) {
+function ResultsPageClientComponent({ initialResult, resultId: propResultId }: ResultsPageClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   
   // Get result ID from props or search params
-  const assessmentId = resultId || searchParams.get('id') || '';
+  const assessmentId = propResultId || searchParams.get('id') || '';
   
   // Use API hook for fetching assessment data
   const {
@@ -189,15 +187,13 @@ function ResultsPageClientComponent({ initialResult, resultId }: ResultsPageClie
     error
   } = useAssessmentResult(assessmentId);
   
-  // Use dummy data as fallback or when no ID provided
-  const dummyResult = useMemo(() => getDummyAssessmentResult(), []);
-  const shouldUseDummy = !assessmentId || isError;
-  // Use transformed data directly for better performance and maintainability
-  const assessmentResult = shouldUseDummy ? initialResult || dummyResult : dummyResult;
+  // Use API data or fallback to initial result
+  const shouldUseFallback = !assessmentId || isError;
+  const assessmentResult = shouldUseFallback ? initialResult : apiData?.data;
   
-  const dummyResultId = useMemo(() => assessmentId || dummyResult.id, [assessmentId, dummyResult.id]);
+  const currentResultId = useMemo(() => assessmentId || assessmentResult?.id || '', [assessmentId, assessmentResult?.id]);
   
-  const [result, setResult] = useState<AssessmentResult>(assessmentResult);
+  const [result, setResult] = useState<AssessmentResultData | null>(assessmentResult || null);
   const [exporting, setExporting] = useState(false);
   const [screenshotting, setScreenshotting] = useState(false);
   const [exportType, setExportType] = useState<string>('');
@@ -233,7 +229,7 @@ function ResultsPageClientComponent({ initialResult, resultId }: ResultsPageClie
   }, []); // Empty dependency array = run only once on mount
 
   // Helper function to extract scores from transformed data or assessment_data
-  const extractScores = useCallback((source: any): AssessmentScores | null => {
+  const extractScores = useCallback((source: any): any => {
     if (!source) {
       return null;
     }
@@ -271,11 +267,11 @@ function ResultsPageClientComponent({ initialResult, resultId }: ResultsPageClie
 
   // Extract scores once to avoid multiple calls
   const scores = useMemo(() => {
-    if (transformedData && !shouldUseDummy) {
+    if (transformedData && !shouldUseFallback) {
       return extractScores(transformedData);
     }
-    return extractScores(result.assessment_data);
-  }, [extractScores, transformedData, result.assessment_data, shouldUseDummy]);
+    return extractScores(result?.test_data);
+  }, [extractScores, transformedData, result?.test_data, shouldUseFallback]);
 
   const handleBack = useCallback(() => {
     router.push('/dashboard');
@@ -326,7 +322,7 @@ function ResultsPageClientComponent({ initialResult, resultId }: ResultsPageClie
     if (navigator.share) {
       try {
         await navigator.share({
-          title: `Hasil Assessment - ${result.persona_profile?.archetype || 'FutureGuide'}`,
+          title: `Hasil Assessment - ${result?.test_result?.archetype || 'FutureGuide'}`,
           text: 'Lihat hasil assessment kepribadian dan bakat saya',
           url: url,
         });
@@ -337,7 +333,7 @@ function ResultsPageClientComponent({ initialResult, resultId }: ResultsPageClie
     } else {
       copyToClipboard(url);
     }
-  }, [result.persona_profile?.archetype, copyToClipboard]);
+  }, [result?.test_result?.archetype, copyToClipboard]);
 
   const handleExportPDF = useCallback(async () => {
     try {
@@ -389,13 +385,13 @@ function ResultsPageClientComponent({ initialResult, resultId }: ResultsPageClie
     try {
       if (typeof window !== 'undefined' && result) {
         // Cache assessment result so Chat AI page can read it without refetching
-        sessionStorage.setItem(`assessmentResult:${dummyResultId}`, JSON.stringify(result));
+        sessionStorage.setItem(`assessmentResult:${currentResultId}`, JSON.stringify(result));
       }
     } catch (e) {
       console.warn('Failed to cache assessment result for chat:', e);
     }
-    router.push(`/results/${dummyResultId}/chat`);
-  }, [result, dummyResultId, router]);
+    router.push(`/results/${currentResultId}/chat`);
+  }, [result, currentResultId, router]);
 
   const handleRetrySubmit = useCallback(async () => {
     try {
@@ -419,7 +415,7 @@ function ResultsPageClientComponent({ initialResult, resultId }: ResultsPageClie
   }, []);
 
   // Show loading state while fetching data
-  if (isLoading && !shouldUseDummy) {
+  if (isLoading && !shouldUseFallback) {
     return (
       <div className="min-h-screen bg-[#f8fafc] p-6">
         <div className="max-w-7xl mx-auto space-y-6">
@@ -472,7 +468,7 @@ function ResultsPageClientComponent({ initialResult, resultId }: ResultsPageClie
   }
 
   // Show error state
-  if (isError && !shouldUseDummy) {
+  if (isError && !shouldUseFallback) {
     return (
       <div className="min-h-screen bg-[#f8fafc] p-6">
         <div className="max-w-7xl mx-auto">
@@ -592,7 +588,7 @@ function ResultsPageClientComponent({ initialResult, resultId }: ResultsPageClie
           {/* Bottom row: Title and Date, always below buttons on mobile */}
           <div className="flex flex-col items-start sm:items-start mt-2 sm:mt-0">
             <h1 className="text-2xl font-bold text-[#1f2937]">
-              Hasil Assessment - {(transformedData?.test_result?.archetype || result.persona_profile?.archetype) || 'Assessment'}
+              Hasil Assessment - {(transformedData?.test_result?.archetype || result?.test_result?.archetype) || 'Assessment'}
             </h1>
             <p className="text-sm text-[#6b7280]">
               Tanggal: {formatDateID(transformedData || result)}
@@ -603,7 +599,7 @@ function ResultsPageClientComponent({ initialResult, resultId }: ResultsPageClie
         {/* Content */}
         <div className="space-y-6">
           {/* Main Layout - 2 Columns */}
-          {(scores || transformedData?.test_result || result.persona_profile) && (
+          {(scores || transformedData?.test_result || result?.test_result) && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Left Column */}
               <div className="space-y-6">
@@ -613,14 +609,14 @@ function ResultsPageClientComponent({ initialResult, resultId }: ResultsPageClie
                 )}
 
                 {/* Profil Kepribadian Anda */}
-                {(transformedData?.test_result || result.persona_profile) && (
+                {(transformedData?.test_result || result?.test_result) && (
                   <div ref={personaCardRef}>
                     <PersonaProfileSummary
                       persona={{
-                        ...(transformedData?.test_result || result.persona_profile),
-                        riskTolerance: (transformedData?.test_result?.riskTolerance || result.persona_profile?.riskTolerance) as 'high' | 'moderate' | 'low'
-                      } as PersonaProfile}
-                      resultId={dummyResultId}
+                        ...(transformedData?.test_result || result?.test_result),
+                        riskTolerance: (transformedData?.test_result?.riskTolerance || result?.test_result?.riskTolerance) as 'high' | 'moderate' | 'low'
+                      }}
+                      resultId={currentResultId}
                     />
                   </div>
                 )}
@@ -650,7 +646,7 @@ function ResultsPageClientComponent({ initialResult, resultId }: ResultsPageClie
               <OptimizedChart
                 type="simple-assessment"
                 data={scores}
-                config={{ resultId: dummyResultId }}
+                config={{ resultId: currentResultId }}
                 className="w-full"
                 lazy={true}
               />
@@ -658,7 +654,7 @@ function ResultsPageClientComponent({ initialResult, resultId }: ResultsPageClie
           )}
 
           {/* Show loading message if data is not available */}
-          {(!scores || !(transformedData?.test_result || result.persona_profile)) && !isLoading && (
+          {(!scores || !(transformedData?.test_result || result?.test_result)) && !isLoading && (
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#6475e9] mx-auto mb-4"></div>
               <p className="text-gray-600">Loading assessment data...</p>
@@ -671,9 +667,29 @@ function ResultsPageClientComponent({ initialResult, resultId }: ResultsPageClie
 }
 
 export default React.memo(ResultsPageClientComponent, (prevProps, nextProps) => {
-  // Custom comparison for optimal performance
-  return (
-    prevProps.resultId === nextProps.resultId &&
-    prevProps.initialResult === nextProps.initialResult
-  );
+  // Enhanced comparison for optimal performance
+  // Compare resultId first as it's the most likely to change
+  if (prevProps.resultId !== nextProps.resultId) {
+    return false;
+  }
+  
+  // Deep comparison for initialResult if it exists
+  if (prevProps.initialResult !== nextProps.initialResult) {
+    // If both are undefined/null, they're equal
+    if (!prevProps.initialResult && !nextProps.initialResult) {
+      return true;
+    }
+    // If one is undefined/null, they're different
+    if (!prevProps.initialResult || !nextProps.initialResult) {
+      return false;
+    }
+    // Compare key properties for performance
+    return (
+      prevProps.initialResult.id === nextProps.initialResult.id &&
+      prevProps.initialResult?.test_result?.archetype === nextProps.initialResult?.test_result?.archetype &&
+      prevProps.initialResult.is_public === nextProps.initialResult.is_public
+    );
+  }
+  
+  return true;
 })

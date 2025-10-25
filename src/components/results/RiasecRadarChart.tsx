@@ -5,15 +5,21 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui-card';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from './ui-chart';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts';
 import { BarChart3 } from 'lucide-react';
-import { AssessmentScores, getDummyAssessmentScores } from '../../data/dummy-assessment-data';
+import { RiasecScores, OceanScores, ViaScores } from '../../types/assessment-results';
+
+interface AssessmentScores {
+  riasec: RiasecScores;
+  ocean: OceanScores;
+  viaIs: ViaScores;
+}
 
 interface RiasecRadarChartProps {
   scores?: AssessmentScores;
 }
 
 function RiasecRadarChartComponent({ scores }: RiasecRadarChartProps) {
-  // Use dummy data if no scores provided
-  const assessmentScores = scores || getDummyAssessmentScores();
+  // Use provided scores or return null if not available
+  const assessmentScores = scores;
 
   // Early return if scores data is not available
   if (!assessmentScores || !assessmentScores.riasec) {

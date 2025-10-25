@@ -5,15 +5,46 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui-card';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from './ui-chart';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts';
 import { Palette } from 'lucide-react';
-import { AssessmentScores, getDummyAssessmentScores } from '../../data/dummy-assessment-data';
+import { RiasecScores, OceanScores, ViaScores } from '../../types/assessment-results';
+
+interface AssessmentScores {
+  riasec: RiasecScores;
+  ocean: OceanScores;
+  viaIs: ViaScores;
+}
 
 interface ViaRadarChartProps {
   scores?: AssessmentScores;
 }
 
 function ViaRadarChartComponent({ scores }: ViaRadarChartProps) {
-  // Use dummy data if no scores provided
-  const assessmentScores = scores || getDummyAssessmentScores();
+  // Use provided scores or return null if not available
+  const assessmentScores = scores;
+
+  // Early return if scores data is not available
+  if (!assessmentScores || !assessmentScores.viaIs) {
+    return (
+      <Card className="bg-white border-amber-200 shadow-sm">
+        <CardContent className="p-6">
+          <div className="text-center space-y-3">
+            <div className="flex justify-center">
+              <div className="p-2 bg-amber-100 rounded-full">
+                <Palette className="w-6 h-6 text-amber-600" />
+              </div>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-amber-900 mb-2">
+                Data Tidak Tersedia
+              </h3>
+              <p className="text-amber-700">
+                Data VIA-IS tidak tersedia. Pastikan assessment telah selesai diproses.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   // Group VIA-IS scores into 6 main categories
   const radarData = [

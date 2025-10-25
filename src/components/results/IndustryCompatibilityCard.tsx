@@ -6,22 +6,31 @@ import { Progress } from './ui-progress';
 import { Badge } from './ui-badge';
 import { Building, TrendingUp, Star, Target } from 'lucide-react';
 import {
-  IndustryScores,
-  getTopIndustries,
-  getIndustryCompatibilityLevel,
-  getDummyAssessmentScores
-} from '../../data/dummy-assessment-data';
+  RiasecScores
+} from '../../types/assessment-results';
 
 interface IndustryCompatibilityCardProps {
-  industryScores?: IndustryScores;
+  industryScores?: { [key: string]: number };
 }
 
 export default function IndustryCompatibilityCard({ industryScores }: IndustryCompatibilityCardProps) {
-  // Use dummy data if no industry scores provided
-  const assessmentScores = getDummyAssessmentScores();
-  const dummyIndustryScores = industryScores || assessmentScores.industryScore || {};
+  // Use provided industry scores or empty object
+  const industryScoresData = industryScores || {};
   
-  const topIndustries = getTopIndustries(dummyIndustryScores, 8);
+  // Helper function to get top industries
+  const getTopIndustries = (scores: { [key: string]: number }, count: number) => {
+    const entries = Object.entries(scores);
+    return entries
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, count)
+      .map(([industry, score]) => ({
+        industry,
+        displayName: industry.charAt(0).toUpperCase() + industry.slice(1),
+        score
+      }));
+  };
+  
+  const topIndustries = getTopIndustries(industryScoresData, 8);
 
   // Get industry icons mapping
   const getIndustryIcon = (industry: string) => {
@@ -70,6 +79,14 @@ export default function IndustryCompatibilityCard({ industryScores }: IndustryCo
         {/* Top 3 Industries Highlight */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {topIndustries.slice(0, 3).map((industry, index) => {
+            // Helper function to get industry compatibility level
+            const getIndustryCompatibilityLevel = (score: number) => {
+              if (score >= 80) return { level: 'Sangat Cocok', color: 'bg-green-100 text-green-800' };
+              if (score >= 70) return { level: 'Cocok', color: 'bg-blue-100 text-blue-800' };
+              if (score >= 60) return { level: 'Cukup Cocok', color: 'bg-yellow-100 text-yellow-800' };
+              return { level: 'Kurang Cocok', color: 'bg-red-100 text-red-800' };
+            };
+            
             const compatibility = getIndustryCompatibilityLevel(industry.score);
             return (
               <div
@@ -112,6 +129,14 @@ export default function IndustryCompatibilityCard({ industryScores }: IndustryCo
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {topIndustries.map((industry) => {
+              // Helper function to get industry compatibility level
+              const getIndustryCompatibilityLevel = (score: number) => {
+                if (score >= 80) return { level: 'Sangat Cocok', color: 'bg-green-100 text-green-800' };
+                if (score >= 70) return { level: 'Cocok', color: 'bg-blue-100 text-blue-800' };
+                if (score >= 60) return { level: 'Cukup Cocok', color: 'bg-yellow-100 text-yellow-800' };
+                return { level: 'Kurang Cocok', color: 'bg-red-100 text-red-800' };
+              };
+              
               const compatibility = getIndustryCompatibilityLevel(industry.score);
               return (
                 <div

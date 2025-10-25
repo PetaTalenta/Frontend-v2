@@ -6,15 +6,13 @@ import { Badge } from './ui-badge';
 import { ArrowLeft, User, Star, Target, Users, Briefcase, TrendingUp, BookOpen, Lightbulb, GraduationCap, AlertTriangle, Building, Shield, Zap, Brain, Heart } from 'lucide-react';
 import IndustryCompatibilityCard from './IndustryCompatibilityCard';
 import {
-  AssessmentResult,
-  PersonaProfile,
-  getDummyAssessmentResult,
-  getDummyPersonaProfile
-} from '../../data/dummy-assessment-data';
+  AssessmentResultData,
+  TestResult
+} from '../../types/assessment-results';
 import { useAssessmentResult } from '@/hooks/useAssessmentResult';
 
 interface PersonaProfileFullProps {
-  result?: AssessmentResult;
+  result?: AssessmentResultData;
   resultId?: string;
 }
 
@@ -30,33 +28,44 @@ function PersonaProfileFull({ result, resultId }: PersonaProfileFullProps) {
     isError
   } = useAssessmentResult(assessmentId);
   
-  // Use dummy data as fallback or when no ID provided
-  const dummyResult = useMemo(() => getDummyAssessmentResult(), []);
-  const shouldUseDummy = !assessmentId || isError;
-  const assessmentResult = shouldUseDummy ? result || dummyResult : apiData?.data;
+  // Use API data or fallback to initial result
+  const shouldUseFallback = !assessmentId || isError;
+  const assessmentResult = shouldUseFallback ? result : apiData?.data;
   
-  // Use transformed data or fallback to dummy data
+  // Use transformed data or fallback to API data
   const profile = useMemo(() => {
     if (transformedData?.test_result) {
       return transformedData.test_result;
     }
     // Handle both AssessmentResult and AssessmentResultData types
-    if (assessmentResult && 'persona_profile' in assessmentResult) {
-      return (assessmentResult as any).persona_profile || getDummyPersonaProfile();
+    if (assessmentResult && 'test_result' in assessmentResult) {
+      return (assessmentResult as any).test_result;
     }
-    return getDummyPersonaProfile();
+    return null;
   }, [transformedData, assessmentResult]);
   
   const industryScores = useMemo(() => {
     // Handle both AssessmentResult and AssessmentResultData types
-    if (assessmentResult && 'assessment_data' in assessmentResult) {
-      return (assessmentResult as any).assessment_data?.industryScore || {};
+    if (assessmentResult && 'test_data' in assessmentResult) {
+      // Calculate industry scores from test_data
+      const testData = (assessmentResult as any).test_data;
+      if (testData?.riasec) {
+        const { riasec } = testData;
+        return {
+          technology: Math.round((riasec.investigative + riasec.realistic) / 2),
+          healthcare: Math.round((riasec.social + riasec.investigative) / 2),
+          education: Math.round((riasec.social + riasec.investigative + riasec.artistic) / 3),
+          business: Math.round((riasec.enterprising + riasec.conventional + riasec.social) / 3),
+          creative: Math.round((riasec.artistic + riasec.investigative + riasec.enterprising) / 3),
+          service: Math.round((riasec.social + riasec.enterprising) / 2)
+        };
+      }
     }
     return {};
   }, [assessmentResult]);
 
   // Show loading state while fetching data
-  if (isLoading && !shouldUseDummy) {
+  if (isLoading && !shouldUseFallback) {
     return (
       <Card className="bg-white border-gray-200 shadow-sm">
         <CardContent className="p-6">
@@ -207,7 +216,7 @@ function PersonaProfileFull({ result, resultId }: PersonaProfileFullProps) {
   }
 
   // Show error state
-  if (isError && !shouldUseDummy) {
+  if (isError && !shouldUseFallback) {
     return (
       <Card className="bg-white border-gray-200 shadow-sm">
         <CardContent className="p-6">
@@ -344,7 +353,7 @@ function PersonaProfileFull({ result, resultId }: PersonaProfileFullProps) {
       )}
 
       {/* Kompatibilitas Industri */}
-      <IndustryCompatibilityCard industryScores={industryScores} />
+      <IndustryCompatibilityCard industryScores={industryScores as any} />
 
       {/* Gaya Belajar & Motivator Utama */}
       {(profile.learningStyle || (profile.coreMotivators && profile.coreMotivators.length > 0)) && (
@@ -673,10 +682,30 @@ function PersonaProfileFull({ result, resultId }: PersonaProfileFullProps) {
 }
 
 export default React.memo(PersonaProfileFull, (prevProps, nextProps) => {
-  // Custom comparison for optimal performance
-  return (
-    prevProps.resultId === nextProps.resultId &&
-    prevProps.result === nextProps.result
-  );
+  // Enhanced comparison for optimal performance
+  // Compare resultId first as it's most likely to change
+  if (prevProps.resultId !== nextProps.resultId) {
+    return false;
+  }
+  
+  // Deep comparison for result if it exists
+  if (prevProps.result !== nextProps.result) {
+    // If both are undefined/null, they're equal
+    if (!prevProps.result && !nextProps.result) {
+      return true;
+    }
+    // If one is undefined/null, they're different
+    if (!prevProps.result || !nextProps.result) {
+      return false;
+    }
+    // Compare key properties for performance
+    return (
+      prevProps.result.id === nextProps.result.id &&
+      prevProps.result?.test_result?.archetype === nextProps.result?.test_result?.archetype &&
+      prevProps.result?.test_result?.riskTolerance === nextProps.result?.test_result?.riskTolerance
+    );
+  }
+  
+  return true;
 });
 

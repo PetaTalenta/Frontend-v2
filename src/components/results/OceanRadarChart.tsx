@@ -6,15 +6,46 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from './ui-chart';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts';
 import { Brain } from 'lucide-react';
 import OptimizedChart from '../ui/OptimizedChart';
-import { AssessmentScores, getDummyAssessmentScores } from '../../data/dummy-assessment-data';
+import { RiasecScores, OceanScores, ViaScores } from '../../types/assessment-results';
+
+interface AssessmentScores {
+  riasec: RiasecScores;
+  ocean: OceanScores;
+  viaIs: ViaScores;
+}
 
 interface OceanRadarChartProps {
   scores?: AssessmentScores;
 }
 
 function OceanRadarChartComponent({ scores }: OceanRadarChartProps) {
-  // Use dummy data if no scores provided
-  const assessmentScores = scores || getDummyAssessmentScores();
+  // Use provided scores or return null if not available
+  const assessmentScores = scores;
+
+  // Early return if scores data is not available
+  if (!assessmentScores || !assessmentScores.ocean) {
+    return (
+      <Card className="bg-white border-amber-200 shadow-sm">
+        <CardContent className="p-6">
+          <div className="text-center space-y-3">
+            <div className="flex justify-center">
+              <div className="p-2 bg-amber-100 rounded-full">
+                <Brain className="w-6 h-6 text-amber-600" />
+              </div>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-amber-900 mb-2">
+                Data Tidak Tersedia
+              </h3>
+              <p className="text-amber-700">
+                Data OCEAN tidak tersedia. Pastikan assessment telah selesai diproses.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   // Transform OCEAN scores for radar chart
   const radarData = [
