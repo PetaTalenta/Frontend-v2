@@ -8,12 +8,9 @@ import { Card } from '../ui/card';
 import { toast } from './ui-use-toast';
 import OptimizedChart from '../ui/OptimizedChart';
 import {
-  AssessmentResultData,
-  TestData,
-  TestResult
+  AssessmentResultData
 } from '../../types/assessment-results';
 import PersonaProfileSummary from './PersonaProfileSummary';
-import AssessmentScoresSummary from './AssessmentScoresSummary';
 import ResultSummaryStats from './ResultSummaryStats';
 import VisualSummary from './VisualSummary';
 import { removeDebounced, flushDebounced } from '../../utils/localStorageUtils';
