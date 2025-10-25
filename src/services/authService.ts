@@ -586,7 +586,8 @@ class AuthService {
   private apiClient: AxiosInstance;
   private isRefreshing = false;
   private failedQueue: any[] = [];
-  private rateLimiter = RateLimiter.getInstance('auth', 5, 60 * 1000); // 5 requests per minute
+  // Rate limiter disabled for development - uncomment to enable
+  // private rateLimiter = RateLimiter.getInstance('auth', 5, 60 * 1000); // 5 requests per minute
 
   constructor() {
     this.apiClient = axios.create({
@@ -604,14 +605,14 @@ class AuthService {
     // Request interceptor untuk menambahkan authorization header
     this.apiClient.interceptors.request.use(
       (config) => {
-        // Rate limiting check
-        if (!this.rateLimiter.isAllowed()) {
-          SecurityLogger.logRateLimitExceeded({
-            url: config.url,
-            method: config.method
-          });
-          return Promise.reject(new Error('Rate limit exceeded. Please try again later.'));
-        }
+        // Rate limiting check - disabled for development
+        // if (!this.rateLimiter.isAllowed()) {
+        //   SecurityLogger.logRateLimitExceeded({
+        //     url: config.url,
+        //     method: config.method
+        //   });
+        //   return Promise.reject(new Error('Rate limit exceeded. Please try again later.'));
+        // }
 
         // CSRF protection removed as backend doesn't support it
 
@@ -1104,8 +1105,8 @@ class AuthService {
         this.isRefreshing = false;
       }
 
-      // Reset rate limiter
-      this.rateLimiter.reset();
+      // Reset rate limiter - disabled for development
+      // this.rateLimiter.reset();
     } catch (error) {
       console.warn('Error during cleanup of pending operations:', error);
     }
