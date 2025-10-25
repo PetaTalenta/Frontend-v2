@@ -8,8 +8,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../../../components
 import { Progress } from '../../../../components/results/ui-progress';
 import { Badge } from '../../../../components/results/ui-badge';
 import { Skeleton } from '../../../../components/results/ui-skeleton';
-import { ArrowLeft, Palette, Lightbulb, Search, Heart, Shield, Scale, Flower } from 'lucide-react';
+import { ArrowLeft, Palette, Lightbulb, Search, Heart, Shield, Scale, Flower, BarChart3, Target } from 'lucide-react';
 import dynamic from 'next/dynamic';
+import ViaStatsInsights from '../../../../components/results/ViaStatsInsights';
+import ViaDevelopmentRecommendations from '../../../../components/results/ViaDevelopmentRecommendations';
 
 // Dynamic import for ViaRadarChart to reduce bundle size
 const ViaRadarChart = dynamic(() => import('../../../../components/results/StandardizedRadarCharts').then(mod => ({ default: mod.ViaRadarChart })), {
@@ -242,11 +244,11 @@ export default function ViaDetailPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-50 py-4">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6">
         {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-4 mb-4">
+        <div className="mb-4">
+          <div className="flex items-center gap-3 mb-3">
             <Link href={`/results/${resultId}`}>
               <Button variant="outline" size="sm">
                 <ArrowLeft className="w-4 h-4 mr-2" />
@@ -255,15 +257,15 @@ export default function ViaDetailPage() {
             </Link>
           </div>
 
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-3 bg-[#e7eaff] rounded-lg">
-              <Palette className="w-8 h-8 text-[#6475e9]" />
+          <div className="flex items-center gap-3 mb-3">
+            <div className="p-2 bg-[#e7eaff] rounded-lg">
+              <Palette className="w-6 h-6 text-[#6475e9]" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">
+              <h1 className="text-2xl font-bold text-gray-900">
                 VIA Character Strengths
               </h1>
-              <p className="text-gray-600">
+              <p className="text-sm text-gray-600">
                 Detail lengkap kekuatan karakter Anda (24 Strengths)
               </p>
             </div>
@@ -271,35 +273,56 @@ export default function ViaDetailPage() {
 
           {/* Top Strength Summary */}
           <Card className="bg-gradient-to-r from-[#f59e0b] to-[#d97706] text-white border-none">
-            <CardContent className="p-6">
+            <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-xl font-bold mb-2">Kekuatan Utama Anda</h2>
-                  <p className="text-lg font-semibold">{viaStrengthsDetails[topStrengths[0].strength]?.name}</p>
-                  <p className="text-white/80">
+                  <h2 className="text-lg font-bold mb-1">Kekuatan Utama Anda</h2>
+                  <p className="text-base font-semibold">{viaStrengthsDetails[topStrengths[0].strength]?.name}</p>
+                  <p className="text-white/80 text-sm">
                     {topStrengths[0].category}
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-3xl font-bold">{topStrengths[0].score}</p>
-                  <p className="text-white/80">Skor Tertinggi</p>
+                  <p className="text-2xl font-bold">{topStrengths[0].score}</p>
+                  <p className="text-white/80 text-sm">Skor Tertinggi</p>
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Radar Chart */}
-        <div className="mb-8">
-          <ViaRadarChart scores={{
-            riasec: result.assessment_data.riasec,
-            ocean: result.assessment_data.ocean,
-            viaIs: result.assessment_data.viaIs
-          }} />
+        {/* Enhanced Chart Section with Stats and Insights */}
+        <div className="mb-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Radar Chart */}
+            <div>
+              <ViaRadarChart scores={{
+                riasec: result.assessment_data.riasec,
+                ocean: result.assessment_data.ocean,
+                viaIs: result.assessment_data.viaIs
+              }} />
+            </div>
+            
+            {/* Stats and Insights */}
+            <div>
+              <ViaStatsInsights
+                viaScores={viaScores}
+                topStrengths={topStrengths}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Development Recommendations */}
+        <div className="mb-6">
+          <ViaDevelopmentRecommendations
+            viaScores={viaScores}
+            topStrengths={topStrengths}
+          />
         </div>
 
         {/* Strengths by Category */}
-        <div className="space-y-8">
+        <div className="space-y-6">
           {Object.entries(VIA_CATEGORIES).map(([category, strengthKeys]) => {
             const categoryStrengths = topStrengths.filter(s => strengthKeys.includes(s.strength as any));
             const Icon = categoryIcons[category];
@@ -307,17 +330,17 @@ export default function ViaDetailPage() {
 
             return (
               <div key={category}>
-                <div className="flex items-center gap-3 mb-4">
+                <div className="flex items-center gap-2 mb-3">
                   <div
-                    className="p-2 rounded-lg"
+                    className="p-1.5 rounded-lg"
                     style={{ backgroundColor: color + '20' }}
                   >
-                    <Icon className="w-6 h-6" style={{ color }} />
+                    <Icon className="w-5 h-5" style={{ color }} />
                   </div>
-                  <h2 className="text-2xl font-bold text-gray-900">{category}</h2>
+                  <h2 className="text-xl font-bold text-gray-900">{category}</h2>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {categoryStrengths.map((strength, index) => {
                     const details = viaStrengthsDetails[strength.strength];
                     const interpretation = getScoreInterpretation(strength.score);
@@ -333,21 +356,21 @@ export default function ViaDetailPage() {
                         key={strength.strength}
                         className={`bg-white border-gray-200 shadow-sm ${shouldSpanTwoColumns ? 'md:col-span-2' : ''}`}
                       >
-                        <CardContent className="p-6">
-                          <div className="flex items-start justify-between mb-4">
-                            <div className="flex items-center gap-3">
-                              <div className="flex items-center justify-center w-8 h-8 bg-gray-100 text-gray-600 text-sm font-bold rounded-full">
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                              <div className="flex items-center justify-center w-6 h-6 bg-gray-100 text-gray-600 text-xs font-bold rounded-full">
                                 #{overallRank}
                               </div>
                               <div>
-                                <h3 className="text-lg font-semibold text-gray-900">
+                                <h3 className="text-base font-semibold text-gray-900">
                                   {details?.name}
                                 </h3>
-                                <p className="text-sm text-gray-600">{details?.description}</p>
+                                <p className="text-xs text-gray-600">{details?.description}</p>
                               </div>
                             </div>
                             <div className="text-right">
-                              <p className="text-xl font-bold" style={{ color }}>
+                              <p className="text-lg font-bold" style={{ color }}>
                                 {strength.score}
                               </p>
                               <Badge
@@ -355,7 +378,7 @@ export default function ViaDetailPage() {
                                   backgroundColor: interpretation.color + '20',
                                   color: interpretation.color
                                 }}
-                                className="font-medium"
+                                className="font-medium text-xs"
                               >
                                 {interpretation.label}
                               </Badge>
@@ -363,10 +386,10 @@ export default function ViaDetailPage() {
                           </div>
 
                           {/* Progress Bar */}
-                          <div className="space-y-2 mb-4">
+                          <div className="mb-3">
                             <Progress
                               value={strength.score}
-                              className="h-2"
+                              className="h-1.5"
                               style={{
                                 '--progress-background': color,
                               } as React.CSSProperties}
@@ -374,19 +397,19 @@ export default function ViaDetailPage() {
                           </div>
 
                           {/* Detailed Description */}
-                          <div className="bg-gray-50 rounded-lg p-3 mb-4">
-                            <p className="text-sm text-gray-700 leading-relaxed">
+                          <div className="bg-gray-50 rounded p-2 mb-3">
+                            <p className="text-xs text-gray-700 leading-relaxed">
                               {details?.detailedDescription}
                             </p>
                           </div>
 
                           {/* Examples */}
                           <div>
-                            <h4 className="font-medium text-gray-900 mb-2 text-sm">Contoh Penerapan:</h4>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
+                            <h4 className="font-medium text-gray-900 mb-1.5 text-xs">Contoh Penerapan:</h4>
+                            <div className="grid grid-cols-1 gap-0.5">
                               {details?.examples.map((example: string, idx: number) => (
-                                <div key={idx} className="flex items-center gap-2">
-                                  <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color }} />
+                                <div key={idx} className="flex items-center gap-1.5">
+                                  <div className="w-1 h-1 rounded-full" style={{ backgroundColor: color }} />
                                   <span className="text-xs text-gray-600">{example}</span>
                                 </div>
                               ))}
@@ -403,9 +426,9 @@ export default function ViaDetailPage() {
         </div>
 
         {/* Back to Summary */}
-        <div className="mt-8 text-center">
+        <div className="mt-6 text-center">
           <Link href={`/results/${resultId}`}>
-            <Button size="lg">
+            <Button size="sm">
               <ArrowLeft className="w-4 h-4 mr-2" />
               Kembali ke Ringkasan Hasil
             </Button>

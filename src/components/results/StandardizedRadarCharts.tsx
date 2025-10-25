@@ -1,9 +1,9 @@
 'use client';
 
 import React from 'react';
-import { BarChart3, Brain, Palette } from 'lucide-react';
 import { RiasecScores, OceanScores, ViaScores } from '../../types/assessment-results';
 import BaseRadarChart, { RadarChartConfig, RadarDataPoint } from './BaseRadarChart';
+import TabbedRadarChart from './TabbedRadarChart';
 
 interface AssessmentScores {
   riasec: RiasecScores;
@@ -155,7 +155,6 @@ export default function StandardizedRadarCharts({ scores, type, showTabs = false
           description: 'Career interest assessment based on Holland\'s theory',
           color: '#4f46e5',
           data: riasecData,
-          icon: <BarChart3 className="w-5 h-5" />,
           showLegend: true,
           showStatistics: true
         };
@@ -165,7 +164,6 @@ export default function StandardizedRadarCharts({ scores, type, showTabs = false
           description: 'Personality traits assessment (OCEAN model)',
           color: '#059669',
           data: oceanData,
-          icon: <Brain className="w-5 h-5" />,
           showLegend: true,
           showStatistics: true
         };
@@ -175,7 +173,6 @@ export default function StandardizedRadarCharts({ scores, type, showTabs = false
           description: 'VIA character strengths assessment',
           color: '#dc2626',
           data: viaisData,
-          icon: <Palette className="w-5 h-5" />,
           showLegend: true,
           showStatistics: true
         };
@@ -185,7 +182,6 @@ export default function StandardizedRadarCharts({ scores, type, showTabs = false
           description: 'Career interest assessment based on Holland\'s theory',
           color: '#4f46e5',
           data: riasecData,
-          icon: <BarChart3 className="w-5 h-5" />,
           showLegend: true,
           showStatistics: true
         };
@@ -198,14 +194,8 @@ export default function StandardizedRadarCharts({ scores, type, showTabs = false
     return <BaseRadarChart config={config} />;
   }
 
-  // Otherwise, render all charts (for AssessmentRadarChart replacement)
-  return (
-    <div className="space-y-6">
-      <BaseRadarChart config={getRadarConfig('riasec')} />
-      <BaseRadarChart config={getRadarConfig('ocean')} />
-      <BaseRadarChart config={getRadarConfig('viais')} />
-    </div>
-  );
+  // Otherwise, render the new TabbedRadarChart (for AssessmentRadarChart replacement)
+  return <TabbedRadarChart scores={assessmentScores} />;
 }
 
 // Export individual chart components for specific use cases

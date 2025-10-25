@@ -3,7 +3,7 @@
 ## 1. State Management & Data Fetching
 
 **Best Practices:**
-- TanStack Query untuk server state management yang robust
+- TanStack Query v5.90.5 untuk server state management yang robust
 - Progressive loading untuk better user experience
 - Automatic cache management dengan stale-while-revalidate
 - Request deduplication untuk reduce network requests
@@ -18,9 +18,8 @@
 - Enhanced security dengan rate limiting dan logging integration
 - Data transformation dengan validation dan sanitization
 - Type safety dengan comprehensive TypeScript definitions
-- Navigation prefetching untuk instant page transitions
-- Dynamic import optimization dengan component preloading
-- Client-side data sharing untuk reduced redundant fetching
+- Cache warming strategies untuk better perceived performance
+- Intelligent cache invalidation berdasarkan data type
 
 **Konsep Pengolahan:**
 - Primary state management menggunakan TanStack Query v5.90.5 untuk server state
@@ -36,9 +35,8 @@
 - Enhanced error handling dengan rate limiting, security logging, dan custom error classes
 - API integration dengan comprehensive data transformation
 - Data transformation layer dengan validation dan sanitization
-- Navigation optimization dengan prefetching dan preloading strategies
-- Component-level caching untuk dynamic imports
-- Cross-page data sharing untuk eliminate redundant data fetching
+- Network-aware cache strategies
+- Background sync untuk offline support
 
 **Lokasi Implementasi:**
 - `src/hooks/useAuth.ts` - Authentication state management dengan TanStack Query
@@ -72,6 +70,8 @@
 - Security event monitoring dengan pattern detection
 - Request deduplication untuk prevent duplicate operations
 - Graceful degradation untuk network failures
+- Enhanced logout validation dengan unsaved changes detection
+- Suspicious activity detection dengan automated alerts
 
 **Konsep Pengolahan:**
 - JWT token management dengan session management dan automatic refresh
@@ -87,6 +87,8 @@
 - Enhanced security monitoring dengan event tracking
 - Route protection dengan global authentication management
 - Session management dengan seamless logout dan refresh
+- Security event pattern analysis
+- Automated threat detection
 
 **Lokasi Implementasi:**
 - `src/hooks/useAuth.ts` - Authentication state management dengan TanStack Query
@@ -108,9 +110,13 @@
 - Error boundaries dengan graceful degradation
 - Progressive retry dengan exponential backoff dengan jitter dan cache fallback
 - Comprehensive testing coverage untuk reliability
+- Enhanced recovery manager dengan intelligent strategies
+- Network-aware error recovery
+- Security event logging dengan pattern detection
+- Content Security Policy (CSP) generation
 
 **Konsep Pengolahan:**
-- Security headers implementation
+- Security headers implementation dengan CSP generator
 - Environment variable protection
 - JWT token management dengan refresh mechanism
 - Request/Response interceptors untuk security
@@ -121,14 +127,17 @@
 - Error handling dengan advanced error boundaries dan recovery mechanisms
 - Recovery management dengan progressive retry dan cache fallback
 - Testing suite dengan comprehensive coverage
+- Intelligent error analysis dan recovery strategy selection
+- Network-aware recovery dengan offline fallback
+- Security pattern detection dan automated responses
 
 **Lokasi Implementasi:**
 - `next.config.mjs` - Security headers
 - `src/services/authService.ts` - Request/Response interceptors
 - `.env.local` - Environment variables
-- `src/lib/security.ts` - Security utilities (rate limiting, secure cookies)
-- `src/lib/recoveryManager.ts` - Enhanced recovery manager dengan progressive retry
-- `src/components/results/ResultsErrorBoundary.tsx` - Advanced error boundaries
+- `src/lib/security.ts` - Security utilities (rate limiting, secure cookies, CSRF protection)
+- `src/lib/recoveryManager.ts` - Enhanced recovery manager dengan progressive retry dan cache fallback
+- `src/components/results/ResultsErrorBoundary.tsx` - Advanced error boundaries dengan intelligent categorization
 - `src/utils/__tests__/ResultsErrorBoundary.test.tsx` - Error boundary tests
 - `src/utils/__tests__/recoveryManager.test.ts` - Recovery manager tests
 
@@ -143,9 +152,12 @@
 - Real-time data synchronization dengan server
 - Consistent data flow dengan TanStack Query
 - Type safety dengan comprehensive TypeScript definitions
-- Navigation performance optimization dengan prefetching dan preloading
-- Dynamic import optimization untuk reduced bundle loading time
-- Cross-page data sharing untuk eliminate redundant API calls
+- Background sync untuk offline actions
+- Push notification handling
+- Cache metadata management dengan TTL
+- Intelligent cache warming strategies
+- Network-aware caching strategies
+- API response transformation dengan validation
 
 **Konsep Pengolahan:**
 - API data integration dengan real data fetching
@@ -156,45 +168,46 @@
 - Data structure alignment dengan API response
 - Enhanced error handling dengan fallback values
 - Hook optimization untuk comprehensive data fetching
-- Navigation optimization dengan intelligent prefetching
-- Component preloading untuk instant page transitions
-- Assessment data context sharing untuk reduced redundant processing
+- Background sync untuk offline-to-online synchronization
+- Push notification handling dengan interactive actions
+- Cache metadata management untuk TTL validation
+- Intelligent cache warming berdasarkan user behavior
+- Network-aware cache strategies (online/offline detection)
+- API response sanitization dan validation
 
 **Lokasi Implementasi:**
 - `src/components/dashboard/DashboardClient.tsx` - Main dashboard dengan API integration
 - `src/components/results/` - Results components dengan API integration
-- `src/components/results/AssessmentScoresSummary.tsx` - Navigation dengan prefetching optimization
-- `src/app/results/[id]/layout.tsx` - Cross-page data sharing provider
-- `src/utils/dataTransformations.ts` - Data transformation layer
+- `src/utils/dataTransformations.ts` - Data transformation layer dengan comprehensive validation
 - `src/lib/cache.ts` - Cache manager dengan TTL dan cleanup
 - `src/lib/offline.ts` - Offline storage integration
-- `public/sw.js` - Enhanced Service Worker dengan advanced caching strategies
+- `public/sw.js` - Enhanced Service Worker dengan advanced caching strategies, background sync, dan push notifications
 
-## 5. Navigation Performance Optimization
+## 5. Performance Optimization
 
 **Best Practices:**
-- Link prefetching untuk instant navigation experience
-- Dynamic import preloading untuk reduced bundle loading time
-- Client-side data sharing untuk eliminate redundant API calls
-- Component-level caching untuk improved render performance
-- Navigation state management untuk seamless user experience
-- Progressive loading dengan skeleton states
-- Route-based code splitting untuk optimal bundle size
+- Cache warming strategies untuk better perceived performance
+- Intelligent prefetching berdasarkan user behavior
+- Bundle optimization dengan code splitting
+- Lazy loading untuk non-critical components
+- Image optimization dengan progressive loading
+- Service Worker caching dengan TTL management
+- Network-aware resource loading
+- Performance monitoring dan metrics collection
 
 **Konsep Pengolahan:**
-- Navigation prefetching dengan onMouseEnter event handlers
-- Dynamic import optimization dengan component preloading strategies
-- Assessment data context provider untuk cross-page data sharing
-- Intelligent caching untuk frequently accessed assessment results
-- Background preloading untuk predicted navigation paths
-- Performance monitoring untuk navigation timing optimization
-- User behavior analysis untuk predictive prefetching
+- Cache warming pada application startup
+- Intelligent prefetching untuk predicted user actions
+- Progressive data loading dengan partial updates
+- Background sync untuk offline operations
+- Performance metrics collection dan analysis
+- Resource optimization berdasarkan network conditions
+- Memory management untuk cache cleanup
+- CPU optimization dengan efficient algorithms
 
 **Lokasi Implementasi:**
-- `src/components/results/AssessmentScoresSummary.tsx` - Navigation buttons dengan prefetching
-- `src/app/results/[id]/layout.tsx` - Assessment data context provider
-- `src/app/results/[id]/riasec/page.tsx` - Dynamic import optimization
-- `src/app/results/[id]/ocean/page.tsx` - Dynamic import optimization
-- `src/app/results/[id]/via/page.tsx` - Dynamic import optimization
-- `src/components/results/StandardizedRadarCharts.tsx` - Component preloading strategies
-
+- `src/lib/performance.ts` - Performance monitoring utilities
+- `src/lib/performanceOptimizer.ts` - Performance optimization strategies
+- `scripts/optimize-performance.js` - Build-time optimization scripts
+- `public/sw.js` - Service Worker dengan performance-focused caching
+- `src/lib/tanStackConfig.ts` - Cache warming dan prefetching utilities

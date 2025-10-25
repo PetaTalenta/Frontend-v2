@@ -13,6 +13,7 @@ import {
 import PersonaProfileSummary from './PersonaProfileSummary';
 import ResultSummaryStats from './ResultSummaryStats';
 import VisualSummary from './VisualSummary';
+import AssessmentScoresSummary from './AssessmentScoresSummary';
 import { removeDebounced, flushDebounced } from '../../utils/localStorageUtils';
 import { useAssessmentResult } from '@/hooks/useAssessmentResult';
 
@@ -436,28 +437,27 @@ function ResultsPageClientComponent({ initialResult, resultId: propResultId }: R
           </div>
 
           {/* Content Skeleton */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Left Column Skeleton */}
-            <div className="space-y-6">
+          <div className="columns-1 lg:columns-2 gap-6 space-y-6">
+            <div className="break-inside-avoid mb-6">
               <div className="grid grid-cols-2 gap-4">
                 <div className="h-24 bg-gray-200 rounded animate-pulse"></div>
                 <div className="h-24 bg-gray-200 rounded animate-pulse"></div>
                 <div className="h-24 bg-gray-200 rounded animate-pulse"></div>
                 <div className="h-24 bg-gray-200 rounded animate-pulse"></div>
               </div>
+            </div>
+            <div className="break-inside-avoid mb-6">
               <div className="h-64 bg-gray-200 rounded animate-pulse"></div>
             </div>
-
-            {/* Right Column Skeleton */}
-            <div className="space-y-6">
+            <div className="break-inside-avoid mb-6">
               <div className="h-64 bg-gray-200 rounded animate-pulse"></div>
             </div>
-          </div>
-
-          {/* Charts Skeleton */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="h-80 bg-gray-200 rounded animate-pulse"></div>
-            <div className="h-80 bg-gray-200 rounded animate-pulse"></div>
+            <div className="break-inside-avoid mb-6">
+              <div className="h-80 bg-gray-200 rounded animate-pulse"></div>
+            </div>
+            <div className="break-inside-avoid mb-6">
+              <div className="h-80 bg-gray-200 rounded animate-pulse"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -594,56 +594,50 @@ function ResultsPageClientComponent({ initialResult, resultId: propResultId }: R
         </div>
 
         {/* Content */}
-        <div className="space-y-6">
-          {/* Main Layout - 2 Columns */}
-          {(scores || transformedData?.test_result || result?.test_result) && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Left Column */}
-              <div className="space-y-6">
-                {/* Summary Stats - Grid 2x2 */}
-                {scores && (
-                  <ResultSummaryStats scores={scores} createdAt={result} />
-                )}
-
-                {/* Profil Kepribadian Anda */}
-                {(transformedData?.test_result || result?.test_result) && (
-                  <div ref={personaCardRef}>
-                    <PersonaProfileSummary
-                      persona={{
-                        ...(transformedData?.test_result || result?.test_result),
-                        riskTolerance: (transformedData?.test_result?.riskTolerance || result?.test_result?.riskTolerance) as 'high' | 'moderate' | 'low'
-                      }}
-                      resultId={currentResultId}
-                    />
-                  </div>
-                )}
-              </div>
-
-              {/* Right Column - Talent Profile Summary */}
-              {scores && (
-                <VisualSummary scores={scores} />
-              )}
+        <div className="columns-1 lg:columns-2 gap-6 space-y-6">
+          {/* Summary Stats - Grid 2x2 */}
+          {scores && (
+            <div className="break-inside-avoid mb-6">
+              <ResultSummaryStats scores={scores} createdAt={result} />
             </div>
           )}
 
-          {/* Radar Chart & Assessment Overview */}
-          {scores && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Radar Chart - Left */}
-              <div ref={radarChartRef}>
-                <OptimizedChart
-                  type="radar"
-                  data={scores}
-                  className="w-full"
-                  lazy={true}
-                />
-              </div>
+          {/* Profil Kepribadian Anda */}
+          {(transformedData?.test_result || result?.test_result) && (
+            <div className="break-inside-avoid mb-6" ref={personaCardRef}>
+              <PersonaProfileSummary
+                persona={{
+                  ...(transformedData?.test_result || result?.test_result),
+                  riskTolerance: (transformedData?.test_result?.riskTolerance || result?.test_result?.riskTolerance) as 'high' | 'moderate' | 'low'
+                }}
+                resultId={currentResultId}
+              />
+            </div>
+          )}
 
-              {/* Assessment Scores Summary - Right */}
+          {/* Assessment Scores Summary */}
+          {scores && (
+            <div className="break-inside-avoid mb-6">
+              <AssessmentScoresSummary
+                scores={scores}
+                resultId={currentResultId}
+              />
+            </div>
+          )}
+
+          {/* Talent Profile Summary */}
+          {scores && (
+            <div className="break-inside-avoid mb-6">
+              <VisualSummary scores={scores} />
+            </div>
+          )}
+
+          {/* Radar Chart */}
+          {scores && (
+            <div className="break-inside-avoid mb-6" ref={radarChartRef}>
               <OptimizedChart
-                type="simple-assessment"
+                type="radar"
                 data={scores}
-                config={{ resultId: currentResultId }}
                 className="w-full"
                 lazy={true}
               />
@@ -652,7 +646,7 @@ function ResultsPageClientComponent({ initialResult, resultId: propResultId }: R
 
           {/* Show loading message if data is not available */}
           {(!scores || !(transformedData?.test_result || result?.test_result)) && !isLoading && (
-            <div className="text-center py-8">
+            <div className="text-center py-8 col-span-2">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#6475e9] mx-auto mb-4"></div>
               <p className="text-gray-600">Loading assessment data...</p>
             </div>
