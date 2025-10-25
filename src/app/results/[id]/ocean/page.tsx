@@ -26,20 +26,18 @@ const OceanRadarChart = dynamic(() => import('../../../../components/results/Sta
   ssr: false
 });
 import {
-  getDummyAssessmentResult,
   getScoreInterpretation as getDummyScoreInterpretation
 } from '../../../../data/dummy-assessment-data';
+import { useAssessmentResult } from '../../../../hooks/useAssessmentResult';
 
 export default function OceanDetailPage() {
   const params = useParams();
   const router = useRouter();
   
-  // Using dummy data instead of context
-  const result = getDummyAssessmentResult();
-  const isLoading = false;
-  const error = null;
-
   const resultId = params.id as string;
+  
+  // Using real assessment data with useAssessmentResult hook
+  const { data: result, isLoading, error } = useAssessmentResult(resultId);
 
   if (isLoading) {
     return (
@@ -70,7 +68,7 @@ export default function OceanDetailPage() {
     );
   }
 
-  const oceanScores = result.assessment_data.ocean;
+  const oceanScores = result?.data?.test_data?.ocean || {};
 
   // Big Five traits with detailed information
   const oceanTraits = [
@@ -257,9 +255,9 @@ export default function OceanDetailPage() {
 
           {/* Chart Display */}
           <OceanRadarChart scores={{
-            riasec: result.assessment_data.riasec,
-            ocean: result.assessment_data.ocean,
-            viaIs: result.assessment_data.viaIs
+            riasec: result?.data?.test_data?.riasec || {},
+            ocean: result?.data?.test_data?.ocean || {},
+            viaIs: result?.data?.test_data?.viaIs || {}
           }} />
         </div>
 

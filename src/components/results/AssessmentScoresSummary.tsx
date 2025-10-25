@@ -3,6 +3,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from './ui-card';
 import { Button } from './ui-button';
 import { Badge } from './ui-badge';
@@ -75,6 +76,12 @@ export default function AssessmentScoresSummary({ scores, resultId }: Assessment
   // Use provided scores
   const assessmentScores = scores;
   const currentResultId = resultId || '';
+  const router = useRouter();
+
+  // Prefetch handler for navigation optimization
+  const handlePrefetch = (href: string) => {
+    router.prefetch(href);
+  };
 
   // Early return if scores data is not available
   if (!assessmentScores || !assessmentScores.riasec || !assessmentScores.ocean || !assessmentScores.viaIs) {
@@ -269,19 +276,28 @@ export default function AssessmentScoresSummary({ scores, resultId }: Assessment
         {/* View Details Button */}
         <div className="border-t border-gray-200 pt-4">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <Link href={`/results/${currentResultId}/riasec`}>
+            <Link
+              href={`/results/${currentResultId}/riasec`}
+              onMouseEnter={() => handlePrefetch(`/results/${currentResultId}/riasec`)}
+            >
               <Button variant="outline" className="w-full justify-between">
                 <span>Detail RIASEC</span>
                 <ArrowRight className="w-4 h-4" />
               </Button>
             </Link>
-            <Link href={`/results/${currentResultId}/ocean`}>
+            <Link
+              href={`/results/${currentResultId}/ocean`}
+              onMouseEnter={() => handlePrefetch(`/results/${currentResultId}/ocean`)}
+            >
               <Button variant="outline" className="w-full justify-between">
                 <span>Detail Big Five</span>
                 <ArrowRight className="w-4 h-4" />
               </Button>
             </Link>
-            <Link href={`/results/${currentResultId}/via`}>
+            <Link
+              href={`/results/${currentResultId}/via`}
+              onMouseEnter={() => handlePrefetch(`/results/${currentResultId}/via`)}
+            >
               <Button variant="outline" className="w-full justify-between">
                 <span>Detail VIA</span>
                 <ArrowRight className="w-4 h-4" />

@@ -25,21 +25,19 @@ const RiasecRadarChart = dynamic(() => import('../../../../components/results/St
   ssr: false
 });
 import {
-  getDummyAssessmentResult,
   getScoreInterpretation,
   getDominantRiasecType
 } from '../../../../data/dummy-assessment-data';
+import { useAssessmentResult } from '../../../../hooks/useAssessmentResult';
 
 export default function RiasecDetailPage() {
   const params = useParams();
   const router = useRouter();
   
-  // Using dummy data instead of context
-  const result = getDummyAssessmentResult();
-  const isLoading = false;
-  const error = null;
-
   const resultId = params.id as string;
+  
+  // Using real assessment data with useAssessmentResult hook
+  const { data: result, isLoading, error } = useAssessmentResult(resultId);
 
   if (isLoading) {
     return (
@@ -62,7 +60,7 @@ export default function RiasecDetailPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <h1 className="text-2xl font-bold text-gray-900 mb-4">Error</h1>
-            <p className="text-gray-600 mb-6">{(error as any)?.message || 'Assessment result not found'}</p>
+            <p className="text-gray-600 mb-6">{(error as any)?.message || 'Failed to load assessment result'}</p>
             <Button onClick={() => router.back()}>Go Back</Button>
           </div>
         </div>
@@ -70,7 +68,7 @@ export default function RiasecDetailPage() {
     );
   }
 
-  const riasecScores = result.assessment_data.riasec;
+  const riasecScores = result?.data?.test_data?.riasec || {};
   const dominantType = getDominantRiasecType(riasecScores);
 
   // RIASEC types with detailed information
@@ -227,9 +225,9 @@ export default function RiasecDetailPage() {
         {/* Radar Chart */}
         <div className="mb-8">
           <RiasecRadarChart scores={{
-            riasec: result.assessment_data.riasec,
-            ocean: result.assessment_data.ocean,
-            viaIs: result.assessment_data.viaIs
+            riasec: result?.data?.test_data?.riasec || {},
+            ocean: result?.data?.test_data?.ocean || {},
+            viaIs: result?.data?.test_data?.viaIs || {}
           }} />
         </div>
 

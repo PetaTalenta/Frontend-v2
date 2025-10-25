@@ -226,6 +226,14 @@ function ResultsPageClientComponent({ initialResult, resultId: propResultId }: R
     }
   }, []); // Empty dependency array = run only once on mount
 
+  // Preload critical chart components for better navigation performance
+  useEffect(() => {
+    // Preload chart components untuk navigasi yang lebih smooth
+    import('./StandardizedRadarCharts');
+    import('./CareerStatsCard');
+    import('./SimpleAssessmentChart');
+  }, []);
+
   // Helper function to extract scores from transformed data or assessment_data
   const extractScores = useCallback((source: any): any => {
     if (!source) {

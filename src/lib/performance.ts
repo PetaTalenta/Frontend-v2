@@ -207,18 +207,18 @@ class PerformanceMonitor {
   private setupErrorTracking() {
     if (typeof window === 'undefined') return;
 
-    window.addEventListener('error', (event) => {
+    window.addEventListener('error', (event: ErrorEvent) => {
       console.error('[Performance] JavaScript Error:', {
         message: event.message,
         filename: event.filename,
         lineno: event.lineno,
         colno: event.colno,
-        error: event.error
+        error: event.error?.message || 'Unknown error'
       });
     });
 
-    window.addEventListener('unhandledrejection', (event) => {
-      console.error('[Performance] Unhandled Promise Rejection:', event.reason);
+    window.addEventListener('unhandledrejection', (event: PromiseRejectionEvent) => {
+      console.error('[Performance] Unhandled Promise Rejection:', event.reason?.message || event.reason || 'Unknown rejection');
     });
   }
 

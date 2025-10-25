@@ -26,22 +26,20 @@ const ViaRadarChart = dynamic(() => import('../../../../components/results/Stand
   ssr: false
 });
 import {
-  getDummyAssessmentResult,
   getScoreInterpretation,
   VIA_CATEGORIES,
   getTopViaStrengths
 } from '../../../../data/dummy-assessment-data';
+import { useAssessmentResult } from '../../../../hooks/useAssessmentResult';
 
 export default function ViaDetailPage() {
   const params = useParams();
   const router = useRouter();
   
-  // Using dummy data instead of context
-  const result = getDummyAssessmentResult();
-  const isLoading = false;
-  const error = null;
-
   const resultId = params.id as string;
+  
+  // Using real assessment data with useAssessmentResult hook
+  const { data: result, isLoading, error } = useAssessmentResult(resultId);
 
   if (isLoading) {
     return (
@@ -72,7 +70,7 @@ export default function ViaDetailPage() {
     );
   }
 
-  const viaScores = result.assessment_data.viaIs;
+  const viaScores = result?.data?.test_data?.viaIs || {};
   const topStrengths = getTopViaStrengths(viaScores, 24);
 
   // VIA Strengths with detailed information
@@ -297,9 +295,9 @@ export default function ViaDetailPage() {
             {/* Radar Chart */}
             <div>
               <ViaRadarChart scores={{
-                riasec: result.assessment_data.riasec,
-                ocean: result.assessment_data.ocean,
-                viaIs: result.assessment_data.viaIs
+                riasec: result?.data?.test_data?.riasec || {},
+                ocean: result?.data?.test_data?.ocean || {},
+                viaIs: result?.data?.test_data?.viaIs || {}
               }} />
             </div>
             
