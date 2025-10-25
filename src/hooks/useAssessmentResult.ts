@@ -9,11 +9,11 @@ import type {
   AssessmentResultTransformed
 } from '@/types/assessment-results';
 
-// Default options for the hook
+// Default options for the hook - synchronized with AssessmentDataContext
 const DEFAULT_OPTIONS: UseAssessmentResultOptions = {
   enabled: true,
-  staleTime: 10 * 60 * 1000, // 10 minutes
-  cacheTime: 15 * 60 * 1000, // 15 minutes
+  staleTime: 15 * 60 * 1000, // 15 minutes - synchronized with AssessmentDataContext
+  cacheTime: 30 * 60 * 1000, // 30 minutes - synchronized with AssessmentDataContext
   retry: 3,
   retryDelay: 1000,
 };
@@ -37,7 +37,7 @@ export function useAssessmentResult(
     queryFn: () => authService.getAssessmentResult(id),
     enabled: mergedOptions.enabled && !!id,
     staleTime: mergedOptions.staleTime,
-    gcTime: mergedOptions.cacheTime,
+    gcTime: mergedOptions.cacheTime, // Use cacheTime from options but map to gcTime for TanStack Query v5
     retry: mergedOptions.retry,
     retryDelay: mergedOptions.retryDelay,
     // Select only the data part for easier consumption

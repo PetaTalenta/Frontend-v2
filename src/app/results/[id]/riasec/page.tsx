@@ -28,7 +28,7 @@ import {
   getScoreInterpretation,
   getDominantRiasecType
 } from '../../../../data/dummy-assessment-data';
-import { useAssessmentResult } from '../../../../hooks/useAssessmentResult';
+import { useAssessmentData } from '../../../../contexts/AssessmentDataContext';
 
 export default function RiasecDetailPage() {
   const params = useParams();
@@ -36,8 +36,10 @@ export default function RiasecDetailPage() {
   
   const resultId = params.id as string;
   
-  // Using real assessment data with useAssessmentResult hook
-  const { data: result, isLoading, error } = useAssessmentResult(resultId);
+  // Using assessment data context for centralized data management
+  const { getTestData, getSpecificData, isLoading, error } = useAssessmentData();
+  const testData = getTestData();
+  const riasecData = getSpecificData('riasec');
 
   if (isLoading) {
     return (
@@ -54,7 +56,7 @@ export default function RiasecDetailPage() {
     );
   }
 
-  if (error || !result) {
+  if (error || !testData) {
     return (
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -68,7 +70,7 @@ export default function RiasecDetailPage() {
     );
   }
 
-  const riasecScores = result?.data?.test_data?.riasec || {};
+  const riasecScores = testData?.riasec || {};
   const dominantType = getDominantRiasecType(riasecScores);
 
   // RIASEC types with detailed information
@@ -222,13 +224,104 @@ export default function RiasecDetailPage() {
           </Card>
         </div>
 
-        {/* Radar Chart */}
+        {/* Radar Chart with Additional Insights */}
         <div className="mb-8">
-          <RiasecRadarChart scores={{
-            riasec: result?.data?.test_data?.riasec || {},
-            ocean: result?.data?.test_data?.ocean || {},
-            viaIs: result?.data?.test_data?.viaIs || {}
-          }} />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Main Chart */}
+            <div className="lg:col-span-2">
+              <RiasecRadarChart scores={{
+                riasec: testData?.riasec || {},
+                ocean: testData?.ocean || {},
+                viaIs: testData?.viaIs || {}
+              }} />
+            </div>
+            
+            {/* Statistics and Insights */}
+            <div className="space-y-4">
+              {/* Score Distribution */}
+              <Card className="bg-white border-gray-200 shadow-sm">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base font-semibold text-gray-900">
+                    Distribusi Skor
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Rata-rata</span>
+                    <span className="text-lg font-bold text-[#6475e9]">
+                      {Math.round(Object.values(riasecScores).reduce((a: number, b: number) => a + b, 0) / Object.keys(riasecScores).length)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Tertinggi</span>
+                    <span className="text-lg font-bold text-green-600">
+                      {Math.max(...Object.values(riasecScores) as number[])}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Terendah</span>
+                    <span className="text-lg font-bold text-red-600">
+                      {Math.min(...Object.values(riasecScores) as number[])}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Rentang</span>
+                    <span className="text-lg font-bold text-orange-600">
+                      {Math.max(...Object.values(riasecScores) as number[]) - Math.min(...Object.values(riasecScores) as number[])}
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Personality Profile Summary */}
+              <Card className="bg-gradient-to-br from-[#6475e9] to-[#5a6bd8] text-white border-none">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base font-semibold text-white">
+                    Ringkasan Profil
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="text-sm text-white/90">
+                    <p className="mb-2">
+                      <span className="font-semibold">Tipe Dominan:</span> {dominantType.code}
+                    </p>
+                    <p className="mb-2">
+                      <span className="font-semibold">Kekuatan Utama:</span> {sortedTypes[0].name}
+                    </p>
+                    <p>
+                      <span className="font-semibold">Keseimbangan:</span> {
+                        Math.max(...Object.values(riasecScores) as number[]) - Math.min(...Object.values(riasecScores) as number[]) > 30
+                          ? 'Sangat Terfokus'
+                          : Math.max(...Object.values(riasecScores) as number[]) - Math.min(...Object.values(riasecScores) as number[]) > 20
+                            ? 'Cukup Seimbang'
+                            : 'Sangat Seimbang'
+                      }
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Quick Insight */}
+              <Card className="bg-amber-50 border-amber-200 shadow-sm">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base font-semibold text-amber-900">
+                    Insight Cepat
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-amber-800">
+                    {
+                      sortedTypes[0].score >= 80
+                        ? `Anda memiliki kekuatan yang sangat menonjol dalam ${sortedTypes[0].name.split(' ')[0]}. Ini adalah aset besar yang bisa dikembangkan untuk karir yang sesuai.`
+                        : sortedTypes[0].score >= 70
+                          ? `Anda memiliki kemampuan yang baik dalam ${sortedTypes[0].name.split(' ')[0]}. Kombinasikan dengan kekuatan lain untuk hasil maksimal.`
+                          : `Profil Anda menunjukkan keseimbangan yang baik antar berbagai tipe RIASEC. Ini memberikan fleksibilitas dalam pilihan karir.`
+                    }
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </div>
 
         {/* Detailed RIASEC Types - 2x2 Grid Layout */}

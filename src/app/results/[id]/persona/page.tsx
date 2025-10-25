@@ -9,20 +9,19 @@ import { Badge } from "../../../../components/results/ui-badge"
 import { Skeleton } from "../../../../components/results/ui-skeleton"
 import { ArrowLeft, User, Shield, Star, Target, Brain, Heart, Users, Briefcase, TrendingUp, Zap, Building, AlertTriangle, Lightbulb, GraduationCap, BookOpen } from "lucide-react"
 import IndustryCompatibilityCard from "../../../../components/results/IndustryCompatibilityCard"
-import { getDummyAssessmentResult } from "../../../../data/dummy-assessment-data"
+import { useAssessmentData } from "../../../../contexts/AssessmentDataContext"
 
 export default function PersonaDetailPage() {
   const params = useParams();
   const router = useRouter();
   
-  // Using dummy data instead of API call
-  const result = getDummyAssessmentResult();
-  const loading = false;
-  const error = null;
+  // Using assessment data context for centralized data management
+  const { getTestResult, isLoading, error } = useAssessmentData();
+  const testResult = getTestResult();
 
   const resultId = params.id as string;
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-[#f8fafc] p-6">
         <div className="max-w-7xl mx-auto space-y-6">
@@ -37,13 +36,13 @@ export default function PersonaDetailPage() {
     );
   }
 
-  if (error || !result) {
+  if (error || !testResult) {
     return (
       <div className="min-h-screen bg-[#f8fafc] p-6">
         <div className="max-w-7xl mx-auto space-y-6">
           <div className="text-center">
             <h1 className="text-2xl font-bold text-gray-900 mb-4">Error</h1>
-            <p className="text-gray-600 mb-6">{error || 'Assessment result not found'}</p>
+            <p className="text-gray-600 mb-6">{error?.message || 'Assessment result not found'}</p>
             <Button onClick={() => router.back()}>Go Back</Button>
           </div>
         </div>
@@ -51,7 +50,7 @@ export default function PersonaDetailPage() {
     );
   }
 
-  const profile = result.persona_profile as any || {};
+  const profile = testResult as any || {};
 
   return (
     <div className="min-h-screen bg-[#f8fafc] p-6">
@@ -204,7 +203,7 @@ export default function PersonaDetailPage() {
         {/* Industry Compatibility */}
         {(() => {
           // Calculate industry scores if not available from API
-          const industryScores = result.assessment_data.industryScore ||
+          const industryScores = {} as any;
             {}; // Placeholder for calculateIndustryScores function
 
           return (

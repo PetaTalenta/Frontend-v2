@@ -2,7 +2,7 @@
 
 import { useParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { useAssessmentResult } from '../../../hooks/useAssessmentResult';
+import { useAssessmentData } from '../../../contexts/AssessmentDataContext';
 import { LoadingSkeleton, ErrorState } from '../../../components/shared';
 
 // Dynamic import for ResultsPageClient to improve compilation performance
@@ -17,8 +17,9 @@ export default function ResultsPage() {
   const params = useParams();
   const resultId = params.id as string;
   
-  // Use custom hook for data fetching with consistent loading/error states
-  const { data: result, transformedData, isLoading, error, refetch } = useAssessmentResult(resultId);
+  // Use assessment data context for centralized data management
+  const { getSpecificData, isLoading, error, refresh } = useAssessmentData();
+  const transformedData = getSpecificData('all');
 
   // Consistent loading state across all dynamic pages
   if (isLoading) {
@@ -30,12 +31,12 @@ export default function ResultsPage() {
     return (
       <ErrorState
         error={typeof error === 'string' ? error : error?.message || 'Assessment result not found'}
-        onRetry={refetch}
+        onRetry={refresh}
         title="Hasil Assessment Tidak Ditemukan"
       />
     );
   }
 
-  // Use the transformed data from the hook instead of manual transformation
+  // Use the transformed data from the context instead of manual transformation
   return <ResultsPageClient initialResult={transformedData} resultId={resultId} />;
 }

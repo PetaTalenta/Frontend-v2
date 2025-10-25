@@ -30,7 +30,7 @@ import {
   VIA_CATEGORIES,
   getTopViaStrengths
 } from '../../../../data/dummy-assessment-data';
-import { useAssessmentResult } from '../../../../hooks/useAssessmentResult';
+import { useAssessmentData } from '../../../../contexts/AssessmentDataContext';
 
 export default function ViaDetailPage() {
   const params = useParams();
@@ -38,8 +38,9 @@ export default function ViaDetailPage() {
   
   const resultId = params.id as string;
   
-  // Using real assessment data with useAssessmentResult hook
-  const { data: result, isLoading, error } = useAssessmentResult(resultId);
+  // Using assessment data context for centralized data management
+  const { getTestData, isLoading, error } = useAssessmentData();
+  const testData = getTestData();
 
   if (isLoading) {
     return (
@@ -56,7 +57,7 @@ export default function ViaDetailPage() {
     );
   }
 
-  if (error || !result) {
+  if (error || !testData) {
     return (
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -70,7 +71,7 @@ export default function ViaDetailPage() {
     );
   }
 
-  const viaScores = result?.data?.test_data?.viaIs || {};
+  const viaScores = testData?.viaIs || {};
   const topStrengths = getTopViaStrengths(viaScores, 24);
 
   // VIA Strengths with detailed information
@@ -295,9 +296,9 @@ export default function ViaDetailPage() {
             {/* Radar Chart */}
             <div>
               <ViaRadarChart scores={{
-                riasec: result?.data?.test_data?.riasec || {},
-                ocean: result?.data?.test_data?.ocean || {},
-                viaIs: result?.data?.test_data?.viaIs || {}
+                riasec: testData?.riasec || {},
+                ocean: testData?.ocean || {},
+                viaIs: testData?.viaIs || {}
               }} />
             </div>
             

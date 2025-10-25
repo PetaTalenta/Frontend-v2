@@ -1,9 +1,8 @@
 'use client';
 
-import React, { useEffect } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
-import { queryKeys } from '@/lib/tanStackConfig';
-import authService from '@/services/authService';
+import React, { useEffect, useState } from 'react';
+import { AssessmentDataProvider } from '../../../contexts/AssessmentDataContext';
+import { Skeleton } from '../../../components/results/ui-skeleton';
 
 export default function ResultsLayout({
   children,
@@ -12,34 +11,42 @@ export default function ResultsLayout({
   children: React.ReactNode;
   params: Promise<{ id: string }>;
 }) {
-  const queryClient = useQueryClient();
-  
   // Resolve params to get the assessment ID
-  const [resolvedParams, setResolvedParams] = React.useState<{ id: string } | null>(null);
+  const [resolvedParams, setResolvedParams] = useState<{ id: string } | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
     const resolveParams = async () => {
+      setIsLoading(true);
       const p = await params;
       setResolvedParams(p);
+      setIsLoading(false);
     };
     resolveParams();
   }, [params]);
   
-  useEffect(() => {
-    // Prefetch assessment data when layout loads and params are resolved
-    if (resolvedParams?.id) {
-      queryClient.prefetchQuery({
-        queryKey: queryKeys.assessments.result(resolvedParams.id),
-        queryFn: () => authService.getAssessmentResult(resolvedParams.id),
-        staleTime: 10 * 60 * 1000, // 10 minutes
-      });
-    }
-  }, [resolvedParams?.id, queryClient]);
+  // Show loading state while resolving params
+  if (isLoading || !resolvedParams?.id) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="space-y-6">
+            <Skeleton className="h-8 w-64 mb-6" />
+            <div className="space-y-6">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <Skeleton key={i} className="h-32 w-full" />
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
   
   return (
-    <div>
+    <AssessmentDataProvider assessmentId={resolvedParams.id}>
       {children}
-    </div>
+    </AssessmentDataProvider>
   );
 }
 
