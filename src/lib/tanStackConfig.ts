@@ -219,6 +219,32 @@ export const queryPrefetch = {
       gcTime: 5 * 60 * 1000, // 5 minutes cache
     });
   },
+  
+  // Phase 2: Enhanced prefetch utilities for assessment sub-pages
+  assessmentSubPage: async (id: string, type: 'riasec' | 'ocean' | 'via' | 'persona') => {
+    await queryClient.prefetchQuery({
+      queryKey: [...queryKeys.assessments.result(id), 'type', type],
+      staleTime: 20 * 60 * 1000, // 20 minutes for sub-page data
+      gcTime: 25 * 60 * 1000, // 25 minutes cache
+    });
+  },
+  
+  // Prefetch all assessment sub-pages
+  assessmentAllSubPages: async (id: string) => {
+    await Promise.all([
+      queryPrefetch.assessmentSubPage(id, 'riasec'),
+      queryPrefetch.assessmentSubPage(id, 'ocean'),
+      queryPrefetch.assessmentSubPage(id, 'via'),
+      queryPrefetch.assessmentSubPage(id, 'persona'),
+    ]);
+  },
+  
+  // Prefetch assessment data with selective loading
+  assessmentSelective: async (id: string, types: ('riasec' | 'ocean' | 'via' | 'persona')[]) => {
+    await Promise.all(
+      types.map(type => queryPrefetch.assessmentSubPage(id, type))
+    );
+  },
 } as const;
 
 // Cache utilities for progressive data loading
@@ -327,6 +353,101 @@ export const cacheUtils = {
   },
 } as const;
 
+// Phase 2: Advanced caching strategies for assessment data
+export const assessmentCacheStrategy = {
+  // Preload assessment sub-pages when main data is available
+  preloadSubPages: async (assessmentId: string) => {
+    await queryPrefetch.assessmentAllSubPages(assessmentId);
+  },
+  
+  // Selective preload based on user behavior patterns
+  preloadBasedOnBehavior: async (assessmentId: string, userAction: 'view_main' | 'view_riasec' | 'view_ocean' | 'view_via' | 'view_persona') => {
+    switch (userAction) {
+      case 'view_main':
+        // Preload all sub-pages when viewing main results
+        await queryPrefetch.assessmentAllSubPages(assessmentId);
+        break;
+      case 'view_riasec':
+        // Preload related personality data
+        await Promise.all([
+          queryPrefetch.assessmentSubPage(assessmentId, 'ocean'),
+          queryPrefetch.assessmentSubPage(assessmentId, 'persona'),
+        ]);
+        break;
+      case 'view_ocean':
+        // Preload related personality data
+        await Promise.all([
+          queryPrefetch.assessmentSubPage(assessmentId, 'riasec'),
+          queryPrefetch.assessmentSubPage(assessmentId, 'via'),
+        ]);
+        break;
+      case 'view_via':
+        // Preload character strengths data
+        await Promise.all([
+          queryPrefetch.assessmentSubPage(assessmentId, 'ocean'),
+          queryPrefetch.assessmentSubPage(assessmentId, 'persona'),
+        ]);
+        break;
+      case 'view_persona':
+        // Preload all assessment data for career context
+        await queryPrefetch.assessmentAllSubPages(assessmentId);
+        break;
+    }
+  },
+  
+  // Smart cache warming for assessment data
+  warmAssessmentCache: async (assessmentId: string) => {
+    try {
+      await Promise.all([
+        queryPrefetch.assessmentResultPriority(assessmentId),
+        queryPrefetch.assessmentAllSubPages(assessmentId),
+        queryPrefetch.userProfile(),
+        queryPrefetch.dashboardStats(),
+      ]);
+    } catch (error) {
+      console.warn('Assessment cache warming failed:', error);
+    }
+  },
+  
+  // Background sync for assessment data
+  backgroundSyncAssessment: async (assessmentId: string) => {
+    if (navigator.onLine) {
+      try {
+        // Refresh main assessment data if stale
+        const queryState = queryClient.getQueryState(queryKeys.assessments.result(assessmentId));
+        if (queryState && queryState.dataUpdatedAt) {
+          const dataAge = Date.now() - queryState.dataUpdatedAt;
+          const staleTime = 15 * 60 * 1000; // 15 minutes
+          
+          if (dataAge > staleTime) {
+            await queryClient.refetchQueries({
+              queryKey: queryKeys.assessments.result(assessmentId)
+            });
+          }
+        }
+        
+        // Prefetch related data
+        await queryPrefetch.assessmentAllSubPages(assessmentId);
+      } catch (error) {
+        console.warn('Assessment background sync failed:', error);
+      }
+    }
+  },
+  
+  // Selective cache invalidation
+  invalidateSelective: (assessmentId: string, dataType?: 'riasec' | 'ocean' | 'via' | 'persona' | 'all') => {
+    if (dataType === 'all' || !dataType) {
+      // Invalidate all assessment data
+      queryClient.invalidateQueries({ queryKey: queryKeys.assessments.result(assessmentId) });
+    } else {
+      // Invalidate specific sub-page data
+      queryClient.invalidateQueries({
+        queryKey: [...queryKeys.assessments.result(assessmentId), 'type', dataType]
+      });
+    }
+  },
+} as const;
+
 // Advanced caching strategies for dashboard stats
 export const dashboardCacheStrategy = {
   // Preload data when user is likely to need it
@@ -365,6 +486,72 @@ export const dashboardCacheStrategy = {
         console.warn('Background sync failed:', error);
       }
     }
+  },
+} as const;
+
+// Phase 2: Selective data loading utilities
+export const selectiveDataLoader = {
+  // Load specific assessment data type with optimized caching
+  loadAssessmentType: async (assessmentId: string, type: 'riasec' | 'ocean' | 'via' | 'persona') => {
+    const queryKey = [...queryKeys.assessments.result(assessmentId), 'type', type];
+    
+    // Check if data is already cached
+    const cachedData = queryClient.getQueryData(queryKey);
+    if (cachedData) {
+      return cachedData;
+    }
+    
+    // Fetch and cache the specific data
+    const result = await queryClient.fetchQuery({
+      queryKey,
+      queryFn: async () => {
+        // Get main assessment data first
+        const mainData = queryClient.getQueryData(queryKeys.assessments.result(assessmentId)) as any;
+        
+        // Extract specific data based on type
+        switch (type) {
+          case 'riasec':
+            return mainData?.data?.test_data?.riasec || null;
+          case 'ocean':
+            return mainData?.data?.test_data?.ocean || null;
+          case 'via':
+            return mainData?.data?.test_data?.viaIs || null;
+          case 'persona':
+            return mainData?.data?.test_result || null;
+          default:
+            return null;
+        }
+      },
+      staleTime: 20 * 60 * 1000, // 20 minutes
+      gcTime: 25 * 60 * 1000, // 25 minutes
+    });
+    
+    return result;
+  },
+  
+  // Load multiple assessment types efficiently
+  loadMultipleTypes: async (assessmentId: string, types: ('riasec' | 'ocean' | 'via' | 'persona')[]) => {
+    const results = await Promise.allSettled(
+      types.map(type => selectiveDataLoader.loadAssessmentType(assessmentId, type))
+    );
+    
+    return types.reduce((acc, type, index) => {
+      const result = results[index];
+      acc[type] = result.status === 'fulfilled' ? result.value : null;
+      return acc;
+    }, {} as Record<string, any>);
+  },
+  
+  // Check if specific assessment data is cached and fresh
+  isDataFresh: (assessmentId: string, type: 'riasec' | 'ocean' | 'via' | 'persona', maxAge: number = 20 * 60 * 1000) => {
+    const queryKey = [...queryKeys.assessments.result(assessmentId), 'type', type];
+    const queryState = queryClient.getQueryState(queryKey);
+    
+    if (!queryState || !queryState.dataUpdatedAt) {
+      return false;
+    }
+    
+    return Date.now() - queryState.dataUpdatedAt < maxAge;
   },
 } as const;
 

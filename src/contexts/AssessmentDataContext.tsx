@@ -3,8 +3,9 @@
 import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import authService from '../services/authService';
-import { queryKeys } from '../lib/tanStackConfig';
+import { queryKeys, assessmentCacheStrategy } from '../lib/tanStackConfig';
 import { transformAssessmentResult } from '../utils/dataTransformations';
+import { useAssessmentPrefetch, useAssessmentPrefetchByType } from '../hooks/useAssessmentPrefetch';
 import type { AssessmentResultResponse, AssessmentResultTransformed } from '../types/assessment-results';
 
 // State interface for assessment data
@@ -116,6 +117,14 @@ const CACHE_CONFIG = {
 export function AssessmentDataProvider({ children, assessmentId }: AssessmentDataProviderProps) {
   const queryClient = useQueryClient();
   const [state, dispatch] = useReducer(assessmentDataReducer, initialState);
+  
+  // Phase 2: Smart prefetching hook
+  const { prefetchAll, canPrefetch } = useAssessmentPrefetch({
+    enabled: !!assessmentId,
+    delay: 1000, // 1 second delay
+    prefetchOnMount: true,
+    prefetchOnDataChange: true,
+  });
 
   // Set assessment ID when it changes
   useEffect(() => {
@@ -155,12 +164,19 @@ export function AssessmentDataProvider({ children, assessmentId }: AssessmentDat
     
     if (query.data) {
       const transformedData = transformAssessmentResult(query.data.data);
-      dispatch({ 
-        type: 'SET_DATA', 
-        payload: { data: query.data, transformedData } 
+      dispatch({
+        type: 'SET_DATA',
+        payload: { data: query.data, transformedData }
       });
     }
   }, [query.isLoading, query.isFetching, query.error, query.data]);
+
+  // Phase 2: Trigger smart prefetching when data is available
+  useEffect(() => {
+    if (query.data && canPrefetch && assessmentId) {
+      prefetchAll();
+    }
+  }, [query.data, canPrefetch, assessmentId, prefetchAll]);
 
   // Action functions
   const refresh = () => {
@@ -247,16 +263,106 @@ export function useAssessmentData() {
 
 // Hook for selective data loading
 export function useAssessmentDataSelective(type: 'riasec' | 'ocean' | 'via' | 'persona' | 'all') {
-  const { getSpecificData, isLoading, isError, error, isDataFresh } = useAssessmentData();
+  const { getSpecificData, isLoading, isError, error, isDataFresh, assessmentId } = useAssessmentData();
+  const queryClient = useQueryClient();
   
-  const data = getSpecificData(type);
+  // Get specific data with memoization
+  const data = React.useMemo(() => {
+    return getSpecificData(type);
+  }, [getSpecificData, type]);
+  
+  // Check if specific data is prefetched
+  const isPrefetched = React.useMemo(() => {
+    if (!assessmentId) return false;
+    
+    if (type === 'all') return false; // 'all' type is not prefetched
+    
+    const queryKey = [...queryKeys.assessments.result(assessmentId), 'type', type];
+    const queryState = queryClient.getQueryState(queryKey);
+    return queryState?.status === 'success';
+  }, [assessmentId, type, queryClient]);
+  
+  // Get prefetched data if available
+  const prefetchedData = React.useMemo(() => {
+    if (!assessmentId || type === 'all') return null;
+    
+    const queryKey = [...queryKeys.assessments.result(assessmentId), 'type', type];
+    return queryClient.getQueryData(queryKey);
+  }, [assessmentId, type, queryClient]);
+  
+  // Use prefetched data if available, otherwise use context data
+  const finalData = React.useMemo(() => {
+    if (type === 'all') return data;
+    return prefetchedData || data;
+  }, [data, prefetchedData, type]);
   
   return {
-    data,
+    data: finalData,
     isLoading,
     isError,
     error,
     isDataFresh: isDataFresh(),
+    isPrefetched,
+    hasPrefetchedData: !!prefetchedData,
+  };
+}
+
+// Phase 2: Enhanced selective data loading with prefetching
+export function useAssessmentDataWithPrefetch(
+  type: 'riasec' | 'ocean' | 'via' | 'persona' | 'all',
+  options: {
+    enablePrefetch?: boolean;
+    prefetchDelay?: number;
+  } = {}
+) {
+  const { enablePrefetch = true, prefetchDelay = 500 } = options;
+  const { getSpecificData, isLoading, isError, error, isDataFresh, assessmentId } = useAssessmentData();
+  const queryClient = useQueryClient();
+  
+  // Always call the hook, but disable it for 'all' type
+  const { prefetch: prefetchSpecific, isPrefetched } = useAssessmentPrefetchByType(
+    type === 'all' ? 'riasec' : type, // Default to 'riasec' for 'all' type, but will be disabled
+    {
+      enabled: enablePrefetch && type !== 'all',
+      delay: prefetchDelay,
+    }
+  );
+  
+  // Get specific data with memoization
+  const data = React.useMemo(() => {
+    return getSpecificData(type);
+  }, [getSpecificData, type]);
+  
+  // Get prefetched data if available
+  const prefetchedData = React.useMemo(() => {
+    if (!assessmentId || type === 'all') return null;
+    
+    const queryKey = [...queryKeys.assessments.result(assessmentId), 'type', type];
+    return queryClient.getQueryData(queryKey);
+  }, [assessmentId, type, queryClient]);
+  
+  // Use prefetched data if available, otherwise use context data
+  const finalData = React.useMemo(() => {
+    if (type === 'all') return data;
+    return prefetchedData || data;
+  }, [data, prefetchedData, type]);
+  
+  // Trigger prefetch when data is available
+  React.useEffect(() => {
+    if (data && enablePrefetch && type !== 'all') {
+      prefetchSpecific();
+    }
+  }, [data, enablePrefetch, type, prefetchSpecific]);
+  
+  return {
+    data: finalData,
+    isLoading,
+    isError,
+    error,
+    isDataFresh: isDataFresh(),
+    isPrefetched,
+    hasPrefetchedData: !!prefetchedData,
+    prefetch: prefetchSpecific,
   };
 }
 

@@ -41,10 +41,12 @@
 - `src/hooks/useJobsStats.ts` - Jobs statistics fetching dengan parallel queries
 - `src/hooks/useDashboardStats.ts` - Combined dashboard stats dengan parallel fetching
 - `src/hooks/useAssessmentResult.ts` - Assessment results fetching dengan comprehensive transformation
-- `src/contexts/AssessmentDataContext.tsx` - Centralized assessment data context provider dengan reducer pattern
+- `src/hooks/useAssessmentPrefetch.ts` - Phase 2: Smart prefetching hooks untuk assessment data
+- `src/hooks/useAssessmentData.ts` - Phase 2: Enhanced selective data loading dengan prefetching
+- `src/contexts/AssessmentDataContext.tsx` - Centralized assessment data context provider dengan reducer pattern dan smart prefetching integration
 - `src/providers/AppProvider.tsx` - Unified provider untuk semua state
 - `src/providers/QueryProvider.tsx` - TanStack Query provider wrapper
-- `src/lib/tanStackConfig.ts` - TanStack Query configuration dengan optimal settings
+- `src/lib/tanStackConfig.ts` - TanStack Query configuration dengan optimal settings dan Phase 2 cache strategies
 - `src/utils/dataTransformations.ts` - Core transformation functions dengan validation dan sanitization
 - `src/services/authService.ts` - API layer dengan comprehensive methods
 
@@ -203,11 +205,14 @@
 - `src/lib/performanceOptimizer.ts` - Performance optimization strategies
 - `scripts/optimize-performance.js` - Build-time optimization scripts
 - `public/sw.js` - Service Worker dengan performance-focused caching
-- `src/lib/tanStackConfig.ts` - Cache warming dan prefetching utilities
+- `src/lib/tanStackConfig.ts` - Cache warming dan prefetching utilities, Phase 2 assessment cache strategies, dan selective data loading
 - `src/components/results/AssessmentScoresSummary.tsx` - Navigation buttons dengan prefetching optimization menggunakan useRouter hook
-- `src/app/results/[id]/layout.tsx` - Assessment data prefetch dengan TanStack Query
+- `src/app/results/[id]/layout.tsx` - Assessment data prefetch dengan TanStack Query dan AssessmentDataProvider integration
 - `src/app/results/[id]/riasec/page.tsx` - Real data integration dengan useAssessmentResult hook dan enhanced UI dengan statistics panel, personality profile summary, dan quick insights
 - `src/app/results/[id]/ocean/page.tsx` - Real data integration dengan useAssessmentResult hook
 - `src/app/results/[id]/via/page.tsx` - Real data integration dengan useAssessmentResult hook
 - `src/hooks/useAssessmentResult.ts` - Real data fetching dengan comprehensive caching
+- `src/hooks/useAssessmentPrefetch.ts` - Phase 2: Smart prefetching hooks dengan configurable delays dan error handling
+- `src/hooks/useAssessmentData.ts` - Phase 2: Enhanced selective data loading dengan prefetching integration
+- `src/contexts/AssessmentDataContext.tsx` - Phase 2: Enhanced context provider dengan smart prefetching integration
 - `src/services/authService.ts` - API layer untuk real assessment data
