@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui-card';
 import { Badge } from './ui-badge';
 import { ArrowLeft, User, Star, Target, Users, Briefcase, TrendingUp, BookOpen, Lightbulb, GraduationCap, AlertTriangle, Building, Shield, Zap, Brain, Heart } from 'lucide-react';
@@ -11,16 +11,211 @@ import {
   getDummyAssessmentResult,
   getDummyPersonaProfile
 } from '../../data/dummy-assessment-data';
+import { useAssessmentResult } from '@/hooks/useAssessmentResult';
 
 interface PersonaProfileFullProps {
   result?: AssessmentResult;
+  resultId?: string;
 }
 
-export default function PersonaProfileFull({ result }: PersonaProfileFullProps) {
-  // Use dummy data if no result provided
-  const assessmentResult = result || getDummyAssessmentResult();
-  const profile: PersonaProfile = assessmentResult.persona_profile || getDummyPersonaProfile();
-  const industryScores = assessmentResult.assessment_data.industryScore || {};
+function PersonaProfileFull({ result, resultId }: PersonaProfileFullProps) {
+  // Get result ID from props
+  const assessmentId = resultId || '';
+  
+  // Use API hook for fetching assessment data
+  const {
+    data: apiData,
+    transformedData,
+    isLoading,
+    isError
+  } = useAssessmentResult(assessmentId);
+  
+  // Use dummy data as fallback or when no ID provided
+  const dummyResult = useMemo(() => getDummyAssessmentResult(), []);
+  const shouldUseDummy = !assessmentId || isError;
+  const assessmentResult = shouldUseDummy ? result || dummyResult : apiData?.data;
+  
+  // Use transformed data or fallback to dummy data
+  const profile = useMemo(() => {
+    if (transformedData?.test_result) {
+      return transformedData.test_result;
+    }
+    // Handle both AssessmentResult and AssessmentResultData types
+    if (assessmentResult && 'persona_profile' in assessmentResult) {
+      return (assessmentResult as any).persona_profile || getDummyPersonaProfile();
+    }
+    return getDummyPersonaProfile();
+  }, [transformedData, assessmentResult]);
+  
+  const industryScores = useMemo(() => {
+    // Handle both AssessmentResult and AssessmentResultData types
+    if (assessmentResult && 'assessment_data' in assessmentResult) {
+      return (assessmentResult as any).assessment_data?.industryScore || {};
+    }
+    return {};
+  }, [assessmentResult]);
+
+  // Show loading state while fetching data
+  if (isLoading && !shouldUseDummy) {
+    return (
+      <Card className="bg-white border-gray-200 shadow-sm">
+        <CardContent className="p-6">
+          <div className="space-y-6">
+            {/* Title Card Skeleton */}
+            <div className="bg-gradient-to-br from-[#6475e9] to-[#5a6bd8] text-white border-none shadow-lg rounded-lg p-6">
+              <div className="text-center">
+                <div className="p-3 bg-white/20 rounded-full w-16 h-16 mx-auto mb-3 animate-pulse"></div>
+                <div className="h-6 w-32 bg-white/30 rounded animate-pulse mb-1"></div>
+                <div className="h-4 w-48 bg-white/20 rounded animate-pulse"></div>
+              </div>
+            </div>
+
+            {/* Description Card Skeleton */}
+            <div className="bg-white border-gray-200 shadow-sm rounded-lg">
+              <div className="p-6 space-y-4">
+                <div className="h-4 w-32 bg-gray-200 rounded animate-pulse"></div>
+                <div className="h-20 bg-gray-200 rounded animate-pulse"></div>
+              </div>
+            </div>
+
+            {/* Strengths Card Skeleton */}
+            <div className="bg-white border-gray-200 shadow-sm rounded-lg">
+              <div className="p-6 space-y-4">
+                <div className="h-4 w-40 bg-gray-200 rounded animate-pulse"></div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="h-16 bg-gray-200 rounded animate-pulse"></div>
+                  <div className="h-16 bg-gray-200 rounded animate-pulse"></div>
+                </div>
+              </div>
+            </div>
+
+            {/* Industry Compatibility Card Skeleton */}
+            <div className="bg-white border-gray-200 shadow-sm rounded-lg">
+              <div className="p-6">
+                <div className="h-32 bg-gray-200 rounded animate-pulse"></div>
+              </div>
+            </div>
+
+            {/* Learning Style & Motivators Card Skeleton */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="bg-white border-gray-200 shadow-sm rounded-lg">
+                <div className="p-6">
+                  <div className="h-4 w-32 bg-gray-200 rounded animate-pulse mb-4"></div>
+                  <div className="h-24 bg-gray-200 rounded animate-pulse"></div>
+                </div>
+              </div>
+              <div className="bg-white border-gray-200 shadow-sm rounded-lg">
+                <div className="p-6">
+                  <div className="h-4 w-32 bg-gray-200 rounded animate-pulse mb-4"></div>
+                  <div className="space-y-2">
+                    <div className="h-8 bg-gray-200 rounded animate-pulse"></div>
+                    <div className="h-8 bg-gray-200 rounded animate-pulse"></div>
+                    <div className="h-8 bg-gray-200 rounded animate-pulse"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Insights Card Skeleton */}
+            <div className="bg-white border-gray-200 shadow-sm rounded-lg">
+              <div className="p-6">
+                <div className="h-4 w-40 bg-gray-200 rounded animate-pulse mb-4"></div>
+                <div className="grid grid-cols-1 gap-3">
+                  <div className="h-12 bg-gray-200 rounded animate-pulse"></div>
+                  <div className="h-12 bg-gray-200 rounded animate-pulse"></div>
+                  <div className="h-12 bg-gray-200 rounded animate-pulse"></div>
+                </div>
+              </div>
+            </div>
+
+            {/* Role Model Card Skeleton */}
+            <div className="bg-white border-gray-200 shadow-sm rounded-lg">
+              <div className="p-6">
+                <div className="h-4 w-32 bg-gray-200 rounded animate-pulse mb-4"></div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="h-16 bg-gray-200 rounded animate-pulse"></div>
+                  <div className="h-16 bg-gray-200 rounded animate-pulse"></div>
+                  <div className="h-16 bg-gray-200 rounded animate-pulse"></div>
+                </div>
+              </div>
+            </div>
+
+            {/* Career Recommendations Card Skeleton */}
+            <div className="bg-white border-gray-200 shadow-sm rounded-lg">
+              <div className="p-6">
+                <div className="h-4 w-40 bg-gray-200 rounded animate-pulse mb-4"></div>
+                <div className="space-y-3">
+                  <div className="h-20 bg-gray-200 rounded animate-pulse"></div>
+                  <div className="h-20 bg-gray-200 rounded animate-pulse"></div>
+                  <div className="h-20 bg-gray-200 rounded animate-pulse"></div>
+                </div>
+              </div>
+            </div>
+
+            {/* Skills & Environment Card Skeleton */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="bg-white border-gray-200 shadow-sm rounded-lg">
+                <div className="p-6">
+                  <div className="h-4 w-32 bg-gray-200 rounded animate-pulse mb-4"></div>
+                  <div className="space-y-2">
+                    <div className="h-8 bg-gray-200 rounded animate-pulse"></div>
+                    <div className="h-8 bg-gray-200 rounded animate-pulse"></div>
+                    <div className="h-8 bg-gray-200 rounded animate-pulse"></div>
+                    <div className="h-8 bg-gray-200 rounded animate-pulse"></div>
+                    <div className="h-8 bg-gray-200 rounded animate-pulse"></div>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-white border-gray-200 shadow-sm rounded-lg">
+                <div className="p-6">
+                  <div className="h-4 w-32 bg-gray-200 rounded animate-pulse mb-4"></div>
+                  <div className="h-16 bg-gray-200 rounded animate-pulse"></div>
+                </div>
+              </div>
+            </div>
+
+            {/* Development Activities Card Skeleton */}
+            <div className="bg-white border-gray-200 shadow-sm rounded-lg">
+              <div className="p-6">
+                <div className="h-4 w-40 bg-gray-200 rounded animate-pulse mb-4"></div>
+                <div className="space-y-3">
+                  <div className="h-16 bg-gray-200 rounded animate-pulse"></div>
+                  <div className="h-16 bg-gray-200 rounded animate-pulse"></div>
+                  <div className="h-16 bg-gray-200 rounded animate-pulse"></div>
+                </div>
+              </div>
+            </div>
+
+            {/* Tips Card Skeleton */}
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200 rounded-lg">
+              <div className="p-4">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-blue-100 rounded-lg animate-pulse"></div>
+                  <div className="space-y-1.5">
+                    <div className="h-4 bg-blue-100 rounded animate-pulse w-48"></div>
+                    <div className="h-4 bg-blue-100 rounded animate-pulse w-64"></div>
+                    <div className="h-4 bg-blue-100 rounded animate-pulse w-56"></div>
+                    <div className="h-4 bg-blue-100 rounded animate-pulse w-52"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Show error state
+  if (isError && !shouldUseDummy) {
+    return (
+      <Card className="bg-white border-gray-200 shadow-sm">
+        <CardContent className="p-6">
+          <p className="text-gray-600">Gagal memuat data profil.</p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (!profile) {
     return (
@@ -93,12 +288,12 @@ export default function PersonaProfileFull({ result }: PersonaProfileFullProps) 
           <CardHeader className="pb-0">
             <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
               <Star className="w-5 h-5 text-yellow-500" />
-              Kekuatan Utama
+              Kekuatan Utama ({profile.strengthCount || profile.strengths.length})
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {profile.strengths.map((strength, idx) => (
+              {profile.strengths.map((strength: string, idx: number) => (
                 <div key={idx} className="flex items-start gap-3 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
                   <div className="flex items-center justify-center w-7 h-7 bg-yellow-500 text-white text-xs font-bold rounded-full flex-shrink-0 mt-0.5">
                     {idx + 1}
@@ -180,7 +375,7 @@ export default function PersonaProfileFull({ result }: PersonaProfileFullProps) 
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 gap-2">
-                  {profile.coreMotivators.map((m, idx) => (
+                  {profile.coreMotivators.map((m: string, idx: number) => (
                     <div key={idx} className="flex items-center gap-3 p-2.5 bg-pink-50 rounded-lg border border-pink-200">
                       <div className="flex items-center justify-center w-6 h-6 bg-pink-500 text-white text-[10px] font-bold rounded-full flex-shrink-0">
                         {idx + 1}
@@ -201,12 +396,12 @@ export default function PersonaProfileFull({ result }: PersonaProfileFullProps) 
           <CardHeader className="pb-0">
             <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
               <Target className="w-5 h-5 text-blue-500" />
-              Insights & Rekomendasi
+              Insights & Rekomendasi ({profile.insightCount || profile.insights.length})
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 gap-3">
-              {profile.insights.map((insight, idx) => (
+              {profile.insights.map((insight: string, idx: number) => (
                 <div key={idx} className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
                   <div className="flex items-center justify-center w-7 h-7 bg-blue-500 text-white text-xs font-bold rounded-full flex-shrink-0 mt-0.5">
                     {idx + 1}
@@ -230,7 +425,7 @@ export default function PersonaProfileFull({ result }: PersonaProfileFullProps) 
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {profile.roleModel && profile.roleModel.length > 0 ? (
-              profile.roleModel.map((model, idx) => {
+              profile.roleModel.map((model: any, idx: number) => {
                 const name = typeof model === 'string' ? model : model.name;
                 const title = typeof model === 'string' ? undefined : model.title;
                 return (
@@ -260,12 +455,12 @@ export default function PersonaProfileFull({ result }: PersonaProfileFullProps) 
           <CardHeader className="pb-0">
             <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
               <Briefcase className="w-5 h-5 text-purple-500" />
-              Rekomendasi Karir
+              Rekomendasi Karir ({profile.careerCount || profile.careerRecommendation.length})
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {profile.careerRecommendation.map((career, idx) => (
+              {profile.careerRecommendation.map((career: any, idx: number) => (
                 <div key={idx} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex-1">
@@ -273,9 +468,6 @@ export default function PersonaProfileFull({ result }: PersonaProfileFullProps) 
                         <h3 className="text-base font-semibold text-gray-900">{career.careerName}</h3>
                         <Badge variant="secondary" className="bg-purple-100 text-purple-700 font-medium">Recommended</Badge>
                       </div>
-                      {career.description && (
-                        <p className="text-gray-700 text-sm mb-2">{career.description}</p>
-                      )}
                       {career.justification && (
                         <p className="text-gray-600 leading-relaxed mb-2">{career.justification}</p>
                       )}
@@ -290,16 +482,16 @@ export default function PersonaProfileFull({ result }: PersonaProfileFullProps) 
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm">
                         <div>
-                          <span className="text-gray-600">Industry Growth: </span>
-                          <span className="font-medium">{career.careerProspect.industryGrowth}</span>
+                          <span className="text-gray-600">Growth: </span>
+                          <span className="font-medium">{career.careerProspect.growth}</span>
                         </div>
                         <div>
                           <span className="text-gray-600">Salary: </span>
-                          <span className="font-medium">{career.careerProspect.salaryPotential}</span>
+                          <span className="font-medium">{career.careerProspect.salary}</span>
                         </div>
                         <div>
-                          <span className="text-gray-600">Job Availability: </span>
-                          <span className="font-medium">{career.careerProspect.jobAvailability}</span>
+                          <span className="text-gray-600">Demand: </span>
+                          <span className="font-medium">{career.careerProspect.demand}</span>
                         </div>
                       </div>
                     </div>
@@ -324,7 +516,7 @@ export default function PersonaProfileFull({ result }: PersonaProfileFullProps) 
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 gap-2">
-                  {profile.skillSuggestion.map((skill, idx) => (
+                  {profile.skillSuggestion.map((skill: string, idx: number) => (
                     <div key={idx} className="flex items-center gap-3 p-2.5 bg-yellow-50 rounded-lg border border-yellow-200">
                       <div className="flex items-center justify-center w-6 h-6 bg-yellow-500 text-white text-[10px] font-bold rounded-full flex-shrink-0">
                         {idx + 1}
@@ -366,7 +558,7 @@ export default function PersonaProfileFull({ result }: PersonaProfileFullProps) 
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 gap-2">
-              {profile.possiblePitfalls.map((pit, idx) => (
+              {profile.possiblePitfalls.map((pit: string, idx: number) => (
                 <div key={idx} className="flex items-start gap-3 p-2.5 bg-red-50 rounded-lg border border-red-200">
                   <div className="flex items-center justify-center w-6 h-6 bg-red-500 text-white text-xs font-bold rounded-full flex-shrink-0 mt-0.5">!</div>
                   <p className="text-gray-900 text-sm leading-relaxed">{pit}</p>
@@ -390,7 +582,7 @@ export default function PersonaProfileFull({ result }: PersonaProfileFullProps) 
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 gap-3">
-                  {profile.developmentActivities.projectIdeas.map((proj, idx) => (
+                  {profile.developmentActivities.projectIdeas?.map((proj: string, idx: number) => (
                     <div key={idx} className="flex items-start gap-3 p-3 bg-orange-50 rounded-lg border border-orange-200">
                       <div className="flex items-center justify-center w-7 h-7 bg-orange-500 text-white text-xs font-bold rounded-full flex-shrink-0 mt-0.5">{idx + 1}</div>
                       <p className="text-gray-900 font-medium leading-relaxed">{proj}</p>
@@ -411,7 +603,7 @@ export default function PersonaProfileFull({ result }: PersonaProfileFullProps) 
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {profile.developmentActivities.extracurricular.map((act, idx) => (
+                  {profile.developmentActivities.extracurricular?.map((act: string, idx: number) => (
                     <div key={idx} className="flex items-start gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
                       <div className="flex items-center justify-center w-7 h-7 bg-green-500 text-white text-xs font-bold rounded-full flex-shrink-0 mt-0.5">{idx + 1}</div>
                       <p className="text-gray-900 font-medium leading-relaxed">{act}</p>
@@ -432,7 +624,7 @@ export default function PersonaProfileFull({ result }: PersonaProfileFullProps) 
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 gap-4">
-                  {profile.developmentActivities.bookRecommendations.map((book, idx) => (
+                  {profile.developmentActivities.bookRecommendations?.map((book: any, idx: number) => (
                     <div key={idx} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                       <div className="flex items-start gap-3">
                         <div className="flex items-center justify-center w-10 h-10 bg-blue-100 rounded-lg flex-shrink-0">
@@ -479,4 +671,12 @@ export default function PersonaProfileFull({ result }: PersonaProfileFullProps) 
     </div>
   );
 }
+
+export default React.memo(PersonaProfileFull, (prevProps, nextProps) => {
+  // Custom comparison for optimal performance
+  return (
+    prevProps.resultId === nextProps.resultId &&
+    prevProps.result === nextProps.result
+  );
+});
 

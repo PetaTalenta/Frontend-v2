@@ -1,11 +1,12 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import authService, { ApiError } from '@/services/authService';
 import { queryKeys, queryInvalidation, queryPrefetch } from '@/lib/tanStackConfig';
-import type { 
-  AssessmentResultResponse, 
-  AssessmentResultError, 
+import { transformAssessmentResult } from '@/utils/dataTransformations';
+import type {
+  AssessmentResultResponse,
+  AssessmentResultError,
   UseAssessmentResultOptions,
-  AssessmentResultTransformed 
+  AssessmentResultTransformed
 } from '@/types/assessment-results';
 
 // Default options for the hook
@@ -65,9 +66,9 @@ export function useAssessmentResult(
     }
   };
 
-  // Transform data for component consumption
-  const transformedData = query.data?.data ? 
-    transformAssessmentResult(query.data.data) : 
+  // Transform data for component consumption using comprehensive transformation
+  const transformedData = query.data?.data ?
+    transformAssessmentResult(query.data.data) :
     undefined;
 
   // Utility functions for common operations
@@ -108,39 +109,8 @@ export function useAssessmentResult(
   };
 }
 
-/**
- * Transform assessment result data for better component consumption
- */
-function transformAssessmentResult(data: AssessmentResultResponse['data']): AssessmentResultTransformed {
-  const { test_data, test_result, ...rest } = data;
-
-  // Calculate totals for test scores
-  const riasecTotal = Object.values(test_data.riasec).reduce((sum, score) => sum + score, 0);
-  const oceanTotal = Object.values(test_data.ocean).reduce((sum, score) => sum + score, 0);
-  const viaIsTotal = Object.values(test_data.viaIs).reduce((sum, score) => sum + score, 0);
-
-  // Calculate counts for test result
-  const careerCount = test_result.careerRecommendation?.length || 0;
-  const strengthCount = test_result.strengths?.length || 0;
-  const weaknessCount = test_result.weaknesses?.length || 0;
-  const insightCount = test_result.insights?.length || 0;
-
-  return {
-    ...rest,
-    test_data: {
-      riasec: { ...test_data.riasec, total: riasecTotal },
-      ocean: { ...test_data.ocean, total: oceanTotal },
-      viaIs: { ...test_data.viaIs, total: viaIsTotal },
-    },
-    test_result: {
-      ...test_result,
-      careerCount,
-      strengthCount,
-      weaknessCount,
-      insightCount,
-    },
-  };
-}
+// Note: transformAssessmentResult is now imported from dataTransformations.ts
+// This removes the double transformation pattern and ensures comprehensive transformation is used
 
 /**
  * Hook for managing multiple assessment results

@@ -10,15 +10,16 @@ import OptimizedChart from '../ui/OptimizedChart';
 import {
   AssessmentResult,
   AssessmentScores,
+  PersonaProfile,
   getDummyAssessmentResult,
   getDummyAssessmentScores
 } from '../../data/dummy-assessment-data';
-// Removed imports for screenshot and PDF utils since they're not available
 import PersonaProfileSummary from './PersonaProfileSummary';
 import AssessmentScoresSummary from './AssessmentScoresSummary';
 import ResultSummaryStats from './ResultSummaryStats';
 import VisualSummary from './VisualSummary';
 import { removeDebounced, flushDebounced } from '../../utils/localStorageUtils';
+import { useAssessmentResult } from '@/hooks/useAssessmentResult';
 
 // Dynamic imports for chart components to improve compilation performance
 const AssessmentRadarChart = dynamic(() => import('./AssessmentRadarChart'), {
@@ -176,10 +177,25 @@ function ResultsPageClientComponent({ initialResult, resultId }: ResultsPageClie
   const router = useRouter();
   const searchParams = useSearchParams();
   
-  // Use dummy data if no result provided
+  // Get result ID from props or search params
+  const assessmentId = resultId || searchParams.get('id') || '';
+  
+  // Use API hook for fetching assessment data
+  const {
+    data: apiData,
+    transformedData,
+    isLoading,
+    isError,
+    error
+  } = useAssessmentResult(assessmentId);
+  
+  // Use dummy data as fallback or when no ID provided
   const dummyResult = useMemo(() => getDummyAssessmentResult(), []);
-  const assessmentResult = initialResult || dummyResult;
-  const dummyResultId = useMemo(() => resultId || dummyResult.id, [resultId, dummyResult.id]);
+  const shouldUseDummy = !assessmentId || isError;
+  // Use transformed data directly for better performance and maintainability
+  const assessmentResult = shouldUseDummy ? initialResult || dummyResult : dummyResult;
+  
+  const dummyResultId = useMemo(() => assessmentId || dummyResult.id, [assessmentId, dummyResult.id]);
   
   const [result, setResult] = useState<AssessmentResult>(assessmentResult);
   const [exporting, setExporting] = useState(false);
@@ -216,19 +232,37 @@ function ResultsPageClientComponent({ initialResult, resultId }: ResultsPageClie
     }
   }, []); // Empty dependency array = run only once on mount
 
-  // Helper function to extract scores from assessment_data
-  const extractScores = useCallback((assessmentData: any): AssessmentScores | null => {
-    if (!assessmentData) {
+  // Helper function to extract scores from transformed data or assessment_data
+  const extractScores = useCallback((source: any): AssessmentScores | null => {
+    if (!source) {
       return null;
     }
 
-    // Handle the actual API response structure (without assessmentName)
-    if (assessmentData.riasec && assessmentData.ocean && assessmentData.viaIs) {
+    // Handle transformed data structure
+    if (source.test_data) {
+      const { test_data } = source;
       return {
-        riasec: assessmentData.riasec,
-        ocean: assessmentData.ocean,
-        viaIs: assessmentData.viaIs,
-        industryScore: assessmentData.industryScore
+        riasec: test_data.riasec,
+        ocean: test_data.ocean,
+        viaIs: test_data.viaIs,
+        industryScore: {
+          technology: Math.round((test_data.riasec.investigative + test_data.riasec.realistic) / 2),
+          healthcare: Math.round((test_data.riasec.social + test_data.riasec.investigative) / 2),
+          education: Math.round((test_data.riasec.social + test_data.riasec.investigative + test_data.riasec.artistic) / 3),
+          business: Math.round((test_data.riasec.enterprising + test_data.riasec.conventional + test_data.riasec.social) / 3),
+          creative: Math.round((test_data.riasec.artistic + test_data.riasec.investigative + test_data.riasec.enterprising) / 3),
+          service: Math.round((test_data.riasec.social + test_data.riasec.enterprising) / 2)
+        }
+      };
+    }
+
+    // Handle legacy assessment_data structure
+    if (source.riasec && source.ocean && source.viaIs) {
+      return {
+        riasec: source.riasec,
+        ocean: source.ocean,
+        viaIs: source.viaIs,
+        industryScore: source.industryScore
       };
     }
 
@@ -236,7 +270,12 @@ function ResultsPageClientComponent({ initialResult, resultId }: ResultsPageClie
   }, []);
 
   // Extract scores once to avoid multiple calls
-  const scores = useMemo(() => extractScores(result.assessment_data), [extractScores, result.assessment_data]);
+  const scores = useMemo(() => {
+    if (transformedData && !shouldUseDummy) {
+      return extractScores(transformedData);
+    }
+    return extractScores(result.assessment_data);
+  }, [extractScores, transformedData, result.assessment_data, shouldUseDummy]);
 
   const handleBack = useCallback(() => {
     router.push('/dashboard');
@@ -379,6 +418,82 @@ function ResultsPageClientComponent({ initialResult, resultId }: ResultsPageClie
     }
   }, []);
 
+  // Show loading state while fetching data
+  if (isLoading && !shouldUseDummy) {
+    return (
+      <div className="min-h-screen bg-[#f8fafc] p-6">
+        <div className="max-w-7xl mx-auto space-y-6">
+          {/* Header Skeleton */}
+          <div className="flex flex-col gap-2 sm:gap-4 mb-2">
+            <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-4">
+              <div className="flex items-center gap-2 sm:gap-4">
+                <div className="h-10 w-20 bg-gray-200 rounded animate-pulse"></div>
+                <div className="h-10 w-32 bg-gray-200 rounded animate-pulse"></div>
+              </div>
+              <div className="flex items-center gap-2 sm:gap-2">
+                <div className="h-10 w-24 bg-gray-200 rounded animate-pulse"></div>
+                <div className="h-10 w-20 bg-gray-200 rounded animate-pulse"></div>
+                <div className="h-10 w-16 bg-gray-200 rounded animate-pulse"></div>
+              </div>
+            </div>
+            <div className="flex flex-col items-start sm:items-start mt-2 sm:mt-0">
+              <div className="h-8 w-64 bg-gray-200 rounded animate-pulse mb-2"></div>
+              <div className="h-4 w-48 bg-gray-200 rounded animate-pulse"></div>
+            </div>
+          </div>
+
+          {/* Content Skeleton */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Left Column Skeleton */}
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="h-24 bg-gray-200 rounded animate-pulse"></div>
+                <div className="h-24 bg-gray-200 rounded animate-pulse"></div>
+                <div className="h-24 bg-gray-200 rounded animate-pulse"></div>
+                <div className="h-24 bg-gray-200 rounded animate-pulse"></div>
+              </div>
+              <div className="h-64 bg-gray-200 rounded animate-pulse"></div>
+            </div>
+
+            {/* Right Column Skeleton */}
+            <div className="space-y-6">
+              <div className="h-64 bg-gray-200 rounded animate-pulse"></div>
+            </div>
+          </div>
+
+          {/* Charts Skeleton */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="h-80 bg-gray-200 rounded animate-pulse"></div>
+            <div className="h-80 bg-gray-200 rounded animate-pulse"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (isError && !shouldUseDummy) {
+    return (
+      <div className="min-h-screen bg-[#f8fafc] p-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center py-12">
+            <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+            <h1 className="text-2xl font-bold text-[#1f2937] mb-2">
+              Error Memuat Hasil Assessment
+            </h1>
+            <p className="text-[#6b7280] mb-6">
+              {error?.message || 'Terjadi kesalahan saat memuat hasil assessment.'}
+            </p>
+            <Button onClick={handleBack} className="bg-[#6475e9] hover:bg-[#5a6bd8]">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Kembali ke Dashboard
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!result) {
     return (
       <div className="min-h-screen bg-[#f8fafc] p-6">
@@ -477,10 +592,10 @@ function ResultsPageClientComponent({ initialResult, resultId }: ResultsPageClie
           {/* Bottom row: Title and Date, always below buttons on mobile */}
           <div className="flex flex-col items-start sm:items-start mt-2 sm:mt-0">
             <h1 className="text-2xl font-bold text-[#1f2937]">
-              Hasil Assessment - {result.persona_profile?.archetype || 'Assessment'}
+              Hasil Assessment - {(transformedData?.test_result?.archetype || result.persona_profile?.archetype) || 'Assessment'}
             </h1>
             <p className="text-sm text-[#6b7280]">
-              Tanggal: {formatDateID(result)}
+              Tanggal: {formatDateID(transformedData || result)}
             </p>
           </div>
         </div>
@@ -488,7 +603,7 @@ function ResultsPageClientComponent({ initialResult, resultId }: ResultsPageClie
         {/* Content */}
         <div className="space-y-6">
           {/* Main Layout - 2 Columns */}
-          {(scores || result.persona_profile) && (
+          {(scores || transformedData?.test_result || result.persona_profile) && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Left Column */}
               <div className="space-y-6">
@@ -498,9 +613,15 @@ function ResultsPageClientComponent({ initialResult, resultId }: ResultsPageClie
                 )}
 
                 {/* Profil Kepribadian Anda */}
-                {result.persona_profile && (
+                {(transformedData?.test_result || result.persona_profile) && (
                   <div ref={personaCardRef}>
-                    <PersonaProfileSummary persona={result.persona_profile} resultId={dummyResultId} />
+                    <PersonaProfileSummary
+                      persona={{
+                        ...(transformedData?.test_result || result.persona_profile),
+                        riskTolerance: (transformedData?.test_result?.riskTolerance || result.persona_profile?.riskTolerance) as 'high' | 'moderate' | 'low'
+                      } as PersonaProfile}
+                      resultId={dummyResultId}
+                    />
                   </div>
                 )}
               </div>
@@ -537,7 +658,7 @@ function ResultsPageClientComponent({ initialResult, resultId }: ResultsPageClie
           )}
 
           {/* Show loading message if data is not available */}
-          {(!scores || !result.persona_profile) && (
+          {(!scores || !(transformedData?.test_result || result.persona_profile)) && !isLoading && (
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#6475e9] mx-auto mb-4"></div>
               <p className="text-gray-600">Loading assessment data...</p>
@@ -549,4 +670,10 @@ function ResultsPageClientComponent({ initialResult, resultId }: ResultsPageClie
   );
 }
 
-export default React.memo(ResultsPageClientComponent)
+export default React.memo(ResultsPageClientComponent, (prevProps, nextProps) => {
+  // Custom comparison for optimal performance
+  return (
+    prevProps.resultId === nextProps.resultId &&
+    prevProps.initialResult === nextProps.initialResult
+  );
+})

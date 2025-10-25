@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui-card';
 import { Badge } from './ui-badge';
 import { Progress } from './ui-progress';
@@ -15,14 +15,179 @@ import {
   getTopViaStrengths,
   getDummyAssessmentScores
 } from '../../data/dummy-assessment-data';
+import { useAssessmentResult } from '@/hooks/useAssessmentResult';
 
 interface CombinedAssessmentGridProps {
   scores?: AssessmentScores;
+  resultId?: string;
 }
 
-export default function CombinedAssessmentGrid({ scores }: CombinedAssessmentGridProps) {
-  // Use dummy data if no scores provided
-  const assessmentScores = scores || getDummyAssessmentScores();
+function CombinedAssessmentGrid({ scores, resultId }: CombinedAssessmentGridProps) {
+  // Get result ID from props
+  const assessmentId = resultId || '';
+  
+  // Use API hook for fetching assessment data
+  const { 
+    transformedData, 
+    isLoading, 
+    isError 
+  } = useAssessmentResult(assessmentId);
+  
+  // Extract scores from transformed data or use props
+  const assessmentScores = useMemo(() => {
+    if (transformedData?.test_data) {
+      return {
+        riasec: transformedData.test_data.riasec,
+        ocean: transformedData.test_data.ocean,
+        viaIs: transformedData.test_data.viaIs,
+        industryScore: {}
+      };
+    }
+    return scores || getDummyAssessmentScores();
+  }, [transformedData, scores]);
+
+  // Get dominant types and top strengths
+  const dominantRiasec = useMemo(() => getDominantRiasecType(assessmentScores.riasec), [assessmentScores.riasec]);
+  const topViaStrengths = useMemo(() => getTopViaStrengths(assessmentScores.viaIs, 3), [assessmentScores.viaIs]);
+  
+  // Get highest Big Five trait
+  const oceanEntries = useMemo(() => Object.entries(assessmentScores.ocean).sort(([,a], [,b]) => b - a), [assessmentScores.ocean]);
+  const topOceanTrait = useMemo(() => oceanEntries[0], [oceanEntries]);
+  
+  // Calculate overall scores
+  const riasecAverage = useMemo(() => Math.round(
+    Object.values(assessmentScores.riasec).reduce((sum, score) => sum + score, 0) / 6
+  ), [assessmentScores.riasec]);
+  
+  const oceanAverage = useMemo(() => Math.round(
+    Object.values(assessmentScores.ocean).reduce((sum, score) => sum + score, 0) / 5
+  ), [assessmentScores.ocean]);
+  
+  const viaAverage = useMemo(() => Math.round(
+    Object.values(assessmentScores.viaIs).reduce((sum, score) => sum + score, 0) / 24
+  ), [assessmentScores.viaIs]);
+
+  const overallScore = useMemo(() => Math.round((riasecAverage + oceanAverage + viaAverage) / 3), [riasecAverage, oceanAverage, viaAverage]);
+
+  // Show loading state while fetching data
+  if (isLoading && !scores) {
+    return (
+      <div className="w-full max-w-[1280px] mx-auto">
+        <div className="grid grid-cols-2 gap-6 lg:gap-8 h-auto">
+          {/* RIASEC Card Skeleton */}
+          <Card className="bg-white border-[#eaecf0] h-[600px] lg:h-[750px]">
+            <CardHeader className="pb-4 lg:pb-6">
+              <div className="flex items-center gap-2 lg:gap-3">
+                <div className="p-2 lg:p-3 bg-[#e7eaff] rounded-lg animate-pulse w-12 h-12"></div>
+                <div className="w-32 lg:w-40 h-6 bg-gray-200 rounded animate-pulse"></div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4 lg:space-y-5 h-[calc(100%-120px)] lg:h-[calc(100%-140px)]">
+              <div className="bg-gradient-to-r from-[#6475e9] to-[#4f46e5] text-white rounded-lg p-4 lg:p-6 animate-pulse h-20"></div>
+              <div className="h-[280px] -mx-2 bg-gray-200 rounded animate-pulse"></div>
+              <div className="space-y-2">
+                <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+                <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+                <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* OCEAN Card Skeleton */}
+          <Card className="bg-white border-[#eaecf0] h-[600px]">
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-2">
+                <div className="p-2 bg-[#e7eaff] rounded-lg animate-pulse w-12 h-12"></div>
+                <div className="w-32 h-6 bg-gray-200 rounded animate-pulse"></div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4 h-[calc(100%-120px)]">
+              <div className="bg-gradient-to-r from-[#10b981] to-[#059669] text-white rounded-lg p-4 animate-pulse h-20"></div>
+              <div className="h-[280px] -mx-2 bg-gray-200 rounded animate-pulse"></div>
+              <div className="space-y-2">
+                <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+                <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+                <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+                <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+                <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* VIA Card Skeleton */}
+          <Card className="bg-white border-[#eaecf0] h-[600px]">
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-2">
+                <div className="p-2 bg-[#e7eaff] rounded-lg animate-pulse w-12 h-12"></div>
+                <div className="w-32 h-6 bg-gray-200 rounded animate-pulse"></div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4 h-[calc(100%-120px)]">
+              <div className="bg-gradient-to-r from-[#8b5cf6] to-[#7c3aed] text-white rounded-lg p-4 animate-pulse h-20"></div>
+              <div className="h-[280px] -mx-2 bg-gray-200 rounded animate-pulse"></div>
+              <div className="space-y-2">
+                <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+                <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+                <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+                <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+                <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Overall Summary Card Skeleton */}
+          <Card className="bg-white border-[#eaecf0] h-[600px]">
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-2">
+                <div className="p-2 bg-[#e7eaff] rounded-lg animate-pulse w-12 h-12"></div>
+                <div className="w-32 h-6 bg-gray-200 rounded animate-pulse"></div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4 h-[calc(100%-120px)]">
+              <div className="bg-gradient-to-r from-[#f59e0b] to-[#d97706] text-white rounded-lg p-4 animate-pulse h-20"></div>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg animate-pulse">
+                  <div className="w-16 h-4 bg-gray-200 rounded animate-pulse"></div>
+                  <div className="w-16 h-4 bg-gray-200 rounded animate-pulse"></div>
+                </div>
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg animate-pulse">
+                  <div className="w-16 h-4 bg-gray-200 rounded animate-pulse"></div>
+                  <div className="w-16 h-4 bg-gray-200 rounded animate-pulse"></div>
+                </div>
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg animate-pulse">
+                  <div className="w-16 h-4 bg-gray-200 rounded animate-pulse"></div>
+                  <div className="w-16 h-4 bg-gray-200 rounded animate-pulse"></div>
+                </div>
+              </div>
+              <div className="bg-indigo-50 rounded-lg p-4 border border-indigo-200 animate-pulse">
+                <div className="space-y-2">
+                  <div className="h-4 bg-indigo-100 rounded animate-pulse w-48"></div>
+                  <div className="h-4 bg-indigo-100 rounded animate-pulse w-64"></div>
+                  <div className="h-4 bg-indigo-100 rounded animate-pulse w-56"></div>
+                  <div className="h-4 bg-indigo-100 rounded animate-pulse w-52"></div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (isError && !scores) {
+    return (
+      <div className="w-full max-w-[1280px] mx-auto">
+        <Card className="bg-white border-gray-200 shadow-sm">
+          <CardContent className="p-6">
+            <div className="text-center text-gray-500">
+              <p>Gagal memuat data assessment</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   // Early return if scores data is not available
   if (!assessmentScores || !assessmentScores.riasec || !assessmentScores.ocean || !assessmentScores.viaIs) {
@@ -38,27 +203,6 @@ export default function CombinedAssessmentGrid({ scores }: CombinedAssessmentGri
       </div>
     );
   }
-
-  // Get dominant types and top strengths
-  const dominantRiasec = getDominantRiasecType(assessmentScores.riasec);
-  const topViaStrengths = getTopViaStrengths(assessmentScores.viaIs, 3);
-  
-  // Get highest Big Five trait
-  const oceanEntries = Object.entries(assessmentScores.ocean).sort(([,a], [,b]) => b - a);
-  const topOceanTrait = oceanEntries[0];
-
-  // Calculate overall scores
-  const riasecAverage = Math.round(
-    Object.values(assessmentScores.riasec).reduce((sum, score) => sum + score, 0) / 6
-  );
-  const oceanAverage = Math.round(
-    Object.values(assessmentScores.ocean).reduce((sum, score) => sum + score, 0) / 5
-  );
-  const viaAverage = Math.round(
-    Object.values(assessmentScores.viaIs).reduce((sum, score) => sum + score, 0) / 24
-  );
-
-  const overallScore = Math.round((riasecAverage + oceanAverage + viaAverage) / 3);
 
   // RIASEC labels
   const riasecLabels = {
@@ -358,3 +502,11 @@ export default function CombinedAssessmentGrid({ scores }: CombinedAssessmentGri
     </div>
   );
 }
+
+export default React.memo(CombinedAssessmentGrid, (prevProps, nextProps) => {
+  // Custom comparison for optimal performance
+  return (
+    prevProps.resultId === nextProps.resultId &&
+    prevProps.scores === nextProps.scores
+  );
+});

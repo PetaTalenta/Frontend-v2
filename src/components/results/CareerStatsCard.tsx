@@ -1,18 +1,238 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { TrendingUp, Target, Award, Users } from 'lucide-react';
 import { AssessmentScores, getDummyAssessmentScores } from '../../data/dummy-assessment-data';
+import { useAssessmentResult } from '@/hooks/useAssessmentResult';
 
 interface CareerStatsCardProps {
   scores?: AssessmentScores;
+  resultId?: string;
 }
 
-function CareerStatsCardComponent({ scores }: CareerStatsCardProps) {
-  // Use dummy data if no scores provided
-  const assessmentScores = scores || getDummyAssessmentScores();
+function CareerStatsCardComponent({ scores, resultId }: CareerStatsCardProps) {
+  // Get result ID from props
+  const assessmentId = resultId || '';
+  
+  // Use API hook for fetching assessment data
+  const { 
+    transformedData, 
+    isLoading, 
+    isError 
+  } = useAssessmentResult(assessmentId);
+  
+  // Extract scores from transformed data or use props
+  const assessmentScores = useMemo(() => {
+    if (transformedData?.test_data) {
+      return {
+        riasec: transformedData.test_data.riasec,
+        ocean: transformedData.test_data.ocean,
+        viaIs: transformedData.test_data.viaIs,
+        industryScore: {}
+      };
+    }
+    return scores || getDummyAssessmentScores();
+  }, [transformedData, scores]);
+
+  // Extract career data from transformed data (already transformed by hook)
+  const careerData = useMemo(() => {
+    if (transformedData?.test_result?.careerRecommendation) {
+      return transformedData.test_result.careerRecommendation;
+    }
+    return [];
+  }, [transformedData]);
+
+  // Calculate industry compatibility based on RIASEC scores
+  const industryCompatibility = useMemo(() => {
+    if (!assessmentScores.riasec) return {};
+    
+    const { riasec } = assessmentScores;
+    
+    // Industry compatibility calculations based on RIASEC patterns
+    return {
+      technology: {
+        score: Math.round((riasec.investigative + riasec.realistic) / 2),
+        match: riasec.investigative >= 60 || riasec.realistic >= 60
+      },
+      healthcare: {
+        score: Math.round((riasec.social + riasec.investigative) / 2),
+        match: riasec.social >= 60 || riasec.investigative >= 60
+      },
+      education: {
+        score: Math.round((riasec.social + riasec.investigative + riasec.artistic) / 3),
+        match: riasec.social >= 60 || riasec.investigative >= 60 || riasec.artistic >= 60
+      },
+      business: {
+        score: Math.round((riasec.enterprising + riasec.conventional + riasec.social) / 3),
+        match: riasec.enterprising >= 60 || riasec.conventional >= 60 || riasec.social >= 60
+      },
+      creative: {
+        score: Math.round((riasec.artistic + riasec.investigative + riasec.enterprising) / 3),
+        match: riasec.artistic >= 60 || riasec.investigative >= 60 || riasec.enterprising >= 60
+      },
+      service: {
+        score: Math.round((riasec.social + riasec.enterprising) / 2),
+        match: riasec.social >= 60 || riasec.enterprising >= 60
+      }
+    };
+  }, [assessmentScores]);
+
+  // Calculate career-focused statistics matching radar chart
+  const riasecScores = useMemo(() => [
+    { name: 'Development', score: assessmentScores.riasec.investigative, category: 'Technical' },
+    { name: 'Design', score: assessmentScores.riasec.artistic, category: 'Creative' },
+    { name: 'Management', score: assessmentScores.riasec.enterprising, category: 'Leadership' },
+    { name: 'Sales', score: Math.round((assessmentScores.riasec.enterprising + assessmentScores.riasec.social) / 2), category: 'Business' },
+    { name: 'Support', score: assessmentScores.riasec.social, category: 'Social' },
+    { name: 'Administration', score: assessmentScores.riasec.conventional, category: 'Operational' },
+  ], [assessmentScores.riasec]);
+
+  const topSkill = useMemo(() => riasecScores.reduce((prev, current) => 
+    prev.score > current.score ? prev : current
+  ), [riasecScores]);
+
+  const averageScore = useMemo(() => Math.round(
+    riasecScores.reduce((sum, skill) => sum + skill.score, 0) / riasecScores.length
+  ), [riasecScores]);
+
+  const getScoreLevel = (score: number) => {
+    if (score >= 80) return { label: 'Expert', color: '#22c55e' };
+    if (score >= 60) return { label: 'Advanced', color: '#3b82f6' };
+    if (score >= 40) return { label: 'Intermediate', color: '#eab308' };
+    if (score >= 20) return { label: 'Beginner', color: '#f97316' };
+    return { label: 'Novice', color: '#ef4444' };
+  };
+
+  const topSkillLevel = useMemo(() => getScoreLevel(topSkill.score), [topSkill.score]);
+  const overallLevel = useMemo(() => getScoreLevel(averageScore), [averageScore]);
+
+  // Calculate skill distribution
+  const skillDistribution = useMemo(() => ({
+    technical: assessmentScores.riasec.investigative + assessmentScores.riasec.realistic,
+    creative: assessmentScores.riasec.artistic,
+    social: assessmentScores.riasec.social,
+    business: assessmentScores.riasec.enterprising,
+    operational: assessmentScores.riasec.conventional,
+  }), [assessmentScores.riasec]);
+
+  const maxDistribution = useMemo(() => Math.max(...Object.values(skillDistribution)), [skillDistribution]);
+  const dominantArea = useMemo(() => Object.entries(skillDistribution).find(
+    ([_, value]) => value === maxDistribution
+  )?.[0] || 'technical', [skillDistribution, maxDistribution]);
+
+  // Show loading state while fetching data
+  if (isLoading && !scores) {
+    return (
+      <Card className="bg-white border-gray-200/60 shadow-sm">
+        <CardContent className="p-6">
+          <div className="space-y-4 lg:space-y-6">
+            {/* Header Skeleton */}
+            <div className="flex items-center gap-3 lg:gap-4">
+              <div className="p-2 lg:p-3 bg-[#4f46e5]/10 rounded-lg animate-pulse w-5 h-5 lg:w-6 lg:h-6"></div>
+              <div className="w-32 lg:w-40 h-6 bg-gray-200 rounded animate-pulse"></div>
+            </div>
+            <div>
+              <div className="text-lg lg:text-xl font-semibold text-[#1f2937] animate-pulse w-48 h-6 bg-gray-200 rounded mb-2"></div>
+              <div className="text-xs lg:text-sm text-[#6b7280] animate-pulse w-40 h-4 bg-gray-200 rounded"></div>
+            </div>
+
+            {/* Top Skill Skeleton */}
+            <div className="p-4 lg:p-6 bg-gradient-to-r from-[#22c55e]/10 to-[#16a34a]/10 rounded-lg border border-[#22c55e]/20">
+              <div className="flex items-center justify-between mb-2 lg:mb-3">
+                <div className="flex items-center gap-2 lg:gap-3">
+                  <div className="w-4 h-4 lg:w-5 lg:h-5 bg-white/20 rounded animate-pulse"></div>
+                  <span className="text-sm lg:text-base font-medium text-[#1e1e1e] animate-pulse w-24 h-4 bg-gray-200 rounded"></span>
+                </div>
+                <div className="animate-pulse w-16 h-6 bg-gray-200 rounded"></div>
+              </div>
+              <div className="text-lg font-bold text-[#22c55e] animate-pulse w-32 h-4 bg-gray-200 rounded"></div>
+              <div className="text-sm text-[#64707d] animate-pulse w-40 h-4 bg-gray-200 rounded"></div>
+            </div>
+
+            {/* Overall Performance Skeleton */}
+            <div className="p-4 bg-gradient-to-r from-[#6475e9]/10 to-[#5a6bd8]/10 rounded-lg border border-[#6475e9]/20">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-white/20 rounded animate-pulse"></div>
+                  <span className="text-sm font-medium text-[#1e1e1e] animate-pulse w-24 h-4 bg-gray-200 rounded"></span>
+                </div>
+                <div className="animate-pulse w-16 h-6 bg-gray-200 rounded"></div>
+              </div>
+              <div className="text-lg font-bold text-[#6475e9] animate-pulse w-32 h-4 bg-gray-200 rounded"></div>
+              <div className="text-sm text-[#64707d] animate-pulse w-40 h-4 bg-gray-200 rounded"></div>
+            </div>
+
+            {/* Dominant Area Skeleton */}
+            <div className="p-4 bg-gradient-to-r from-[#f59e0b]/10 to-[#d97706]/10 rounded-lg border border-[#f59e0b]/20">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-4 h-4 bg-white/20 rounded animate-pulse"></div>
+                <span className="text-sm font-medium text-[#1e1e1e] animate-pulse w-32 h-4 bg-gray-200 rounded"></span>
+              </div>
+              <div className="text-lg font-bold text-[#f59e0b] animate-pulse w-32 h-4 bg-gray-200 rounded"></div>
+              <div className="text-sm text-[#64707d] animate-pulse w-40 h-4 bg-gray-200 rounded"></div>
+            </div>
+
+            {/* Skills Breakdown Skeleton */}
+            <div className="space-y-2">
+              <h4 className="text-sm font-medium text-[#1e1e1e] animate-pulse w-32 h-4 bg-gray-200 rounded mb-2"></h4>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-[#64707d] animate-pulse w-16 h-4 bg-gray-200 rounded"></span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-16 h-2 bg-gray-200 rounded animate-pulse"></div>
+                    <span className="text-xs font-medium text-[#64707d] animate-pulse w-8 h-4 bg-gray-200 rounded"></span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-[#64707d] animate-pulse w-16 h-4 bg-gray-200 rounded"></span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-16 h-2 bg-gray-200 rounded animate-pulse"></div>
+                    <span className="text-xs font-medium text-[#64707d] animate-pulse w-8 h-4 bg-gray-200 rounded"></span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-[#64707d] animate-pulse w-16 h-4 bg-gray-200 rounded"></span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-16 h-2 bg-gray-200 rounded animate-pulse"></div>
+                    <span className="text-xs font-medium text-[#64707d] animate-pulse w-8 h-4 bg-gray-200 rounded"></span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-[#64707d] animate-pulse w-16 h-4 bg-gray-200 rounded"></span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-16 h-2 bg-gray-200 rounded animate-pulse"></div>
+                    <span className="text-xs font-medium text-[#64707d] animate-pulse w-8 h-4 bg-gray-200 rounded"></span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-[#64707d] animate-pulse w-16 h-4 bg-gray-200 rounded"></span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-16 h-2 bg-gray-200 rounded animate-pulse"></div>
+                    <span className="text-xs font-medium text-[#64707d] animate-pulse w-8 h-4 bg-gray-200 rounded"></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Show error state
+  if (isError && !scores) {
+    return (
+      <Card className="bg-white border-gray-200/60 shadow-sm">
+        <CardContent className="p-6">
+          <div className="text-center text-gray-500">
+            <p>Gagal memuat data statistik karir</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   // Early return if scores data is not available
   if (!assessmentScores || !assessmentScores.riasec || !assessmentScores.ocean || !assessmentScores.viaIs) {
@@ -26,49 +246,6 @@ function CareerStatsCardComponent({ scores }: CareerStatsCardProps) {
       </Card>
     );
   }
-
-  // Calculate career-focused statistics matching the radar chart
-  const riasecScores = [
-    { name: 'Development', score: assessmentScores.riasec.investigative, category: 'Technical' },
-    { name: 'Design', score: assessmentScores.riasec.artistic, category: 'Creative' },
-    { name: 'Management', score: assessmentScores.riasec.enterprising, category: 'Leadership' },
-    { name: 'Sales', score: Math.round((assessmentScores.riasec.enterprising + assessmentScores.riasec.social) / 2), category: 'Business' },
-    { name: 'Support', score: assessmentScores.riasec.social, category: 'Social' },
-    { name: 'Administration', score: assessmentScores.riasec.conventional, category: 'Operational' },
-  ];
-
-  const topSkill = riasecScores.reduce((prev, current) => 
-    prev.score > current.score ? prev : current
-  );
-
-  const averageScore = Math.round(
-    riasecScores.reduce((sum, skill) => sum + skill.score, 0) / riasecScores.length
-  );
-
-  const getScoreLevel = (score: number) => {
-    if (score >= 80) return { label: 'Expert', color: '#22c55e' };
-    if (score >= 60) return { label: 'Advanced', color: '#3b82f6' };
-    if (score >= 40) return { label: 'Intermediate', color: '#eab308' };
-    if (score >= 20) return { label: 'Beginner', color: '#f97316' };
-    return { label: 'Novice', color: '#ef4444' };
-  };
-
-  const topSkillLevel = getScoreLevel(topSkill.score);
-  const overallLevel = getScoreLevel(averageScore);
-
-  // Calculate skill distribution
-  const skillDistribution = {
-    technical: assessmentScores.riasec.investigative + assessmentScores.riasec.realistic,
-    creative: assessmentScores.riasec.artistic,
-    social: assessmentScores.riasec.social,
-    business: assessmentScores.riasec.enterprising,
-    operational: assessmentScores.riasec.conventional,
-  };
-
-  const maxDistribution = Math.max(...Object.values(skillDistribution));
-  const dominantArea = Object.entries(skillDistribution).find(
-    ([_, value]) => value === maxDistribution
-  )?.[0] || 'technical';
 
   return (
     <Card className="bg-white border-gray-200/60 shadow-sm">
@@ -164,4 +341,10 @@ function CareerStatsCardComponent({ scores }: CareerStatsCardProps) {
   );
 }
 
-export default React.memo(CareerStatsCardComponent)
+export default React.memo(CareerStatsCardComponent, (prevProps, nextProps) => {
+  // Custom comparison for optimal performance
+  return (
+    prevProps.resultId === nextProps.resultId &&
+    prevProps.scores === nextProps.scores
+  );
+})
