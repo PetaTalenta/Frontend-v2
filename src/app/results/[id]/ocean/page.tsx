@@ -14,7 +14,7 @@ import { ArrowLeft, Brain, Eye, Heart, Zap, CheckCircle } from 'lucide-react';
 import dynamic from 'next/dynamic';
 
 // Dynamic import for OceanRadarChart to reduce bundle size
-const OceanRadarChart = dynamic(() => import('../../../../components/results/OceanRadarChart'), {
+const OceanRadarChart = dynamic(() => import('../../../../components/results/StandardizedRadarCharts').then(mod => ({ default: mod.OceanRadarChart })), {
   loading: () => (
     <div className="bg-white rounded-lg border border-gray-200 p-6">
       <div className="animate-pulse">
@@ -259,8 +259,7 @@ export default function OceanDetailPage() {
           <OceanRadarChart scores={{
             riasec: result.assessment_data.riasec,
             ocean: result.assessment_data.ocean,
-            viaIs: result.assessment_data.viaIs,
-            industryScore: result.assessment_data.industryScore
+            viaIs: result.assessment_data.viaIs
           }} />
         </div>
 

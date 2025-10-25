@@ -20,7 +20,7 @@ import { removeDebounced, flushDebounced } from '../../utils/localStorageUtils';
 import { useAssessmentResult } from '@/hooks/useAssessmentResult';
 
 // Dynamic imports for chart components to improve compilation performance
-const AssessmentRadarChart = dynamic(() => import('./AssessmentRadarChart'), {
+const AssessmentRadarChart = dynamic(() => import('./StandardizedRadarCharts').then(mod => ({ default: mod.default })), {
   loading: () => (
     <Card className="bg-white border-gray-200/60 shadow-sm">
       <div className="p-6">

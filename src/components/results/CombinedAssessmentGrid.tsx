@@ -1,14 +1,12 @@
 // @ts-nocheck
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui-card';
 import { Badge } from './ui-badge';
 import { Progress } from './ui-progress';
 import { BarChart3, Brain, Palette, TrendingUp } from 'lucide-react';
-import RiasecRadarChart from './RiasecRadarChart';
-import OceanRadarChart from './OceanRadarChart';
-import ViaRadarChart from './ViaRadarChart';
+import { RiasecRadarChart, OceanRadarChart, ViaRadarChart } from './StandardizedRadarCharts';
 import {
   RiasecScores,
   ViaScores,
@@ -61,15 +59,7 @@ function CombinedAssessmentGrid({ scores, resultId }: CombinedAssessmentGridProp
     };
   };
 
-  const getTopViaStrengths = (via: ViaScores, count: number) => {
-    const entries = Object.entries(via) as [keyof ViaScores, number][];
-    return entries
-      .sort(([, a], [, b]) => b - a)
-      .slice(0, count)
-      .map(([strength, score]) => ({ strength, score, category: getViaCategory(strength) }));
-  };
-
-  const getViaCategory = (strength: keyof ViaScores): string => {
+  const getViaCategory = useCallback((strength: keyof ViaScores): string => {
     const VIA_CATEGORIES = {
       'Wisdom & Knowledge': ['creativity', 'curiosity', 'judgment', 'loveOfLearning', 'perspective'],
       'Courage': ['bravery', 'perseverance', 'honesty', 'zest'],
@@ -85,11 +75,17 @@ function CombinedAssessmentGrid({ scores, resultId }: CombinedAssessmentGridProp
       }
     }
     return 'Other';
-  };
+  }, []);
 
   // Get dominant types and top strengths
   const dominantRiasec = useMemo(() => getDominantRiasecType(assessmentScores.riasec), [assessmentScores.riasec]);
-  const topViaStrengths = useMemo(() => getTopViaStrengths(assessmentScores.viaIs, 3), [assessmentScores.viaIs]);
+  const topViaStrengths = useMemo(() => {
+    const entries = Object.entries(assessmentScores.viaIs) as [keyof ViaScores, number][];
+    return entries
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 3)
+      .map(([strength, score]) => ({ strength, score, category: getViaCategory(strength) }));
+  }, [assessmentScores.viaIs, getViaCategory]);
   
   // Get highest Big Five trait
   const oceanEntries = useMemo(() => {

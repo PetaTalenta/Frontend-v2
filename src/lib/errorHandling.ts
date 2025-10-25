@@ -293,7 +293,7 @@ export const handleComponentError = (
   logError(enhancedError);
 };
 
-export default {
+const errorHandlingModule = {
   classifyError,
   createRetryStrategy,
   createRetryDelay,
@@ -304,3 +304,5 @@ export default {
   ErrorType,
   ErrorSeverity,
 };
+
+export default errorHandlingModule;

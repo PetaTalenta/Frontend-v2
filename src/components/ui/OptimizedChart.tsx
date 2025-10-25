@@ -52,7 +52,7 @@ const ChartError = ({
 
 // Lazy loaded chart components
 const LazyRadarChart = dynamic(
-  () => import('../results/AssessmentRadarChart').then(mod => ({ default: mod.default })),
+  () => import('../results/StandardizedRadarCharts').then(mod => ({ default: mod.default })),
   {
     loading: () => <ChartSkeleton />,
     ssr: false

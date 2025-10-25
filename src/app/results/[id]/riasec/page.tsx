@@ -13,7 +13,7 @@ import { ArrowLeft, BarChart3, Users, Lightbulb, Wrench, Search, Palette } from 
 import dynamic from 'next/dynamic';
 
 // Dynamic import for RiasecRadarChart to reduce bundle size
-const RiasecRadarChart = dynamic(() => import('../../../../components/results/RiasecRadarChart'), {
+const RiasecRadarChart = dynamic(() => import('../../../../components/results/StandardizedRadarCharts').then(mod => ({ default: mod.RiasecRadarChart })), {
   loading: () => (
     <div className="bg-white rounded-lg border border-gray-200 p-6">
       <div className="animate-pulse">
@@ -229,8 +229,7 @@ export default function RiasecDetailPage() {
           <RiasecRadarChart scores={{
             riasec: result.assessment_data.riasec,
             ocean: result.assessment_data.ocean,
-            viaIs: result.assessment_data.viaIs,
-            industryScore: result.assessment_data.industryScore
+            viaIs: result.assessment_data.viaIs
           }} />
         </div>
 

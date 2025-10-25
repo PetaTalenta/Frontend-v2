@@ -36,6 +36,44 @@ export default function ResultsPage() {
     );
   }
 
-  // Render the main component with fetched data
-  return <ResultsPageClient initialResult={result} resultId={resultId} />;
+  // Render main component with fetched data
+  // Transform AssessmentResult to AssessmentResultData format if needed
+  const transformedResult = result ? {
+    id: result.id,
+    user_id: 'dummy-user', // Add dummy user_id
+    test_data: {
+      riasec: result.assessment_data.riasec,
+      ocean: result.assessment_data.ocean,
+      viaIs: result.assessment_data.viaIs
+    },
+    test_result: result.persona_profile || {
+      archetype: 'Unknown',
+      coreMotivators: [],
+      learningStyle: 'Unknown',
+      shortSummary: 'No summary available',
+      strengthSummary: '',
+      strengths: [],
+      weaknessSummary: '',
+      weaknesses: [],
+      careerRecommendation: [],
+      insights: [],
+      skillSuggestion: [],
+      possiblePitfalls: [],
+      riskTolerance: 'moderate',
+      workEnvironment: '',
+      roleModel: [],
+      developmentActivities: {
+        extracurricular: [],
+        bookRecommendations: []
+      }
+    } as any, // Type assertion to handle compatibility
+    status: 'completed' as const,
+    error_message: null,
+    assessment_name: 'Comprehensive Assessment',
+    is_public: result.is_public || false,
+    created_at: result.created_at || result.createdAt || new Date().toISOString(),
+    updated_at: result.created_at || result.createdAt || new Date().toISOString()
+  } : null;
+
+  return <ResultsPageClient initialResult={transformedResult || undefined} resultId={resultId} />;
 }

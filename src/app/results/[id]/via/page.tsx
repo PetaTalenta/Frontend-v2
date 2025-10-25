@@ -12,7 +12,7 @@ import { ArrowLeft, Palette, Lightbulb, Search, Heart, Shield, Scale, Flower } f
 import dynamic from 'next/dynamic';
 
 // Dynamic import for ViaRadarChart to reduce bundle size
-const ViaRadarChart = dynamic(() => import('../../../../components/results/ViaRadarChart'), {
+const ViaRadarChart = dynamic(() => import('../../../../components/results/StandardizedRadarCharts').then(mod => ({ default: mod.ViaRadarChart })), {
   loading: () => (
     <div className="bg-white rounded-lg border border-gray-200 p-6">
       <div className="animate-pulse">
@@ -294,8 +294,7 @@ export default function ViaDetailPage() {
           <ViaRadarChart scores={{
             riasec: result.assessment_data.riasec,
             ocean: result.assessment_data.ocean,
-            viaIs: result.assessment_data.viaIs,
-            industryScore: result.assessment_data.industryScore
+            viaIs: result.assessment_data.viaIs
           }} />
         </div>
 
