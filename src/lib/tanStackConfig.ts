@@ -1,14 +1,32 @@
 import { QueryClient } from '@tanstack/react-query';
+import authService from '../services/authService';
+
+// Centralized cache configuration for 1 hour with auto-refresh
+export const CACHE_CONFIG = {
+  // Assessment data cache - 1 hour with auto-refresh
+  assessment: {
+    staleTime: 60 * 60 * 1000, // 1 hour
+    gcTime: 90 * 60 * 1000, // 1.5 hours
+    refetchInterval: 60 * 60 * 1000, // Auto-refresh every 1 hour
+    refetchIntervalInBackground: false, // Only refresh when tab is active
+    activeUserRefetchInterval: 30 * 60 * 1000, // 30 minutes for active users
+  },
+  // Default cache configuration
+  default: {
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+  }
+};
 
 // Create a client
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       // Time in milliseconds that data remains fresh
-      staleTime: 5 * 60 * 1000, // 5 minutes
+      staleTime: CACHE_CONFIG.default.staleTime,
       
       // Time in milliseconds that inactive queries will remain in cache
-      gcTime: 10 * 60 * 1000, // 10 minutes (previously cacheTime)
+      gcTime: CACHE_CONFIG.default.gcTime,
       
       // Number of times to retry failed requests
       retry: (failureCount, error: any) => {
@@ -157,8 +175,8 @@ export const queryPrefetch = {
   assessmentResult: async (id: string) => {
     await queryClient.prefetchQuery({
       queryKey: queryKeys.assessments.result(id),
-      staleTime: 10 * 60 * 1000, // 10 minutes
-      gcTime: 15 * 60 * 1000, // 15 minutes cache
+      staleTime: CACHE_CONFIG.assessment.staleTime, // 1 hour
+      gcTime: CACHE_CONFIG.assessment.gcTime, // 1.5 hours cache
     });
   },
   
@@ -206,8 +224,8 @@ export const queryPrefetch = {
   assessmentResultPriority: async (id: string) => {
     await queryClient.prefetchQuery({
       queryKey: queryKeys.assessments.result(id),
-      staleTime: 5 * 60 * 1000, // 5 minutes for priority data
-      gcTime: 10 * 60 * 1000, // 10 minutes cache
+      staleTime: CACHE_CONFIG.assessment.staleTime, // 1 hour for priority data
+      gcTime: CACHE_CONFIG.assessment.gcTime, // 1.5 hours cache
     });
   },
   
@@ -224,8 +242,8 @@ export const queryPrefetch = {
   assessmentSubPage: async (id: string, type: 'riasec' | 'ocean' | 'via' | 'persona') => {
     await queryClient.prefetchQuery({
       queryKey: [...queryKeys.assessments.result(id), 'type', type],
-      staleTime: 20 * 60 * 1000, // 20 minutes for sub-page data
-      gcTime: 25 * 60 * 1000, // 25 minutes cache
+      staleTime: CACHE_CONFIG.assessment.staleTime, // 1 hour for sub-page data
+      gcTime: CACHE_CONFIG.assessment.gcTime, // 1.5 hours cache
     });
   },
   
@@ -417,7 +435,7 @@ export const assessmentCacheStrategy = {
         const queryState = queryClient.getQueryState(queryKeys.assessments.result(assessmentId));
         if (queryState && queryState.dataUpdatedAt) {
           const dataAge = Date.now() - queryState.dataUpdatedAt;
-          const staleTime = 15 * 60 * 1000; // 15 minutes
+          const staleTime = CACHE_CONFIG.assessment.staleTime; // 1 hour
           
           if (dataAge > staleTime) {
             await queryClient.refetchQueries({
@@ -489,6 +507,141 @@ export const dashboardCacheStrategy = {
   },
 } as const;
 
+// Phase 3: Enhanced dashboard caching strategies
+export const dashboardCacheWarming = {
+  // Warm cache on application startup for authenticated users
+  warmOnStartup: async () => {
+    if (typeof window !== 'undefined' && authService.isAuthenticated()) {
+      try {
+        await Promise.all([
+          queryPrefetch.dashboardStatsPriority(),
+          queryPrefetch.jobsStats(),
+          queryPrefetch.userProfile(),
+        ]);
+        console.log('Dashboard cache warmed on startup');
+      } catch (error) {
+        console.warn('Dashboard startup cache warming failed:', error);
+      }
+    }
+  },
+
+  // Prefetch data based on user behavior patterns
+  prefetchBasedOnBehavior: async (userAction: 'view_dashboard' | 'click_jobs_table' | 'refresh_stats') => {
+    try {
+      switch (userAction) {
+        case 'view_dashboard':
+          // Prefetch all dashboard data with priority
+          await Promise.all([
+            queryPrefetch.dashboardStatsPriority(),
+            queryPrefetch.jobsStats(),
+            queryPrefetch.jobsList({ limit: 20 }),
+          ]);
+          break;
+          
+        case 'click_jobs_table':
+          // User is interacting with jobs table, prefetch more jobs data
+          await Promise.all([
+            queryPrefetch.jobsList({ limit: 50 }),
+            queryPrefetch.jobsStats(),
+          ]);
+          break;
+          
+        case 'refresh_stats':
+          // User explicitly refreshed, get fresh data
+          await cacheUtils.invalidateDashboardStats('user_refresh');
+          await queryPrefetch.dashboardStatsPriority();
+          break;
+      }
+    } catch (error) {
+      console.warn(`Dashboard prefetch failed for action ${userAction}:`, error);
+    }
+  },
+
+  // Background sync for offline support
+  backgroundSync: async () => {
+    if (typeof window !== 'undefined' && navigator.onLine && authService.isAuthenticated()) {
+      try {
+        // Check and refresh stale data
+        const dashboardStatsState = queryClient.getQueryState(queryKeys.dashboard.stats());
+        const jobsStatsState = queryClient.getQueryState(queryKeys.jobs.stats());
+        
+        const refreshPromises = [];
+        
+        // Refresh dashboard stats if stale (older than 3 minutes)
+        if (dashboardStatsState?.dataUpdatedAt) {
+          const dashboardAge = Date.now() - dashboardStatsState.dataUpdatedAt;
+          if (dashboardAge > 3 * 60 * 1000) {
+            refreshPromises.push(queryClient.refetchQueries({ queryKey: queryKeys.dashboard.stats() }));
+          }
+        }
+        
+        // Refresh jobs stats if stale (older than 5 minutes)
+        if (jobsStatsState?.dataUpdatedAt) {
+          const jobsAge = Date.now() - jobsStatsState.dataUpdatedAt;
+          if (jobsAge > 5 * 60 * 1000) {
+            refreshPromises.push(queryClient.refetchQueries({ queryKey: queryKeys.jobs.stats() }));
+          }
+        }
+        
+        if (refreshPromises.length > 0) {
+          await Promise.all(refreshPromises);
+          console.log('Dashboard background sync completed');
+        }
+      } catch (error) {
+        console.warn('Dashboard background sync failed:', error);
+      }
+    }
+  },
+
+  // Smart cache warming based on user activity
+  smartWarmCache: async (userActive: boolean) => {
+    if (!authService.isAuthenticated()) return;
+
+    try {
+      const staleTime = userActive ? 1 * 60 * 1000 : 3 * 60 * 1000; // 1 min for active, 3 min for inactive
+      const gcTime = userActive ? 5 * 60 * 1000 : 10 * 60 * 1000; // 5 min for active, 10 min for inactive
+
+      await Promise.all([
+        queryClient.prefetchQuery({
+          queryKey: queryKeys.dashboard.stats(),
+          staleTime,
+          gcTime,
+        }),
+        queryClient.prefetchQuery({
+          queryKey: queryKeys.jobs.stats(),
+          staleTime,
+          gcTime,
+        }),
+      ]);
+    } catch (error) {
+      console.warn('Smart cache warming failed:', error);
+    }
+  },
+
+  // Periodic cache maintenance
+  maintainCache: async () => {
+    try {
+      // Clear stale cache entries
+      const clearedCount = cacheUtils.clearStaleCache();
+      
+      // Get cache statistics
+      const stats = cacheUtils.getCacheStats();
+      
+      console.log('Cache maintenance completed:', {
+        clearedEntries: clearedCount,
+        totalQueries: stats.totalQueries,
+        staleQueries: stats.staleQueries,
+        inactiveQueries: stats.inactiveQueries,
+      });
+      
+      return stats;
+    } catch (error) {
+      console.warn('Cache maintenance failed:', error);
+      return null;
+    }
+  },
+} as const;
+
 // Phase 2: Selective data loading utilities
 export const selectiveDataLoader = {
   // Load specific assessment data type with optimized caching
@@ -522,8 +675,8 @@ export const selectiveDataLoader = {
             return null;
         }
       },
-      staleTime: 20 * 60 * 1000, // 20 minutes
-      gcTime: 25 * 60 * 1000, // 25 minutes
+      staleTime: CACHE_CONFIG.assessment.staleTime, // 1 hour
+      gcTime: CACHE_CONFIG.assessment.gcTime, // 1.5 hours
     });
     
     return result;
@@ -543,7 +696,7 @@ export const selectiveDataLoader = {
   },
   
   // Check if specific assessment data is cached and fresh
-  isDataFresh: (assessmentId: string, type: 'riasec' | 'ocean' | 'via' | 'persona', maxAge: number = 20 * 60 * 1000) => {
+  isDataFresh: (assessmentId: string, type: 'riasec' | 'ocean' | 'via' | 'persona', maxAge: number = CACHE_CONFIG.assessment.staleTime) => {
     const queryKey = [...queryKeys.assessments.result(assessmentId), 'type', type];
     const queryState = queryClient.getQueryState(queryKey);
     

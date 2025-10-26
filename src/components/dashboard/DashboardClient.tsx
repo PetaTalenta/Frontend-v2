@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
-import Header from './header';
+import Header from './header-optimized';
 import { StatsCard } from './stats-card';
 import { StatsCardSkeleton } from './stats-card-skeleton';
 import { AssessmentTable } from './assessment-table';
@@ -12,7 +12,8 @@ import DashboardErrorBoundary from './DashboardErrorBoundary';
 import { useJobs, formatJobDataForTable } from '../../hooks/useJobs';
 import { useDashboardStats } from '../../hooks/useDashboardStats';
 import { useAuth } from '../../hooks/useAuth';
-import { dashboardCacheStrategy } from '../../lib/tanStackConfig';
+import { useDashboardOptimized } from '../../hooks/useDashboardOptimized';
+import { dashboardCacheStrategy, dashboardCacheWarming } from '../../lib/tanStackConfig';
 import { handleComponentError } from '../../lib/errorHandling';
 
 // Dummy data untuk UI
@@ -156,20 +157,47 @@ interface DashboardClientProps {
 }
 
 function DashboardClientComponent({ staticData }: DashboardClientProps) {
-  const [isLoading, setIsLoading] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   
   // Get user data from auth
   const { user, isLoading: userLoading, logout } = useAuth();
   
-  // Fetch jobs data from API
-  const { data: jobsData, isLoading: isJobsLoading, isError: isJobsError, error: jobsError, refetch: refetchJobs } = useJobs({
-    params: { limit: 20 },
-    enabled: true
-  });
-
-  // Fetch dashboard stats data from API
+  // Use optimized dashboard hook for combined data fetching
   const {
     data: dashboardStats,
+    jobsData,
+    profileData,
+    jobsStatsData,
+    isLoading: isDataLoading,
+    isFetching,
+    isError,
+    error,
+    errorType,
+    isRetryable,
+    isUserActive,
+    refresh,
+    refreshJobsStats,
+    refreshProfile,
+    refreshJobs,
+    warmCache,
+    backgroundSync,
+    isDataFresh,
+    dataAge
+  } = useDashboardOptimized({ limit: 20 });
+
+  // Fallback to individual hooks for backward compatibility
+  const {
+    data: fallbackJobsData,
+    isLoading: isJobsLoading,
+    isError: isJobsError,
+    error: jobsError,
+    refetch: refetchJobs
+  } = useJobs({
+    params: { limit: 20 },
+    enabled: !jobsData // Only use fallback if optimized hook doesn't provide data
+  });
+
+  const {
     loading: isStatsLoading,
     isFetching: isStatsFetching,
     error: statsError,
@@ -181,13 +209,17 @@ function DashboardClientComponent({ staticData }: DashboardClientProps) {
     errorSeverity
   } = useDashboardStats();
 
+  // Use optimized data when available, fallback to individual hooks
+  const finalJobsData = jobsData || fallbackJobsData;
+  const finalDashboardStats = dashboardStats;
+
   // Format jobs data for table
   const assessmentData = useMemo(() => {
-    if (jobsData?.data?.jobs) {
-      return formatJobDataForTable(jobsData.data.jobs);
+    if (finalJobsData?.data?.jobs) {
+      return formatJobDataForTable(finalJobsData.data.jobs);
     }
     return [];
-  }, [jobsData]);
+  }, [finalJobsData]);
 
   // Transform dashboard stats to StatCard format
   const statsData = useMemo(() => {
@@ -356,20 +388,21 @@ function DashboardClientComponent({ staticData }: DashboardClientProps) {
 
   // Memoize handlers
   const handleRefresh = useCallback(async () => {
-    setIsLoading(true);
+    setIsRefreshing(true);
     try {
-      // Use smart refresh strategy
-      await dashboardCacheStrategy.preloadOnUserAction('refresh_stats');
+      // Use optimized refresh strategy
+      await dashboardCacheWarming.prefetchBasedOnBehavior('refresh_stats');
       await Promise.all([
-        refetchJobs(),
+        refresh(),
+        refreshJobs(),
         refreshAll()
       ]);
     } catch (error) {
       console.error('Failed to refresh data:', error);
     } finally {
-      setTimeout(() => setIsLoading(false), 500);
+      setTimeout(() => setIsRefreshing(false), 500);
     }
-  }, [refetchJobs, refreshAll]);
+  }, [refresh, refreshJobs, refreshAll]);
 
   // Handle stats retry
   const handleStatsRetry = useCallback(async () => {
@@ -395,23 +428,36 @@ function DashboardClientComponent({ staticData }: DashboardClientProps) {
 
   // Preload data when component mounts
   useEffect(() => {
-    dashboardCacheStrategy.preloadOnUserAction('view_dashboard');
+    dashboardCacheWarming.warmOnStartup();
+    dashboardCacheWarming.prefetchBasedOnBehavior('view_dashboard');
   }, []);
 
-  // Add event listeners for user activity
+  // Add event listeners for user activity and background sync
   useEffect(() => {
     // Add event listeners for user activity
     document.addEventListener('click', handleUserActivity);
     document.addEventListener('keydown', handleUserActivity);
     
+    // Set up periodic background sync
+    const syncInterval = setInterval(() => {
+      dashboardCacheWarming.backgroundSync();
+    }, 2 * 60 * 1000); // Every 2 minutes
+    
+    // Set up cache maintenance
+    const maintenanceInterval = setInterval(() => {
+      dashboardCacheWarming.maintainCache();
+    }, 10 * 60 * 1000); // Every 10 minutes
+    
     return () => {
       document.removeEventListener('click', handleUserActivity);
       document.removeEventListener('keydown', handleUserActivity);
+      clearInterval(syncInterval);
+      clearInterval(maintenanceInterval);
     };
   }, [handleUserActivity]);
 
   // Loading state simulation
-  if (isLoading) {
+  if (isRefreshing) {
     return (
       <div className="dashboard-full-height dashboard-responsive-wrapper">
         <div className="dashboard-container flex flex-col gap-6">
@@ -498,8 +544,8 @@ function DashboardClientComponent({ staticData }: DashboardClientProps) {
                 data={assessmentData}
                 onRefresh={handleRefresh}
                 swrKey="jobs-data"
-                isLoading={isJobsLoading || isLoading}
-                isValidating={false}
+                isLoading={isDataLoading || isJobsLoading || isRefreshing}
+                isValidating={isFetching}
               />
             </div>
           </div>

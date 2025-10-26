@@ -17,10 +17,13 @@ interface PerformanceReport {
   };
 }
 
-class PerformanceMonitor {
+class OptimizedPerformanceMonitor {
   private metrics: PerformanceMetric[] = [];
   private reportEndpoint: string = '/api/performance';
   private buildInfo: PerformanceReport['buildInfo'];
+  private lastLogTime = 0;
+  private readonly LOG_COOLDOWN = 1000; // 1 second cooldown
+  private readonly MAX_METRICS = 50; // Limit stored metrics
 
   constructor() {
     this.buildInfo = {
@@ -30,21 +33,21 @@ class PerformanceMonitor {
     };
   }
 
-  // Initialize performance monitoring
+  // Initialize performance monitoring with reduced overhead
   init() {
     if (typeof window === 'undefined') return;
 
-    // Monitor Core Web Vitals using native Performance API
-    this.measureCoreWebVitals();
-    
-    // Monitor custom metrics
-    this.measureCustomMetrics();
-    
-    // Monitor resource loading
-    this.measureResourceLoading();
-    
-    // Setup error tracking
-    this.setupErrorTracking();
+    // Only monitor critical metrics in development
+    if (process.env.NODE_ENV === 'development') {
+      this.measureCoreWebVitals();
+      this.measureApiResponseTimes();
+    } else {
+      // In production, monitor everything but with rate limiting
+      this.measureCoreWebVitals();
+      this.measureCustomMetrics();
+      this.measureResourceLoading();
+      this.setupErrorTracking();
+    }
   }
 
   // Measure Core Web Vitals using Performance Observer API
@@ -57,7 +60,7 @@ class PerformanceMonitor {
         const entries = list.getEntries();
         const lastEntry = entries[entries.length - 1];
         if (lastEntry) {
-          this.addMetric({
+          this.addMetricThrottled({
             name: 'Largest Contentful Paint',
             value: lastEntry.startTime,
             rating: lastEntry.startTime < 2500 ? 'good' : lastEntry.startTime < 4000 ? 'needs-improvement' : 'poor'
@@ -66,26 +69,7 @@ class PerformanceMonitor {
       });
       lcpObserver.observe({ entryTypes: ['largest-contentful-paint'] });
     } catch (e) {
-      console.warn('LCP monitoring not supported');
-    }
-
-    // Measure First Input Delay (FID)
-    try {
-      const fidObserver = new PerformanceObserver((list) => {
-        list.getEntries().forEach((entry: any) => {
-          if (entry.processingStart) {
-            const fid = entry.processingStart - entry.startTime;
-            this.addMetric({
-              name: 'First Input Delay',
-              value: fid,
-              rating: fid < 100 ? 'good' : fid < 300 ? 'needs-improvement' : 'poor'
-            });
-          }
-        });
-      });
-      fidObserver.observe({ entryTypes: ['first-input'] });
-    } catch (e) {
-      console.warn('FID monitoring not supported');
+      // Silently fail in production
     }
 
     // Measure Cumulative Layout Shift (CLS)
@@ -98,7 +82,7 @@ class PerformanceMonitor {
           }
         });
         
-        this.addMetric({
+        this.addMetricThrottled({
           name: 'Cumulative Layout Shift',
           value: clsValue,
           rating: clsValue < 0.1 ? 'good' : clsValue < 0.25 ? 'needs-improvement' : 'poor'
@@ -106,17 +90,13 @@ class PerformanceMonitor {
       });
       clsObserver.observe({ entryTypes: ['layout-shift'] });
     } catch (e) {
-      console.warn('CLS monitoring not supported');
+      // Silently fail in production
     }
   }
 
   // Measure custom metrics
   private measureCustomMetrics() {
-    // Measure time to interactive
     this.measureTimeToInteractive();
-    
-    // Measure API response times
-    this.measureApiResponseTimes();
   }
 
   // Measure Time to Interactive
@@ -129,7 +109,7 @@ class PerformanceMonitor {
       if (document.readyState === 'complete') {
         const tti = performance.now() - startTime;
         
-        this.addMetric({
+        this.addMetricThrottled({
           name: 'Time to Interactive',
           value: tti,
           rating: tti < 3800 ? 'good' : tti < 7300 ? 'needs-improvement' : 'poor'
@@ -140,7 +120,7 @@ class PerformanceMonitor {
     document.addEventListener('readystatechange', checkInteractive);
   }
 
-  // Measure API response times
+  // Measure API response times with reduced overhead
   private measureApiResponseTimes() {
     if (typeof window === 'undefined') return;
 
@@ -154,48 +134,49 @@ class PerformanceMonitor {
         const endTime = performance.now();
         const responseTime = endTime - startTime;
         
-        // Log slow API calls
+        // Only log slow API calls
         if (responseTime > 1000) {
-          console.warn(`[Performance] Slow API call: ${input} took ${responseTime.toFixed(2)}ms`);
+          this.addMetricThrottled({
+            name: 'API Response Time',
+            value: responseTime,
+            rating: responseTime < 500 ? 'good' : responseTime < 1000 ? 'needs-improvement' : 'poor'
+          });
         }
-        
-        this.addMetric({
-          name: 'API Response Time',
-          value: responseTime,
-          rating: responseTime < 500 ? 'good' : responseTime < 1000 ? 'needs-improvement' : 'poor'
-        });
         
         return response;
       } catch (error) {
         const endTime = performance.now();
         const responseTime = endTime - startTime;
         
-        console.error(`[Performance] Failed API call: ${input} took ${responseTime.toFixed(2)}ms`, error);
+        // Only log failed API calls
+        this.addMetricThrottled({
+          name: 'API Response Time',
+          value: responseTime,
+          rating: 'poor'
+        });
         
         throw error;
       }
     };
   }
 
-  // Measure resource loading
+  // Measure resource loading only in production
   private measureResourceLoading() {
-    if (typeof window === 'undefined' || !window.PerformanceObserver) return;
+    if (typeof window === 'undefined' || !window.PerformanceObserver || process.env.NODE_ENV === 'development') return;
 
     const observer = new PerformanceObserver((list) => {
       list.getEntries().forEach((entry) => {
         if (entry.entryType === 'resource') {
           const resource = entry as PerformanceResourceTiming;
           
-          // Log slow resources
+          // Only log slow resources
           if (resource.duration > 2000) {
-            console.warn(`[Performance] Slow resource: ${resource.name} took ${resource.duration.toFixed(2)}ms`);
+            this.addMetricThrottled({
+              name: 'Resource Load Time',
+              value: resource.duration,
+              rating: resource.duration < 1000 ? 'good' : resource.duration < 2000 ? 'needs-improvement' : 'poor'
+            });
           }
-          
-          this.addMetric({
-            name: 'Resource Load Time',
-            value: resource.duration,
-            rating: resource.duration < 1000 ? 'good' : resource.duration < 2000 ? 'needs-improvement' : 'poor'
-          });
         }
       });
     });
@@ -208,75 +189,91 @@ class PerformanceMonitor {
     if (typeof window === 'undefined') return;
 
     window.addEventListener('error', (event: ErrorEvent) => {
-      console.error('[Performance] JavaScript Error:', {
-        message: event.message,
-        filename: event.filename,
-        lineno: event.lineno,
-        colno: event.colno,
-        error: event.error?.message || 'Unknown error'
+      // Only log critical errors in production
+      if (event.message.includes('ResizeObserver loop limit exceeded')) return;
+      
+      this.addMetricThrottled({
+        name: 'JavaScript Error',
+        value: 1,
+        rating: 'poor'
       });
     });
 
     window.addEventListener('unhandledrejection', (event: PromiseRejectionEvent) => {
-      console.error('[Performance] Unhandled Promise Rejection:', event.reason?.message || event.reason || 'Unknown rejection');
+      this.addMetricThrottled({
+        name: 'Unhandled Promise Rejection',
+        value: 1,
+        rating: 'poor'
+      });
     });
   }
 
-  // Add metric to collection
-  private addMetric(metric: Omit<PerformanceMetric, 'timestamp'>) {
-    const startTime = performance.now();
+  // Throttled metric addition to prevent overhead
+  private addMetricThrottled(metric: Omit<PerformanceMetric, 'timestamp'>) {
+    const now = Date.now();
+    
+    // Rate limiting
+    if (now - this.lastLogTime < this.LOG_COOLDOWN) {
+      return;
+    }
+    
+    this.lastLogTime = now;
     
     const fullMetric: PerformanceMetric = {
       ...metric,
-      timestamp: Date.now()
+      timestamp: now
     };
+    
+    // Limit stored metrics
+    if (this.metrics.length >= this.MAX_METRICS) {
+      this.metrics = this.metrics.slice(-this.MAX_METRICS + 1);
+    }
     
     this.metrics.push(fullMetric);
     
-    // DEBUG: Measure logging overhead
-    const loggingStartTime = performance.now();
-    
-    // Log to console in development
+    // Minimal logging in development
     if (process.env.NODE_ENV === 'development') {
-      console.log(`[Performance] ${metric.name}:`, metric);
+      console.log(`[Performance] ${metric.name}: ${metric.value.toFixed(2)}ms (${metric.rating})`);
     }
 
-    const loggingTime = performance.now() - loggingStartTime;
-    
-    // DEBUG: Alert on excessive logging overhead
-    if (loggingTime > 5) {
-      console.warn(`[Performance DEBUG] High logging overhead: ${loggingTime.toFixed(2)}ms for ${metric.name}`);
-    }
-
-    // Send to analytics endpoint
-    this.sendMetric(fullMetric);
-    
-    const totalTime = performance.now() - startTime;
-    if (totalTime > 10) {
-      console.warn(`[Performance DEBUG] High metric collection overhead: ${totalTime.toFixed(2)}ms for ${metric.name}`);
+    // Send to analytics endpoint only in production
+    if (process.env.NODE_ENV === 'production') {
+      this.sendMetric(fullMetric);
     }
   }
 
-  // Send metric to analytics
+  // Send metric to analytics with error handling
   private sendMetric(metric: PerformanceMetric) {
-    if (process.env.NODE_ENV === 'development') return;
-
-    // Send to analytics endpoint
-    fetch(this.reportEndpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
+    // Use sendBeacon for better performance
+    if (navigator.sendBeacon) {
+      const data = JSON.stringify({
         metric,
         buildInfo: this.buildInfo,
         url: window.location.href,
         timestamp: Date.now(),
         userAgent: navigator.userAgent
-      })
-    }).catch(error => {
-      console.error('[Performance] Failed to send metric:', error);
-    });
+      });
+      
+      navigator.sendBeacon(this.reportEndpoint, data);
+    } else {
+      // Fallback to fetch
+      fetch(this.reportEndpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          metric,
+          buildInfo: this.buildInfo,
+          url: window.location.href,
+          timestamp: Date.now(),
+          userAgent: navigator.userAgent
+        }),
+        keepalive: true
+      }).catch(() => {
+        // Silently fail
+      });
+    }
   }
 
   // Get performance report
@@ -307,13 +304,13 @@ class PerformanceMonitor {
 }
 
 // Export singleton instance
-export const performanceMonitor = new PerformanceMonitor();
+export const optimizedPerformanceMonitor = new OptimizedPerformanceMonitor();
 
 // Export hook for React components
-export function usePerformanceMonitor() {
-  const getReport = () => performanceMonitor.getReport();
-  const getScore = () => performanceMonitor.getScore();
-  const clearMetrics = () => performanceMonitor.clearMetrics();
+export function useOptimizedPerformanceMonitor() {
+  const getReport = () => optimizedPerformanceMonitor.getReport();
+  const getScore = () => optimizedPerformanceMonitor.getScore();
+  const clearMetrics = () => optimizedPerformanceMonitor.clearMetrics();
 
   return {
     getReport,

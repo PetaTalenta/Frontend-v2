@@ -17,8 +17,15 @@ const PasswordStrengthIndicator: React.FC<PasswordStrengthIndicatorProps> = ({
   password, 
   showRequirements = true 
 }) => {
+  // If no password, don't show anything
+  if (!password) {
+    return null;
+  }
+
   // Calculate password strength
   const calculateStrength = (pwd: string): number => {
+    if (!pwd) return 0;
+    
     let strength = 0;
     
     // Length check
@@ -120,11 +127,6 @@ const PasswordStrengthIndicator: React.FC<PasswordStrengthIndicatorProps> = ({
       met: /[^a-zA-Z\d]/.test(password)
     }
   ];
-
-  // If no password, don't show anything
-  if (!password) {
-    return null;
-  }
 
   return (
     <div className="space-y-3">

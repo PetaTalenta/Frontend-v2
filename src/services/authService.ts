@@ -8,7 +8,8 @@ import type { AssessmentResultResponse, AssessmentResultError } from '../types/a
 export interface SecurityEvent {
   type: 'LOGIN_SUCCESS' | 'LOGIN_FAILED' | 'LOGOUT_SUCCESS' | 'LOGOUT_FAILED' |
         'TOKEN_REFRESH' | 'TOKEN_EXPIRED' | 'SUSPICIOUS_ACTIVITY' | 'RATE_LIMIT_EXCEEDED' |
-        'UNAUTHORIZED_ACCESS' | 'ACCOUNT_DELETED' | 'SECURITY_VIOLATION';
+        'UNAUTHORIZED_ACCESS' | 'ACCOUNT_DELETED' | 'SECURITY_VIOLATION' |
+        'ASSESSMENT_ACCESS' | 'DATA_ACCESS'; // Add proper types for data access
   timestamp: string;
   userId?: string;
   details: any;
@@ -515,15 +516,36 @@ class ErrorRecoveryManager {
     const finalConfig = { ...this.DEFAULT_CONFIG, ...config };
     let lastError: any;
 
+    console.log('🔍 [DEBUG] ErrorRecoveryManager started:', {
+      maxRetries: finalConfig.maxRetries,
+      baseDelay: finalConfig.baseDelay,
+      maxDelay: finalConfig.maxDelay,
+      backoffFactor: finalConfig.backoffFactor,
+      timestamp: new Date().toISOString()
+    });
+
     for (let attempt = 0; attempt <= finalConfig.maxRetries; attempt++) {
       try {
-        return await operation();
+        console.log(`🔍 [DEBUG] Attempt ${attempt + 1}/${finalConfig.maxRetries + 1}: Executing operation...`);
+        const result = await operation();
+        console.log(`🔍 [DEBUG] Attempt ${attempt + 1}: Operation successful`);
+        return result;
       } catch (error: any) {
         lastError = error;
+
+        console.log(`🔍 [DEBUG] Attempt ${attempt + 1} failed:`, {
+          message: error.message,
+          status: error.response?.status,
+          statusText: error.response?.statusText,
+          data: error.response?.data,
+          shouldRetry: attempt < finalConfig.maxRetries && (!finalConfig.retryCondition || finalConfig.retryCondition(error)),
+          timestamp: new Date().toISOString()
+        });
 
         // Check if we should retry
         if (attempt === finalConfig.maxRetries ||
             (finalConfig.retryCondition && !finalConfig.retryCondition(error))) {
+          console.log(`🔍 [DEBUG] No more retries. Throwing final error:`, error.message);
           throw error;
         }
 
@@ -605,6 +627,16 @@ class AuthService {
     // Request interceptor untuk menambahkan authorization header
     this.apiClient.interceptors.request.use(
       (config) => {
+        // Debug logging for outgoing requests
+        console.log('🔍 [DEBUG] Axios request interceptor:', {
+          url: config.url,
+          method: config.method,
+          baseURL: config.baseURL,
+          headers: config.headers,
+          data: config.url?.includes('/login') ? '[REDACTED - Login data]' : config.data,
+          timestamp: new Date().toISOString()
+        });
+
         // Rate limiting check - disabled for development
         // if (!this.rateLimiter.isAllowed()) {
         //   SecurityLogger.logRateLimitExceeded({
@@ -623,14 +655,35 @@ class AuthService {
         return config;
       },
       (error) => {
+        console.log('🔍 [DEBUG] Axios request interceptor error:', error);
         return Promise.reject(error);
       }
     );
 
     // Response interceptor untuk handle token refresh
     this.apiClient.interceptors.response.use(
-      (response) => response,
+      (response) => {
+        // Debug logging for successful responses
+        console.log('🔍 [DEBUG] Axios response interceptor success:', {
+          url: response.config.url,
+          status: response.status,
+          statusText: response.statusText,
+          timestamp: new Date().toISOString()
+        });
+        return response;
+      },
       async (error) => {
+        // Debug logging for error responses
+        console.log('🔍 [DEBUG] Axios response interceptor error:', {
+          url: error.config?.url,
+          method: error.config?.method,
+          status: error.response?.status,
+          statusText: error.response?.statusText,
+          data: error.response?.data,
+          message: error.message,
+          timestamp: new Date().toISOString()
+        });
+
         const originalRequest = error.config;
 
         if (error.response?.status === 401 && !originalRequest._retry) {
@@ -702,6 +755,20 @@ class AuthService {
   async login(data: LoginData): Promise<LoginResponse> {
     return await ErrorRecoveryManager.retryWithBackoff(async () => {
       try {
+        // Debug logging for request details
+        console.log('🔍 [DEBUG] Login request details:', {
+          url: `${BASE_URL}/api/auth/v2/login`,
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          data: {
+            email: data.email,
+            password: '[REDACTED]' // Don't log actual password
+          },
+          timestamp: new Date().toISOString()
+        });
+
         const response: AxiosResponse<LoginResponse> = await this.apiClient.post(
           '/api/auth/v2/login',
           data,
@@ -711,6 +778,14 @@ class AuthService {
             }
           }
         );
+
+        // Debug logging for response details
+        console.log('🔍 [DEBUG] Login response details:', {
+          status: response.status,
+          statusText: response.statusText,
+          data: response.data,
+          timestamp: new Date().toISOString()
+        });
 
         if (response.data.success) {
           // Log successful login
@@ -756,6 +831,20 @@ class AuthService {
 
         return response.data;
       } catch (error: any) {
+        // Enhanced debug logging for error details
+        console.log('🔍 [DEBUG] Login error details:', {
+          message: error.message,
+          status: error.response?.status,
+          statusText: error.response?.statusText,
+          data: error.response?.data,
+          config: {
+            url: error.config?.url,
+            method: error.config?.method,
+            headers: error.config?.headers,
+          },
+          timestamp: new Date().toISOString()
+        });
+
         // Log failed login attempt
         EnhancedSecurityLogger.logSecurityEvent({
           type: 'LOGIN_FAILED',
@@ -1346,9 +1435,18 @@ class AuthService {
           `/api/archive/results/${id}`
         );
 
+        // DEBUG: Check if this is actually unauthorized access or normal access
+        const debugStartTime = performance.now();
+        console.log(`[DEBUG] Assessment result access attempt:`, {
+          resultId: id,
+          userId: this.getCurrentUser()?.uid,
+          isAuthenticated: this.isAuthenticated(),
+          timestamp: new Date().toISOString()
+        });
+        
         // Log successful access for security monitoring
         EnhancedSecurityLogger.logSecurityEvent({
-          type: 'UNAUTHORIZED_ACCESS', // Using existing type for data access logging
+          type: 'ASSESSMENT_ACCESS', // Correct classification for assessment access
           userId: this.getCurrentUser()?.uid,
           details: {
             action: 'access_assessment_result',
@@ -1356,6 +1454,9 @@ class AuthService {
             timestamp: new Date().toISOString()
           },
         });
+        
+        const debugTime = performance.now() - debugStartTime;
+        console.log(`[DEBUG] Security logging overhead: ${debugTime.toFixed(2)}ms`);
 
         return response.data;
       } catch (error: any) {
@@ -1449,7 +1550,10 @@ class AuthService {
       const code = error.response?.data?.error?.code;
       const status = error.response?.status;
       
-      return new ApiError(message, status, code, error.response?.data);
+      // Ensure response data is properly handled to prevent undefined errors
+      const responseData = error.response?.data || {};
+      
+      return new ApiError(message, status, code, responseData);
     }
     
     return new ApiError(error.message || 'An unknown error occurred');

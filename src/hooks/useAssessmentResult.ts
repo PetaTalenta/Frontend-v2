@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import authService, { ApiError } from '@/services/authService';
-import { queryKeys, queryInvalidation, queryPrefetch } from '@/lib/tanStackConfig';
+import { queryKeys, queryInvalidation, queryPrefetch, CACHE_CONFIG } from '@/lib/tanStackConfig';
 import { transformAssessmentResult } from '@/utils/dataTransformations';
 import type {
   AssessmentResultResponse,
@@ -9,13 +9,15 @@ import type {
   AssessmentResultTransformed
 } from '@/types/assessment-results';
 
-// Default options for the hook - synchronized with AssessmentDataContext
+// Default options for the hook - synchronized with AssessmentDataContext and 1-hour cache
 const DEFAULT_OPTIONS: UseAssessmentResultOptions = {
   enabled: true,
-  staleTime: 15 * 60 * 1000, // 15 minutes - synchronized with AssessmentDataContext
-  cacheTime: 30 * 60 * 1000, // 30 minutes - synchronized with AssessmentDataContext
+  staleTime: CACHE_CONFIG.assessment.staleTime, // 1 hour - synchronized with AssessmentDataContext
+  cacheTime: CACHE_CONFIG.assessment.gcTime, // 1.5 hours - synchronized with AssessmentDataContext
   retry: 3,
   retryDelay: 1000,
+  refetchInterval: CACHE_CONFIG.assessment.refetchInterval, // Auto-refresh every 1 hour
+  refetchIntervalInBackground: CACHE_CONFIG.assessment.refetchIntervalInBackground,
 };
 
 /**
@@ -40,6 +42,8 @@ export function useAssessmentResult(
     gcTime: mergedOptions.cacheTime, // Use cacheTime from options but map to gcTime for TanStack Query v5
     retry: mergedOptions.retry,
     retryDelay: mergedOptions.retryDelay,
+    refetchInterval: mergedOptions.refetchInterval,
+    refetchIntervalInBackground: mergedOptions.refetchIntervalInBackground,
     // Select only the data part for easier consumption
     select: (data: AssessmentResultResponse): AssessmentResultResponse => data,
     // Error boundary integration

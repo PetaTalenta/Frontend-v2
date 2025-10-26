@@ -1,9 +1,8 @@
 'use client';
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys, queryPrefetch } from '../lib/tanStackConfig';
-import { useAssessmentData } from '../contexts/AssessmentDataContext';
 
 interface UseAssessmentPrefetchOptions {
   enabled?: boolean;
@@ -12,11 +11,21 @@ interface UseAssessmentPrefetchOptions {
   prefetchOnDataChange?: boolean;
 }
 
+interface AssessmentDataForPrefetch {
+  data: any;
+  isLoading: boolean;
+  isDataFresh: () => boolean;
+  assessmentId: string;
+}
+
 /**
  * Custom hook for smart prefetching of assessment data
  * Automatically prefetches data for all sub-pages when main data is available
  */
-export function useAssessmentPrefetch(options: UseAssessmentPrefetchOptions = {}) {
+export function useAssessmentPrefetch(
+  assessmentData: AssessmentDataForPrefetch | null,
+  options: UseAssessmentPrefetchOptions = {}
+) {
   const {
     enabled = true,
     delay = 1000, // 1 second default delay
@@ -25,9 +34,18 @@ export function useAssessmentPrefetch(options: UseAssessmentPrefetchOptions = {}
   } = options;
 
   const queryClient = useQueryClient();
-  const { data, isLoading, isDataFresh, assessmentId } = useAssessmentData();
   const prefetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const hasPrefetchedRef = useRef(false);
+  
+  // Use provided assessment data or default values
+  const data = assessmentData?.data;
+  const isLoading = assessmentData?.isLoading ?? true;
+  const assessmentId = assessmentData?.assessmentId ?? '';
+  
+  // Memoize the isDataFresh function to prevent unnecessary re-renders
+  const isDataFresh = useMemo(() => {
+    return assessmentData?.isDataFresh ?? (() => false);
+  }, [assessmentData?.isDataFresh]);
 
   // Clear timeout on unmount
   useEffect(() => {
@@ -174,11 +192,15 @@ export function useAssessmentPrefetch(options: UseAssessmentPrefetchOptions = {}
  */
 export function useAssessmentPrefetchByType(
   type: 'riasec' | 'ocean' | 'via' | 'persona',
+  assessmentData: AssessmentDataForPrefetch | null,
   options: UseAssessmentPrefetchOptions = {}
 ) {
   const queryClient = useQueryClient();
-  const { data, assessmentId } = useAssessmentData();
   const { enabled = true, delay = 500 } = options;
+  
+  // Use provided assessment data or default values
+  const data = assessmentData?.data;
+  const assessmentId = assessmentData?.assessmentId ?? '';
 
   const prefetchSpecificData = useCallback(async () => {
     if (!enabled || !assessmentId || !data) {

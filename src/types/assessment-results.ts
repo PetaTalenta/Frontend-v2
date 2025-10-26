@@ -144,6 +144,8 @@ export interface UseAssessmentResultOptions {
   cacheTime?: number;
   retry?: number | boolean;
   retryDelay?: number;
+  refetchInterval?: number | false;
+  refetchIntervalInBackground?: boolean;
 }
 
 // Transformation function types

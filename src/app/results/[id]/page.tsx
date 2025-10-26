@@ -18,11 +18,12 @@ export default function ResultsPage() {
   const resultId = params.id as string;
   
   // Use assessment data context for centralized data management
-  const { getSpecificData, isLoading, error, refresh } = useAssessmentData();
+  const { getSpecificData, isLoading, isFetching, error, refresh } = useAssessmentData();
   const transformedData = getSpecificData('all');
 
   // Consistent loading state across all dynamic pages
-  if (isLoading) {
+  // Show loading while data is being fetched or processed to prevent flash
+  if (isLoading || isFetching || (!transformedData && !error)) {
     return <LoadingSkeleton />;
   }
 

@@ -1,9 +1,9 @@
 'use client';
 
-import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useState, ReactNode, useRef, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import authService from '../services/authService';
-import { queryKeys, assessmentCacheStrategy } from '../lib/tanStackConfig';
+import { queryKeys, assessmentCacheStrategy, CACHE_CONFIG } from '../lib/tanStackConfig';
 import { transformAssessmentResult } from '../utils/dataTransformations';
 import { useAssessmentPrefetch, useAssessmentPrefetchByType } from '../hooks/useAssessmentPrefetch';
 import type { AssessmentResultResponse, AssessmentResultTransformed } from '../types/assessment-results';
@@ -107,24 +107,61 @@ interface AssessmentDataProviderProps {
   assessmentId: string;
 }
 
-// Cache configuration
-const CACHE_CONFIG = {
-  staleTime: 15 * 60 * 1000, // 15 minutes
-  gcTime: 30 * 60 * 1000, // 30 minutes
+// User activity tracking for smart refresh
+const useUserActivity = () => {
+  const activityTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [isActive, setIsActive] = React.useState(true);
+
+  const resetActivityTimeout = useCallback(() => {
+    if (activityTimeoutRef.current) {
+      clearTimeout(activityTimeoutRef.current);
+    }
+    
+    setIsActive(true);
+    
+    // Set user as inactive after 5 minutes of no activity
+    activityTimeoutRef.current = setTimeout(() => {
+      setIsActive(false);
+    }, 5 * 60 * 1000);
+  }, []);
+
+  const handleUserActivity = useCallback(() => {
+    resetActivityTimeout();
+  }, [resetActivityTimeout]);
+
+  useEffect(() => {
+    // Set up event listeners for user activity
+    const events = ['click', 'keydown', 'scroll', 'mousemove'];
+    
+    events.forEach(event => {
+      document.addEventListener(event, handleUserActivity);
+    });
+
+    // Initialize activity tracking
+    resetActivityTimeout();
+
+    return () => {
+      events.forEach(event => {
+        document.removeEventListener(event, handleUserActivity);
+      });
+      
+      if (activityTimeoutRef.current) {
+        clearTimeout(activityTimeoutRef.current);
+      }
+    };
+  }, [handleUserActivity, resetActivityTimeout]);
+
+  return isActive;
 };
 
 // Provider component
 export function AssessmentDataProvider({ children, assessmentId }: AssessmentDataProviderProps) {
   const queryClient = useQueryClient();
   const [state, dispatch] = useReducer(assessmentDataReducer, initialState);
+  const isActive = useUserActivity();
   
-  // Phase 2: Smart prefetching hook
-  const { prefetchAll, canPrefetch } = useAssessmentPrefetch({
-    enabled: !!assessmentId,
-    delay: 1000, // 1 second delay
-    prefetchOnMount: true,
-    prefetchOnDataChange: true,
-  });
+  // We'll initialize prefetching after the context is ready to avoid circular dependency
+  const [prefetchEnabled, setPrefetchEnabled] = useState(false);
 
   // Set assessment ID when it changes
   useEffect(() => {
@@ -134,13 +171,15 @@ export function AssessmentDataProvider({ children, assessmentId }: AssessmentDat
     }
   }, [assessmentId, state.assessmentId]);
 
-  // Query for assessment data
+  // Query for assessment data with 1-hour cache and auto-refresh
   const query = useQuery({
     queryKey: queryKeys.assessments.result(assessmentId),
     queryFn: () => authService.getAssessmentResult(assessmentId),
     enabled: !!assessmentId,
-    staleTime: CACHE_CONFIG.staleTime,
-    gcTime: CACHE_CONFIG.gcTime,
+    staleTime: CACHE_CONFIG.assessment.staleTime,
+    gcTime: CACHE_CONFIG.assessment.gcTime,
+    refetchInterval: isActive ? CACHE_CONFIG.assessment.activeUserRefetchInterval : CACHE_CONFIG.assessment.refetchInterval,
+    refetchIntervalInBackground: CACHE_CONFIG.assessment.refetchIntervalInBackground,
     retry: 3,
     retryDelay: 1000,
     // Error handling
@@ -171,12 +210,40 @@ export function AssessmentDataProvider({ children, assessmentId }: AssessmentDat
     }
   }, [query.isLoading, query.isFetching, query.error, query.data]);
 
+  // Enable prefetching after the context is fully initialized
+  useEffect(() => {
+    // Only enable prefetching after the first render to avoid circular dependency
+    const timer = setTimeout(() => {
+      setPrefetchEnabled(true);
+    }, 0);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Phase 2: Smart prefetching hook - only initialize after context is ready
+  const prefetchData = useAssessmentPrefetch(
+    prefetchEnabled ? {
+      data: query.data,
+      isLoading: query.isLoading,
+      isDataFresh: () => {
+        if (!state.lastUpdated) return false;
+        return Date.now() - state.lastUpdated < CACHE_CONFIG.assessment.staleTime;
+      },
+      assessmentId: assessmentId,
+    } : null,
+    {
+      enabled: prefetchEnabled && !!assessmentId,
+      delay: 1000, // 1 second delay
+      prefetchOnMount: true,
+      prefetchOnDataChange: true,
+    }
+  );
+
   // Phase 2: Trigger smart prefetching when data is available
   useEffect(() => {
-    if (query.data && canPrefetch && assessmentId) {
-      prefetchAll();
+    if (query.data && prefetchData.canPrefetch && assessmentId && prefetchEnabled) {
+      prefetchData.prefetchAll();
     }
-  }, [query.data, canPrefetch, assessmentId, prefetchAll]);
+  }, [query.data, prefetchData, assessmentId, prefetchEnabled, state.lastUpdated]);
 
   // Action functions
   const refresh = () => {
@@ -222,7 +289,7 @@ export function AssessmentDataProvider({ children, assessmentId }: AssessmentDat
   };
 
   // Utility functions
-  const isDataFresh = (maxAgeMs: number = CACHE_CONFIG.staleTime) => {
+  const isDataFresh = (maxAgeMs: number = CACHE_CONFIG.assessment.staleTime) => {
     if (!state.lastUpdated) return false;
     return Date.now() - state.lastUpdated < maxAgeMs;
   };
@@ -319,19 +386,25 @@ export function useAssessmentDataWithPrefetch(
   const { getSpecificData, isLoading, isError, error, isDataFresh, assessmentId } = useAssessmentData();
   const queryClient = useQueryClient();
   
+  // Get specific data with memoization first
+  const data = React.useMemo(() => {
+    return getSpecificData(type);
+  }, [getSpecificData, type]);
+  
   // Always call the hook, but disable it for 'all' type
   const { prefetch: prefetchSpecific, isPrefetched } = useAssessmentPrefetchByType(
     type === 'all' ? 'riasec' : type, // Default to 'riasec' for 'all' type, but will be disabled
+    {
+      data: data,
+      isLoading: isLoading,
+      isDataFresh: isDataFresh,
+      assessmentId: assessmentId || '',
+    },
     {
       enabled: enablePrefetch && type !== 'all',
       delay: prefetchDelay,
     }
   );
-  
-  // Get specific data with memoization
-  const data = React.useMemo(() => {
-    return getSpecificData(type);
-  }, [getSpecificData, type]);
   
   // Get prefetched data if available
   const prefetchedData = React.useMemo(() => {

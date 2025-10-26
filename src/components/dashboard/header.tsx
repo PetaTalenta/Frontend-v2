@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useRef } from "react"
+import React, { useEffect, useRef, useState } from "react"
 import { Button } from "./button"
 import {
   DropdownMenu,
@@ -17,12 +17,22 @@ import { TrendingUp, LogOut } from "lucide-react"
 const useHeaderPerformanceLogging = () => {
   const renderCount = useRef(0);
   const renderStartTime = useRef<number>(0);
+  const lastRenderTime = useRef<number>(0);
   
   useEffect(() => {
     renderCount.current += 1;
     renderStartTime.current = performance.now();
     
-    console.log(`[Header Performance] Render #${renderCount.current} started at ${renderStartTime.current}`);
+    // DEBUG: Add detailed performance analysis
+    const now = performance.now();
+    const timeSinceLastRender = lastRenderTime.current ? now - lastRenderTime.current : 0;
+    
+    console.log(`[Header Performance DEBUG] Render #${renderCount.current} started`);
+    console.log(`[Header Performance DEBUG] Time since last render: ${timeSinceLastRender.toFixed(2)}ms`);
+    // DEBUG: Check memory usage if available
+    if ('memory' in performance) {
+      console.log(`[Header Performance DEBUG] Memory usage: ${JSON.stringify((performance as any).memory)}`);
+    }
     
     // Log responsive breakpoint
     const width = window.innerWidth;
@@ -32,9 +42,23 @@ const useHeaderPerformanceLogging = () => {
     
     console.log(`[Header Performance] Current breakpoint: ${breakpoint} (${width}px)`);
     
+    // DEBUG: Check for expensive operations
+    const expensiveOperationsStart = performance.now();
+    
     return () => {
       const renderTime = performance.now() - renderStartTime.current;
+      const expensiveOperationsTime = performance.now() - expensiveOperationsStart;
+      
       console.log(`[Header Performance] Render #${renderCount.current} completed in ${renderTime.toFixed(2)}ms`);
+      console.log(`[Header Performance DEBUG] Expensive operations took: ${expensiveOperationsTime.toFixed(2)}ms`);
+      
+      // DEBUG: Alert on slow renders
+      if (renderTime > 1000) {
+        console.error(`[Header Performance CRITICAL] Slow render detected: ${renderTime.toFixed(2)}ms`);
+        console.trace(`[Header Performance CRITICAL] Render stack trace for slow render #${renderCount.current}`);
+      }
+      
+      lastRenderTime.current = now;
     };
   });
   
@@ -53,6 +77,32 @@ function getUserInitials(username?: string, name?: string, email?: string) {
     return email[0].toUpperCase();
   }
   return '?';
+}
+
+// Component to handle hydration-aware user initials
+function HydrationAwareUserInitials({
+  username,
+  name,
+  email
+}: {
+  username?: string;
+  name?: string;
+  email?: string;
+}) {
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
+
+  // During SSR and initial hydration, show placeholder to match server
+  if (!isHydrated) {
+    return <span className="opacity-0">?</span>;
+  }
+
+  // After hydration, show actual initials
+  const initials = getUserInitials(username, name, email);
+  return <span>{initials}</span>;
 }
 
 // Utility to get user display name
@@ -190,7 +240,11 @@ function HeaderComponent({
                   <Avatar className="h-10 w-10">
                     <AvatarImage src='' alt={getUserDisplayName(user)} />
                     <AvatarFallback className="text-white bg-dashboard-primary-blue">
-                      {getUserInitials(user?.username, user?.name, user?.email)}
+                      <HydrationAwareUserInitials
+                        username={user?.username}
+                        name={user?.name}
+                        email={user?.email}
+                      />
                     </AvatarFallback>
                   </Avatar>
                 </Button>
@@ -228,7 +282,11 @@ function HeaderComponent({
               <Avatar className="h-10 w-10">
                 <AvatarImage src='' alt={getUserDisplayName(user)} />
                 <AvatarFallback className="text-white bg-dashboard-primary-blue">
-                  {getUserInitials(user?.username, user?.name, user?.email)}
+                  <HydrationAwareUserInitials
+                    username={user?.username}
+                    name={user?.name}
+                    email={user?.email}
+                  />
                 </AvatarFallback>
               </Avatar>
             </Button>

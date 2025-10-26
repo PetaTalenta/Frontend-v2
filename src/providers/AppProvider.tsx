@@ -2,7 +2,7 @@
 
 import React, { ReactNode, useEffect } from 'react';
 import { TanStackProvider } from './QueryProvider';
-import { performanceMonitor } from '../lib/performance';
+import { optimizedPerformanceMonitor } from '../lib/performance-optimized';
 
 interface AppProviderProps {
   children: ReactNode;
@@ -12,7 +12,7 @@ interface AppProviderProps {
 export function AppProvider({ children }: AppProviderProps) {
   // Initialize performance monitoring
   useEffect(() => {
-    performanceMonitor.init();
+    optimizedPerformanceMonitor.init();
   }, []);
 
   return (
